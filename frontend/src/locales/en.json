@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "mission": "Mission",
+    "stories": "Stories",
+    "events": "Events",
+    "gallery": "Gallery",
+    "community": "Community",
+    "login": "Login",
+    "join": "Join",
+    "profile": "Profile"
+  },
+  "home": {
+    "title": "Conquer Your Limits",
+    "subtitle": "Join the premier mountaineering community for Mallus worldwide.",
+    "explore": "Explore Expeditions",
+    "watch": "Watch Film"
+  },
+  "hero": {
+    "tagline": "Beyond the Clouds, Beyond the Self.",
+    "sub_tagline": "A premier community uniting adventurers, alpinists, and dreamers to conquer the highest peaks and the deepest fears.",
+    "cta_primary": "Join the Expedition",
+    "cta_secondary": "Explore the Summit",
+    "stat_members": "Active Members",
+    "stat_expeditions": "Expeditions",
+    "stat_summits": "Summits Reached"
+  },
+  "mission": {
+    "title": "Our Mission",
+    "heading": "Elevating the Spirit of Adventure",
+    "description": "We are a brotherhood of climbers dedicated to pushing the boundaries of human endurance. Our mission is to foster a culture of safety, respect for nature, and relentless pursuit of the summit.",
+    "vision_title": "Our Vision",
+    "vision_desc": "To be the leading global platform connecting, training, and inspiring the next generation of mountaineers."
+  },
+  "pillars": {
+    "leadership_subtitle": "Leadership",
+    "title": "Pillars of the Community",
+    "subtitle": "The heartbeat of Mountaineer Mallu. Our seasoned team leads ensure every expedition is safe, thrilling, and unforgettable.",
+    "meet_team": "Meet the Full Core",
+    "p1_title": "Brotherhood",
+    "p1_desc": "Forging unbreakable bonds through shared hardships and triumphs on the mountain.",
+    "p2_title": "Endurance",
+    "p2_desc": "Training the mind and body to withstand the harshest environments on earth.",
+    "p3_title": "Respect",
+    "p3_desc": "Honoring the mountains, local cultures, and the delicate ecosystems we explore.",
+    "p4_title": "Excellence",
+    "p4_desc": "Striving for the highest standards in technical skill, safety, and leadership."
+  },
+  "stories": {
+    "title": "Expedition Logs",
+    "subtitle": "Real stories from the frontlines of adventure",
+    "read_more": "Read Full Story",
+    "view_all": "View All Logs"
+  },
+  "events": {
+    "operations_subtitle": "Upcoming Operations",
+    "title": "Upcoming Expeditions",
+    "subtitle": "Join us on our next adventure. Whether you are a seasoned mountaineer or a beginner looking for a community, there is a path for you.",
+    "full_calendar": "Full Calendar",
+    "inspect_route": "Inspect Route",
+    "register": "Register Interest",
+    "spots_left": "spots remaining"
+  },
+  "gallery": {
+    "title": "The Summit Gallery",
+    "subtitle": "Capturing the raw beauty of the high alpine",
+    "view_more": "Explore Gallery"
+  },
+  "reviews": {
+    "title": "The Legacy",
+    "subtitle": "Don't just take our word for it. Read raw accounts from those who have touched the sky with us.",
+    "average_rating": "Average Rating",
+    "summits_reached": "Summits Reached",
+    "verified_climber": "Verified Climber"
+  },
+  "community": {
+    "join_brotherhood": "Join the Brotherhood",
+    "title": "Community Pulse",
+    "subtitle": "We are more than a club. We are a brotherhood united by the elements. Engage with members, share beta, and find your next climbing partner.",
+    "become_member": "Become a Member",
+    "access_comms": "Access Comms",
+    "join_now": "Join Now"
+  },
+  "auth": {
+    "login_title": "Expedition Access",
+    "login_subtitle": "Enter your credentials to continue",
+    "email_placeholder": "Email Address",
+    "password_placeholder": "Password",
+    "forgot_password": "Forgot password?",
+    "access_command": "Access Command",
+    "new_explorer": "New explorer?",
+    "signup_link": "Sign up for the expedition",
+    "signup_title": "Join the Community",
+    "signup_subtitle": "Prepare for your next expedition",
+    "username_placeholder": "Unique Username",
+    "confirm_password": "Confirm Password",
+    "consent": "I consent to receiving event notifications and community updates (GDPR compliant).",
+    "begin_journey": "Begin Journey",
+    "already_member": "Already a member?"
+  },
+  "footer": {
+    "about": "About Us",
+    "contact": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "rights": "All rights reserved."
+  },
+  "contact": {
+    "get_in_touch": "Get in Touch",
+    "base_camp": "Base Camp",
+    "description": "Ready for your next ascent? Connect with us for expedition details, membership, or general inquiries.",
+    "open_communications": "Open Communications",
+    "hq": "HQ",
+    "dispatch": "Dispatch",
+    "emergency_direct": "Emergency Direct",
+    "rights": "© 2025 Mountaineer Mallu. All rights reserved.",
+    "crafted_with_love": "Crafted with ❤️ for the mountains"
+  },
+  "dynamic_stories": {
+    "1": {
+      "title": "The Eiger North Face",
+      "region": "Swiss Alps"
+    },
+    "2": {
+      "title": "Dolomites Sunrise",
+      "region": "Italy"
+    },
+    "3": {
+      "title": "Mont Blanc Circuit",
+      "region": "France"
+    },
+    "4": {
+      "title": "Zugspitze Summit",
+      "region": "Germany"
+    },
+    "5": {
+      "title": "Matterhorn Ascent",
+      "region": "Switzerland"
+    }
+  }
+}

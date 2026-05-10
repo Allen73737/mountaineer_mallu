@@ -1,0 +1,125 @@
+{
+  "nav": {
+    "mission": "Mission",
+    "stories": "Geschichten",
+    "events": "Veranstaltungen",
+    "gallery": "Galerie",
+    "community": "Gemeinschaft",
+    "login": "Anmelden",
+    "join": "Beitreten",
+    "profile": "Profil"
+  },
+  "home": {
+    "title": "Erobere deine Grenzen",
+    "subtitle": "Tritt der führenden Bergsteiger-Community für Mallus weltweit bei.",
+    "explore": "Expeditionen entdecken",
+    "watch": "Film ansehen"
+  },
+  "hero": {
+    "tagline": "Jenseits der Wolken, jenseits des Selbst.",
+    "sub_tagline": "Eine führende Gemeinschaft, die Abenteurer, Alpinisten und Träumer vereint, um die höchsten Gipfel zu erobern.",
+    "cta_primary": "Der Expedition beitreten",
+    "cta_secondary": "Gipfel entdecken",
+    "stat_members": "Aktive Mitglieder",
+    "stat_expeditions": "Expeditionen",
+    "stat_summits": "Erreichte Gipfel"
+  },
+  "mission": {
+    "title": "Unsere Mission",
+    "heading": "Den Geist des Abenteuers erheben",
+    "description": "Wir sind eine Bruderschaft von Kletterern, die sich der Erweiterung der Grenzen menschlicher Ausdauer widmen. Unsere Mission ist es, eine Kultur der Sicherheit und des Respekts vor der Natur zu fördern.",
+    "vision_title": "Unsere Vision",
+    "vision_desc": "Die führende globale Plattform zu sein, die die nächste Generation von Bergsteigern verbindet, ausbildet und inspiriert."
+  },
+  "pillars": {
+    "title": "Die Vier Säulen",
+    "subtitle": "Das Fundament unserer Gemeinschaft",
+    "p1_title": "Bruderschaft",
+    "p1_desc": "Unzerbrechliche Bande knüpfen durch gemeinsame Entbehrungen und Triumphe am Berg.",
+    "p2_title": "Ausdauer",
+    "p2_desc": "Geist und Körper trainieren, um den härtesten Umgebungen der Erde standzuhalten.",
+    "p3_title": "Respekt",
+    "p3_desc": "Die Berge, lokale Kulturen und die empfindlichen Ökosysteme, die wir erkunden, ehren.",
+    "p4_title": "Exzellenz",
+    "p4_desc": "Streben nach höchsten Standards in technischem Können, Sicherheit und Führung."
+  },
+  "stories": {
+    "title": "Expeditionsberichte",
+    "subtitle": "Echte Geschichten von der Front des Abenteuers",
+    "read_more": "Ganze Geschichte lesen",
+    "view_all": "Alle Berichte ansehen"
+  },
+  "events": {
+    "title": "Kommende Expeditionen",
+    "subtitle": "Begleiten Sie uns auf unserem nächsten Abenteuer",
+    "register": "Interesse anmelden",
+    "spots_left": "Plätze übrig"
+  },
+  "gallery": {
+    "title": "Die Gipfelgalerie",
+    "subtitle": "Die raue Schönheit der Hochalpen einfangen",
+    "view_more": "Galerie erkunden"
+  },
+  "community": {
+    "title": "Tritt der Bruderschaft bei",
+    "subtitle": "Verbinde dich mit anderen Alpinisten, teile Wissen und finde deinen nächsten Kletterpartner.",
+    "join_now": "Mitglied werden"
+  },
+  "auth": {
+    "login_title": "Expeditionszugang",
+    "login_subtitle": "Geben Sie Ihre Zugangsdaten ein, um fortzufahren",
+    "email_placeholder": "E-Mail Adresse",
+    "password_placeholder": "Passwort",
+    "forgot_password": "Passwort vergessen?",
+    "access_command": "Zugriffsbefehl",
+    "new_explorer": "Neuer Entdecker?",
+    "signup_link": "Für die Expedition anmelden",
+    "signup_title": "Der Gemeinschaft beitreten",
+    "signup_subtitle": "Bereiten Sie sich auf Ihre nächste Expedition vor",
+    "username_placeholder": "Eindeutiger Benutzername",
+    "confirm_password": "Passwort bestätigen",
+    "consent": "Ich stimme dem Erhalt von Benachrichtigungen zu (DSGVO-konform).",
+    "begin_journey": "Reise beginnen",
+    "already_member": "Bereits Mitglied?"
+  },
+  "footer": {
+    "about": "Über Uns",
+    "contact": "Kontakt",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "rights": "Alle Rechte vorbehalten."
+  },
+  "contact": {
+    "get_in_touch": "In Kontakt kommen",
+    "base_camp": "Basislager",
+    "description": "Bereit für den nächsten Aufstieg? Kontaktieren Sie uns für Expeditionsdetails, Mitgliedschaft oder allgemeine Anfragen.",
+    "open_communications": "Kommunikation öffnen",
+    "hq": "Hauptquartier",
+    "dispatch": "Zentrale",
+    "emergency_direct": "Notfall-Direktkontakt",
+    "rights": "© 2025 Mountaineer Mallu. Alle Rechte vorbehalten.",
+    "crafted_with_love": "Mit ❤️ für die Berge gemacht"
+  },
+  "dynamic_stories": {
+    "1": {
+      "title": "Die Eiger-Nordwand",
+      "region": "Schweizer Alpen"
+    },
+    "2": {
+      "title": "Dolomiten-Sonnenaufgang",
+      "region": "Italien"
+    },
+    "3": {
+      "title": "Mont-Blanc-Runde",
+      "region": "Frankreich"
+    },
+    "4": {
+      "title": "Zugspitze Gipfel",
+      "region": "Deutschland"
+    },
+    "5": {
+      "title": "Matterhorn-Besteigung",
+      "region": "Schweiz"
+    }
+  }
+}
