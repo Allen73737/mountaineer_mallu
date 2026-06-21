@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import { User, LogIn, UserPlus, Menu, Clock, Globe, AlertCircle, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,41 @@ import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSiteSettings } from '../../store/useSiteSettings';
 import { DynamicLogo } from '../ui/DynamicLogo';
+
+// Reusable Magnetic Button wrapper for nav links
+const MagneticButton = ({ children, className, onMouseEnter, onMouseLeave }: any) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+
+    const handleMouse = (e: React.MouseEvent) => {
+        if (!ref.current) return;
+        const { clientX, clientY } = e;
+        const { height, width, left, top } = ref.current.getBoundingClientRect();
+        const middleX = clientX - (left + width / 2);
+        const middleY = clientY - (top + height / 2);
+        // Magnetic strength multiplier (0.3 = moderate pull)
+        setPosition({ x: middleX * 0.3, y: middleY * 0.3 });
+    };
+
+    const reset = () => {
+        setPosition({ x: 0, y: 0 });
+        if (onMouseLeave) onMouseLeave();
+    };
+
+    return (
+        <motion.div
+            ref={ref}
+            onMouseMove={handleMouse}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={reset}
+            animate={{ x: position.x, y: position.y }}
+            transition={{ type: "spring", stiffness: 300, damping: 20, mass: 0.5 }}
+            className={className}
+        >
+            {children}
+        </motion.div>
+    );
+};
 
 const navLinks = [
     { nameKey: 'nav.mission', href: '#mission' },
@@ -35,7 +70,17 @@ export const Navbar = () => {
         return settings.sections[link.sectionKey] !== 'hidden';
     });
 
-    const { scrollYProgress } = useScroll();
+    const { scrollY, scrollYProgress } = useScroll();
+    const [hidden, setHidden] = useState(false);
+
+    useMotionValueEvent(scrollY, "change", (latest: number) => {
+        const previous = scrollY.getPrevious() || 0;
+        if (latest > previous && latest > 150) {
+            setHidden(true); // Scroll down -> hide
+        } else {
+            setHidden(false); // Scroll up -> show
+        }
+    });
 
     useEffect(() => {
         const handleScroll = () => {
@@ -76,10 +121,14 @@ export const Navbar = () => {
 
     return (
         <motion.header
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            className={`fixed top-0 left-0 right-0 z-40 transition-all duration-700 ${scrolled ? 'py-3 md:py-5' : 'py-6 md:py-10'}`}
+            variants={{
+                visible: { y: 0, opacity: 1 },
+                hidden: { y: -120, opacity: 0 }
+            }}
+            initial="visible"
+            animate={hidden ? "hidden" : "visible"}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className={`fixed top-0 left-0 right-0 z-40 transition-all duration-700 ${scrolled ? 'py-2 md:py-5' : 'py-4 md:py-10'}`}
         >
             <div className="max-w-[90rem] mx-auto px-4 md:px-8">
                 <div
@@ -125,19 +174,23 @@ export const Navbar = () => {
                                 <a
                                     key={link.nameKey}
                                     href={link.href}
-                                    onMouseEnter={() => setHoveredLink(link.nameKey)}
-                                    onMouseLeave={() => setHoveredLink(null)}
-                                    className={`relative px-5 xl:px-6 py-3 text-sm xl:text-[15px] font-bold tracking-[0.05em] hover:text-[#0B0C10] dark:hover:text-white transition-all duration-300 z-10 uppercase flex items-center gap-2 ${isComingSoon ? 'text-amber-500/70 dark:text-amber-400/60' : 'text-[#0B0C10]/70 dark:text-white/60'}`}
+                                    className={`relative z-10 block ${isComingSoon ? 'pointer-events-none' : ''}`}
                                 >
-                                    {hoveredLink === link.nameKey && (
-                                        <motion.div
-                                            layoutId="nav-hover"
-                                            className="absolute inset-0 bg-white dark:bg-white/10 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.1)] z-[-1] border border-black/5 dark:border-white/5"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                    {translatedName}
-                                    {isComingSoon && <Clock size={12} className="text-amber-500/70" />}
+                                    <MagneticButton 
+                                        onMouseEnter={() => setHoveredLink(link.nameKey)}
+                                        onMouseLeave={() => setHoveredLink(null)}
+                                        className={`relative px-5 xl:px-6 py-3 text-sm xl:text-[15px] font-bold tracking-[0.05em] hover:text-[#0B0C10] dark:hover:text-white transition-colors duration-300 uppercase flex items-center gap-2 ${isComingSoon ? 'text-amber-500/70 dark:text-amber-400/60' : 'text-[#0B0C10]/70 dark:text-white/60'}`}
+                                    >
+                                        {hoveredLink === link.nameKey && (
+                                            <motion.div
+                                                layoutId="nav-hover"
+                                                className="absolute inset-0 bg-white dark:bg-white/10 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.1)] z-[-1] border border-black/5 dark:border-white/5"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        {translatedName}
+                                        {isComingSoon && <Clock size={12} className="text-amber-500/70" />}
+                                    </MagneticButton>
                                 </a>
                             );
                         })}

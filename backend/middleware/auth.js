@@ -17,6 +17,11 @@ export const authenticate = async (req, res, next) => {
             return res.status(401).json({ error: 'User no longer exists.' });
         }
 
+        // Verify token version for session invalidation
+        if (decoded.tokenVersion !== user.tokenVersion) {
+            return res.status(401).json({ error: 'Session invalidated. Please log in again.' });
+        }
+
         req.user = user;
         next();
     } catch (error) {
@@ -36,7 +41,10 @@ export const optionalAuth = async (req, res, next) => {
         const token = req.cookies.jwt;
         if (token) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = await User.findById(decoded.userId);
+            const user = await User.findById(decoded.userId);
+            if (user && decoded.tokenVersion === user.tokenVersion) {
+                req.user = user;
+            }
         }
     } catch {
         // Silently continue without auth
@@ -55,6 +63,16 @@ export const authorize = (...roles) => {
         }
         next();
     };
+};
+
+// Demo Account Interceptor
+export const blockDemoUsers = (req, res, next) => {
+    if (req.user && req.user.email === 'demo@mountaineermallu.com') {
+        if (req.method !== 'GET') {
+            return res.status(403).json({ error: 'Action not permitted for demo accounts.' });
+        }
+    }
+    next();
 };
 
 // Permission-based authorization (for admins with specific permissions)
@@ -78,14 +96,14 @@ export const requirePermission = (permission) => {
     };
 };
 
-// Generate JWT token
-export const generateToken = (userId) => {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+// Generate JWT token — 30 days for persistent login
+export const generateToken = (userId, tokenVersion = 0) => {
+    return jwt.sign({ userId, tokenVersion }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN || '30d'
     });
 };
 
-// Set JWT as HTTP-only cookie
+// Set JWT as HTTP-only cookie — 30 day persistent login
 export const setTokenCookie = (res, token) => {
     const isProduction = process.env.NODE_ENV === 'production';
 
@@ -93,7 +111,7 @@ export const setTokenCookie = (res, token) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         path: '/'
     });
 };

@@ -1,5 +1,5 @@
 import GalleryItem from '../models/GalleryItem.js';
-import { uploadToCloudinary } from '../services/cloudinary.js';
+import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
 
 // GET /api/gallery — approved media only
 export const listApproved = async (req, res, next) => {
@@ -61,12 +61,12 @@ export const listAll = async (req, res, next) => {
 // POST /api/gallery — upload media (user)
 export const uploadMedia = async (req, res, next) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No media file provided.' });
+        if (!req.file && !req.body.unsplashUrl) {
+            return res.status(400).json({ error: 'No media file or Unsplash URL provided.' });
         }
 
         const { title, type, span } = req.body;
-        const mediaType = type || (req.file.mimetype.startsWith('video') ? 'video' : 'image');
+        const mediaType = type || (req.file ? (req.file.mimetype.startsWith('video') ? 'video' : 'image') : 'image');
 
         const uploadOptions = {
             folder: 'mountaineer-mallu/gallery',
@@ -80,14 +80,18 @@ export const uploadMedia = async (req, res, next) => {
                 { quality: 'auto', fetch_format: 'auto' }
             ];
         } else if (mediaType === 'video') {
-            // Smart compression for videos: auto quality, auto format (MP4/WebM), limit width
             uploadOptions.transformation = [
-                { width: 1280, crop: 'limit' }, // Cap at 720p for fast web delivery
+                { width: 1280, crop: 'limit' },
                 { quality: 'auto', fetch_format: 'auto' }
             ];
         }
 
-        const result = await uploadToCloudinary(req.file.buffer, uploadOptions);
+        let result;
+        if (req.file) {
+            result = await uploadToCloudinary(req.file.buffer, uploadOptions);
+        } else if (req.body.unsplashUrl) {
+            result = await uploadUrlToCloudinary(req.body.unsplashUrl, uploadOptions);
+        }
 
         const isAdmin = req.user.role === 'Admin' || req.user.role === 'SuperAdmin';
         

@@ -1,6 +1,6 @@
 import Group from '../models/Group.js';
 import Post from '../models/Post.js';
-import { uploadToCloudinary } from '../services/cloudinary.js';
+import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
 
 // GET /api/community/groups
 export const listGroups = async (req, res, next) => {
@@ -182,6 +182,12 @@ export const createPost = async (req, res, next) => {
         let imageUrl = '';
         if (req.file) {
             const result = await uploadToCloudinary(req.file.buffer, {
+                folder: 'mountaineer-mallu/community',
+                transformation: [{ width: 1200, crop: 'limit' }, { quality: 'auto', fetch_format: 'auto' }]
+            });
+            imageUrl = result.secure_url;
+        } else if (req.body.unsplashUrl) {
+            const result = await uploadUrlToCloudinary(req.body.unsplashUrl, {
                 folder: 'mountaineer-mallu/community',
                 transformation: [{ width: 1200, crop: 'limit' }, { quality: 'auto', fetch_format: 'auto' }]
             });

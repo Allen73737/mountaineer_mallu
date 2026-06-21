@@ -11,6 +11,10 @@ interface ApiOptions extends RequestInit {
 let onAuthInvalidated: (() => void) | null = null;
 export const setAuthInvalidatedCallback = (cb: () => void) => { onAuthInvalidated = cb; };
 
+// Global demo user flag for interceptor
+let isDemoMode = false;
+export const setDemoMode = (demo: boolean) => { isDemoMode = demo; };
+
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const { params, retries = 0, ...fetchOptions } = options;
 
@@ -31,6 +35,15 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         },
         ...fetchOptions,
     };
+
+    // Pre-emptively block mutating requests from the frontend if in demo mode
+    const method = config.method ? config.method.toUpperCase() : 'GET';
+    if (isDemoMode && method !== 'GET' && endpoint !== '/auth/logout') {
+        const error: any = new Error('Action not permitted for demo accounts.');
+        error.status = 403;
+        error.data = { error: 'Action not permitted for demo accounts.' };
+        return Promise.reject(error);
+    }
 
     try {
         const response = await fetch(url, config);
@@ -73,6 +86,11 @@ export const authApi = {
         request<{ user: any; message: string }>('/auth/login', {
             method: 'POST',
             body: JSON.stringify(data),
+        }),
+
+    demoLogin: () =>
+        request<{ user: any; message: string }>('/auth/demo-login', {
+            method: 'POST',
         }),
 
     logout: () =>
@@ -480,3 +498,69 @@ export const merchandiseApi = {
             method: 'DELETE',
         }),
 };
+
+// ─── AI Insights API ───────────────────────────────────────────────────
+
+export const aiApi = {
+    chat: (messages: any[]) =>
+        request<any>('/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ messages }),
+        }),
+    getThemeSuggestion: (eventData: any) =>
+        request<{ theme: any }>('/ai/theme-suggestion', {
+            method: 'POST',
+            body: JSON.stringify(eventData),
+        }),
+    getRouteBriefing: (eventId: string) =>
+        request<{ briefing: any }>('/ai/route-briefing', {
+            method: 'POST',
+            body: JSON.stringify({ eventId }),
+        }),
+    getStoryDraft: (storyMeta: { title: string; region: string; notes?: string; language?: string }) =>
+        request<{ draft: any }>('/ai/story-draft', {
+            method: 'POST',
+            body: JSON.stringify(storyMeta),
+        }),
+    tagGalleryItem: (itemId: string) =>
+        request<{ tags: string[]; itemId: string }>('/ai/gallery-tag', {
+            method: 'POST',
+            body: JSON.stringify({ itemId }),
+        }),
+    bulkTagGallery: () =>
+        request<{ message: string; taggedCount: number }>('/ai/gallery-tag-all', {
+            method: 'POST',
+        }),
+    getReviewSummary: () =>
+        request<{ summary: any; reviewCount: number }>('/ai/review-summary'),
+    suggestImages: (context: any) =>
+        request<{ query: string; images: any[] }>('/ai/suggest-images', {
+            method: 'POST',
+            body: JSON.stringify({ context }),
+        }),
+    searchUnsplash: (query: string) =>
+        request<{ images: any[] }>('/ai/unsplash-search', {
+            method: 'POST',
+            body: JSON.stringify({ query }),
+        }),
+};
+
+// ─── Campaigns API ─────────────────────────────────────────────────────
+
+export const campaignApi = {
+    list: () => request<{ campaigns: any[] }>('/admin/campaigns'),
+    generate: (prompt: string) =>
+        request<{ campaign: any; message: string }>('/admin/campaigns/generate', {
+            method: 'POST',
+            body: JSON.stringify({ prompt }),
+        }),
+    approve: (id: string) =>
+        request<{ campaign: any; message: string }>(`/admin/campaigns/${id}/approve`, {
+            method: 'POST',
+        }),
+    delete: (id: string) =>
+        request<{ message: string }>(`/admin/campaigns/${id}`, {
+            method: 'DELETE',
+        }),
+};
+

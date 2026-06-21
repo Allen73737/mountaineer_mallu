@@ -88,15 +88,15 @@ export const Reviews = () => {
             {/* Ambient glow */}
             <div className="absolute top-1/3 left-1/4 w-[30vw] h-[30vw] rounded-full opacity-[0.03] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(163,201,226,0.8) 0%, transparent 60%)' }} />
 
-            <div className="max-w-4xl mx-auto relative z-10 text-center">
+            <div className="w-full max-w-5xl mx-auto relative z-10 text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: false, amount: 0.8 }}
+                    viewport={{ once: true, amount: 0.8 }}
                     className="mb-12 md:mb-16"
                 >
                     <p className="text-alpine-blue dark:text-alpine-glacier text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3 md:mb-4">Testimonials</p>
-                    <h2 className="text-3xl md:text-5xl lg:text-6xl font-serif mb-4 text-alpine-navy dark:text-alpine-snow">Words from the Summit</h2>
+                    <h2 className="text-4xl md:text-6xl lg:text-[5rem] font-serif font-black tracking-tight mb-4 md:mb-6 text-[#0B0C10] dark:text-alpine-snow drop-shadow-sm leading-none m-0">Words from the Summit</h2>
                     <div className="w-16 md:w-24 h-[2px] bg-gradient-to-r from-alpine-blue to-alpine-glacier dark:from-alpine-sunrise dark:to-alpine-gold mx-auto mb-6 md:mb-8" />
                     <button
                         onClick={() => {
@@ -212,7 +212,7 @@ export const Reviews = () => {
                             </button>
 
                             <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#0B0C10] dark:text-white mb-2">Leave your Mark</h3>
-                            <p className="text-[#0B0C10]/60 dark:text-white/60 mb-6 md:mb-8 text-sm md:text-base">Your review helps our community grow.</p>
+                            <p className="text-base md:text-xl text-[#0B0C10]/70 dark:text-alpine-snow/80 max-w-3xl mx-auto font-light mb-8 md:mb-12">Your review helps our community grow.</p>
 
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-6">
                                 <div className="flex justify-center gap-2 py-3 md:py-4">

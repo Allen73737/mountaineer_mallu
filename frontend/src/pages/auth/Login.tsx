@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, Mail, Lock, AlertCircle, Loader2, Shield, Clock } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Loader2, Shield, Clock, Sparkles } from 'lucide-react';
 import { BackButton } from '../../components/ui/BackButton';
 import { GoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ export const Login = () => {
     const [lockCountdown, setLockCountdown] = useState(0);
     const [lockedUntil, setLockedUntil] = useState<string | null>(null);
 
-    const { loginAsync, loginWithGoogleAsync } = useAuthStore();
+    const { loginAsync, loginWithGoogleAsync, demoLoginAsync } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
@@ -70,6 +70,20 @@ export const Login = () => {
         }
     };
 
+    const handleDemoLogin = async () => {
+        if (lockCountdown > 0) return;
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const user = await demoLoginAsync();
+            navigatePostLogin(user);
+        } catch (err: any) {
+            setError(err.message || 'Demo login failed. Please try again.');
+            setIsLoading(false);
+        }
+    };
+
     const handleGoogleSuccess = async (credentialResponse: any) => {
         setIsLoading(true);
         setError('');
@@ -88,7 +102,7 @@ export const Login = () => {
         } else if (['Admin', 'SuperAdmin'].includes(user.role)) {
             navigate(from === '/' ? '/summit-control-panel' : from, { replace: true });
         } else {
-            navigate(from, { replace: true });
+            navigate(from === '/' ? '/portal' : from, { replace: true });
         }
     };
 
@@ -256,6 +270,16 @@ export const Login = () => {
                             </>
                         )}
                     </motion.button>
+
+                    <button
+                        type="button"
+                        onClick={handleDemoLogin}
+                        disabled={isLoading || isLocked}
+                        className="w-full py-3 mt-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-alpine-glacier/30 text-alpine-glacier hover:bg-alpine-glacier/10 transition-all group"
+                    >
+                        <Sparkles size={16} className="group-hover:animate-pulse" />
+                        Explore Demo Dashboard
+                    </button>
 
                     <div className="text-center mt-6">
                         <p className="text-white/60">

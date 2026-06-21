@@ -1,134 +1,142 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ArrowRight, ChevronRight, ChevronLeft } from 'lucide-react';
+import { MapPin, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
 
+// Expanded dummy data to demonstrate pagination
 const STORIES = [
-    { id: 1, title: 'The Eiger North Face', author: 'Rahul Krishnan', region: 'Swiss Alps', image: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?q=80&w=800&auto=format&fit=crop' },
-    { id: 2, title: 'Dolomites Sunrise', author: 'Arun Thomas', region: 'Italy', image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=800&auto=format&fit=crop' },
-    { id: 3, title: 'Mont Blanc Circuit', author: 'Nithin Varghese', region: 'France', image: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?q=80&w=800&auto=format&fit=crop' },
-    { id: 4, title: 'Zugspitze Summit', author: 'Sneha Nair', region: 'Germany', image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=800&auto=format&fit=crop' },
-    { id: 5, title: 'Matterhorn Ascent', author: 'Vivek G.', region: 'Switzerland', image: 'https://images.unsplash.com/photo-1533038590840-1cde6e668a86?q=80&w=800&auto=format&fit=crop' }
+    { 
+        id: 1, title: 'The Eiger North Face', author: 'Rahul Krishnan', region: 'Swiss Alps', 
+        image: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'A grueling 18-hour ascent up the infamous Nordwand. The loose limestone tested every ounce of our mental fortitude.'
+    },
+    { 
+        id: 2, title: 'Dolomites Sunrise', author: 'Arun Thomas', region: 'Italy', 
+        image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'Navigating the Via Ferrata as the sun broke the horizon. The jagged spires offered a surreal, vertical playground.'
+    },
+    { 
+        id: 3, title: 'Mont Blanc Circuit', author: 'Nithin Varghese', region: 'France', 
+        image: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'Crossing three international borders on foot. An immersion into centuries of Alpine climbing culture.'
+    },
+    { 
+        id: 4, title: 'Zugspitze Summit', author: 'Sneha Nair', region: 'Germany', 
+        image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'A sudden blizzard forced us to rethink our strategy. The glacier crossing was treacherous, but rewarding.'
+    },
+    { 
+        id: 5, title: 'Matterhorn Ascent', author: 'Vivek G.', region: 'Switzerland', 
+        image: 'https://images.unsplash.com/photo-1533038590840-1cde6e668a86?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'Scaling the iconic Hörnli Ridge. Standing on the razor-thin summit ridge was an unforgettable triumph.'
+    },
+    // Page 2
+    { 
+        id: 6, title: 'Aiguille du Midi', author: 'Rahul Krishnan', region: 'Chamonix, FR', 
+        image: 'https://images.unsplash.com/photo-1647468153096-27bcfe49c303?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'Exposed ridges and thin air. The traverse to the cosmic arête tested our rope skills at altitude.'
+    },
+    { 
+        id: 7, title: 'Gran Paradiso', author: 'Sneha Nair', region: 'Aosta Valley, IT', 
+        image: 'https://images.unsplash.com/photo-1549880181-56a44cf4a9a1?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'A perfect introductory 4000m peak that threw unexpected crevasses our way near the summit.'
+    },
+    { 
+        id: 8, title: 'Grossglockner', author: 'Arun Thomas', region: 'Austria', 
+        image: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'Navigating the Stüdlgrat. The sheer drop on either side of the ridge made for an exhilarating climb.'
+    },
+    { 
+        id: 9, title: 'Jungfrau Journey', author: 'Vivek G.', region: 'Bernese Alps', 
+        image: 'https://images.unsplash.com/photo-1491555103944-7c647fd857e6?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'Taking the railway up and climbing the rest. The deep snow made the final push incredibly taxing.'
+    },
+    { 
+        id: 10, title: 'Monte Rosa', author: 'Nithin Varghese', region: 'Swiss-Italian Border', 
+        image: 'https://images.unsplash.com/photo-1465056836041-7f43ac27dcb5?q=80&w=1600&auto=format&fit=crop',
+        excerpt: 'The second highest peak in the Alps. A massive glacier expedition requiring strict discipline.'
+    }
 ];
+
+const ITEMS_PER_PAGE = 5;
 
 export const Stories = () => {
     const { t } = useTranslation();
     const translationScope = useStore((state) => state.translationScope);
+    
+    const [page, setPage] = useState(0);
     const [activeIndex, setActiveIndex] = useState(0);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const [progress, setProgress] = useState(0);
-    const progressRef = useRef<NodeJS.Timeout | null>(null);
 
-    const nextSlide = useCallback(() => {
-        setActiveIndex((prev) => (prev + 1) % STORIES.length);
-        setProgress(0);
-    }, []);
+    const totalPages = Math.ceil(STORIES.length / ITEMS_PER_PAGE);
+    
+    // Get the current slice of stories based on the page
+    const currentStories = STORIES.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
 
-    const prevSlide = useCallback(() => {
-        setActiveIndex((prev) => (prev - 1 + STORIES.length) % STORIES.length);
-        setProgress(0);
-    }, []);
-
-    // Auto-play + progress bar
-    useEffect(() => {
-        timerRef.current = setInterval(nextSlide, 5000);
-        progressRef.current = setInterval(() => {
-            setProgress(prev => Math.min(prev + 2, 100));
-        }, 100);
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-            if (progressRef.current) clearInterval(progressRef.current);
-        };
-    }, [nextSlide, activeIndex]);
-
-    const handleManualInteraction = (action: 'next' | 'prev') => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (progressRef.current) clearInterval(progressRef.current);
-        if (action === 'next') nextSlide();
-        if (action === 'prev') prevSlide();
-        timerRef.current = setInterval(nextSlide, 5000);
-        progressRef.current = setInterval(() => {
-            setProgress(prev => Math.min(prev + 2, 100));
-        }, 100);
+    const handleNextPage = () => {
+        setPage((prev) => (prev + 1) % totalPages);
+        setActiveIndex(0); // reset active index when page changes
     };
 
-    const getCardStyle = (index: number) => {
-        const diff = (index - activeIndex + STORIES.length) % STORIES.length;
-        if (diff === 0) return { zIndex: 30, x: '0%', scale: 1, rotateY: 0, opacity: 1, filter: 'blur(0px)' };
-        if (diff === 1 || diff === 2) return { zIndex: 20 - diff, x: `${diff * 55}%`, scale: 0.82 - (diff * 0.08), rotateY: -30, opacity: 1 - (diff * 0.25), filter: `blur(${diff * 2}px)` };
-        const leftDiff = STORIES.length - diff;
-        if (leftDiff === 1 || leftDiff === 2) return { zIndex: 20 - leftDiff, x: `-${leftDiff * 55}%`, scale: 0.82 - (leftDiff * 0.08), rotateY: 30, opacity: 1 - (leftDiff * 0.25), filter: `blur(${leftDiff * 2}px)` };
-        return { zIndex: 0, x: '0%', scale: 0.5, opacity: 0, filter: 'blur(10px)' };
+    const handlePrevPage = () => {
+        setPage((prev) => (prev - 1 + totalPages) % totalPages);
+        setActiveIndex(0);
     };
 
     return (
-        <section id="stories" className="py-20 md:py-28 px-6 md:px-12 relative z-10 bg-alpine-snow dark:bg-black overflow-hidden">
-            {/* Ambient glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-[0.03] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(163,201,226,0.8) 0%, transparent 60%)' }} />
-
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 gap-6">
-                    <div>
-                        <motion.p
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: false }}
-                            transition={{ duration: 0.6 }}
-                            className="text-alpine-glacier dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3 md:mb-4"
-                        >
-                            {t('stories.title')}
-                        </motion.p>
-                        <motion.h2
-                            initial={{ y: 50, opacity: 0 }}
-                            whileInView={{ y: 0, opacity: 1 }}
-                            viewport={{ once: false, amount: 0.3 }}
-                            transition={{ duration: 1, type: "spring", damping: 15 }}
-                            className="text-4xl md:text-6xl lg:text-7xl font-serif mb-3 md:mb-4 text-alpine-navy dark:text-alpine-snow"
-                        >
-                            {t('stories.title')}
-                        </motion.h2>
-                        <motion.p
-                            initial={{ x: -50, opacity: 0 }}
-                            whileInView={{ x: 0, opacity: 1 }}
-                            viewport={{ once: false, amount: 0.5 }}
-                            transition={{ duration: 1, delay: 0.2 }}
-                            className="text-alpine-navy/60 dark:text-alpine-snow/60 max-w-xl font-light text-base md:text-xl"
-                        >
-                            {t('stories.subtitle')}
-                        </motion.p>
-                    </div>
-                    <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        whileInView={{ scale: 1, rotate: 0 }}
-                        viewport={{ once: false, amount: 0.5 }}
-                        transition={{ type: "spring", stiffness: 100, damping: 10, delay: 0.4 }}
+        <section id="stories" className="relative w-full min-h-screen bg-white dark:bg-black transition-colors duration-500 flex flex-col py-16 md:py-24 px-4 md:px-12">
+            
+            {/* Header (Outside the accordion) */}
+            <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 relative z-20">
+                <div>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.2 }}
+                        transition={{ duration: 0.6 }}
+                        className="text-alpine-glacier dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3"
                     >
-                        <Link
-                            to="/stories"
-                            className="hidden md:flex items-center gap-2 group text-alpine-glacier dark:text-alpine-sunrise transition-colors"
-                        >
-                            <span className="font-medium tracking-wide">{t('stories.view_all')}</span>
-                            <div className="bg-black/5 dark:bg-white/5 p-3 md:p-4 rounded-full group-hover:bg-black/10 dark:group-hover:bg-white/10 transition-colors">
-                                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                            </div>
-                        </Link>
-                    </motion.div>
+                        {t('stories.title', 'Expedition Logs')}
+                    </motion.p>
+                    <motion.h2
+                        initial={{ x: -40, opacity: 0 }}
+                        whileInView={{ x: 0, opacity: 1 }}
+                        viewport={{ once: true, amount: 0.2 }}
+                        transition={{ duration: 0.8, delay: 0.1, type: "spring", bounce: 0.4 }}
+                        className="text-black dark:text-white text-4xl md:text-5xl lg:text-6xl font-serif font-bold tracking-tight transition-colors duration-500"
+                    >
+                        {t('stories.subtitle', 'Raw Field Notes')}
+                    </motion.h2>
                 </div>
 
-                {/* 3D Coverflow Container */}
+                {/* View All Button */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: false, amount: 0.3 }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="relative w-full h-[55vh] md:h-[65vh] lg:h-[70vh] flex items-center justify-center perspective-[1500px]"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ type: "spring", stiffness: 100, damping: 10, delay: 0.2 }}
                 >
-                    {STORIES.map((story, i) => {
-                        const style = getCardStyle(i);
-                        const isActive = i === activeIndex;
+                    <Link
+                        to="/stories"
+                        className="flex items-center gap-2 group text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-all duration-300 border border-black/20 dark:border-white/20 hover:border-black dark:hover:border-white px-6 py-3 rounded-full"
+                    >
+                        <span className="font-medium tracking-wide uppercase text-xs tracking-[0.2em]">{t('stories.view_all', 'View Archives')}</span>
+                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                </motion.div>
+            </div>
+
+            {/* Accordion Container */}
+            <motion.div 
+                initial={{ opacity: 0, y: 60, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full max-w-[1600px] mx-auto flex-1 flex flex-col md:flex-row rounded-3xl overflow-hidden shadow-2xl border border-white/10 min-h-[60vh] md:min-h-[70vh]">
+                <AnimatePresence mode="popLayout">
+                    {currentStories.map((story, index) => {
+                        const isActive = index === activeIndex;
 
                         const displayTitle = translationScope === 'everything' 
                             ? t(`dynamic_stories.${story.id}.title`, { defaultValue: story.title }) 
@@ -140,113 +148,138 @@ export const Stories = () => {
 
                         return (
                             <motion.div
-                                key={story.id}
-                                animate={style}
-                                transition={{ duration: 0.8, type: "spring", bounce: 0.3 }}
-                                className={`absolute w-[75vw] md:w-[35vw] lg:w-[25vw] aspect-[3/4] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl ${isActive ? 'cursor-default' : 'cursor-pointer'} transform-style-3d`}
-                                onClick={() => {
-                                    if (!isActive) {
-                                        if (timerRef.current) clearInterval(timerRef.current);
-                                        if (progressRef.current) clearInterval(progressRef.current);
-                                        setActiveIndex(i);
-                                        setProgress(0);
-                                        timerRef.current = setInterval(nextSlide, 5000);
-                                        progressRef.current = setInterval(() => {
-                                            setProgress(prev => Math.min(prev + 2, 100));
-                                        }, 100);
-                                    }
+                                key={`${page}-${story.id}`} // Force re-render on page change for entry animation
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    scale: 1,
+                                    flex: isActive ? 5 : 1,
                                 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ duration: 0.5, layout: { type: "spring", stiffness: 200, damping: 25, mass: 0.8 } }}
+                                onMouseEnter={() => window.innerWidth >= 768 && setActiveIndex(index)}
+                                onClick={() => window.innerWidth < 768 && setActiveIndex(index)}
+                                className={`relative overflow-hidden cursor-pointer group ${
+                                    isActive ? 'cursor-default' : 'hover:brightness-110'
+                                }`}
                             >
-                                <img
+                                {/* Background Image */}
+                                <motion.img
                                     src={story.image}
                                     alt={displayTitle}
-                                    className={`w-full h-full object-cover transition-transform duration-[4000ms] ${isActive ? 'scale-110' : 'scale-100'}`}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                    animate={{ 
+                                        scale: isActive ? 1.05 : 1.2,
+                                        filter: isActive ? 'brightness(0.9) saturate(1.1)' : 'brightness(0.4) saturate(0.5)'
+                                    }}
+                                    transition={{ duration: 1.5, ease: "easeOut" }}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/5 transition-opacity duration-700" style={{ opacity: isActive ? 0.95 : 0.6 }} />
+                                
+                                {/* Gradient Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-80" />
+                                <div className="absolute inset-0 border-r md:border-r-[1px] border-b md:border-b-0 border-white/10" />
 
-                                <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end text-white text-left transform translate-z-10">
-                                    <motion.div animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 20 }} transition={{ duration: 0.5 }}>
-                                        <div className="flex items-center gap-2 text-alpine-glacier mb-3 md:mb-4">
-                                            <MapPin size={14} />
-                                            <span className="text-xs md:text-sm font-semibold tracking-wider uppercase">{displayRegion}</span>
-                                        </div>
-                                        <h3 className="font-serif text-2xl md:text-3xl lg:text-4xl mb-3 md:mb-4 text-shadow-lg leading-tight">
-                                            {displayTitle}
-                                        </h3>
-                                        <div className="flex items-center justify-between mt-auto">
-                                            <p className="text-white/80 font-light text-sm md:text-base">By {story.author}</p>
-                                            <Link to={`/stories/${story.id}`}>
-                                                <div className="bg-white/10 p-2.5 md:p-3 rounded-full hover:bg-white/20 transition-colors">
-                                                    <ArrowRight size={16} className="text-alpine-sunrise" />
+                                {/* Content */}
+                                <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12">
+                                    
+                                    {/* Collapsed State */}
+                                    <AnimatePresence mode="wait">
+                                        {!isActive && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="absolute inset-0 flex items-center justify-center md:pb-12 md:items-end"
+                                            >
+                                                <h3 className="text-white/60 font-serif text-lg md:text-2xl tracking-widest whitespace-nowrap md:-rotate-90 origin-bottom-left md:translate-x-6 md:mb-16">
+                                                    {displayRegion}
+                                                </h3>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Expanded State */}
+                                    <AnimatePresence mode="wait">
+                                        {isActive && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 30 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 20 }}
+                                                transition={{ duration: 0.4, delay: 0.2 }}
+                                                className="relative z-10 w-full md:w-[800px] max-w-[90vw]"
+                                            >
+                                                <div className="flex items-center gap-2 text-alpine-glacier mb-3">
+                                                    <MapPin size={14} className="md:w-4 md:h-4" />
+                                                    <span className="text-xs md:text-sm font-bold tracking-[0.2em] uppercase">{displayRegion}</span>
                                                 </div>
-                                            </Link>
-                                        </div>
-                                    </motion.div>
+                                                
+                                                <h3 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-[1.1] tracking-tight">
+                                                    {displayTitle}
+                                                </h3>
+                                                
+                                                <p className="text-white/70 text-sm md:text-lg leading-relaxed mb-6 md:mb-8 max-w-xl font-light">
+                                                    "{story.excerpt}"
+                                                </p>
+                                                
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-auto w-full max-w-xl gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-[1px] w-8 md:w-12 bg-white/30" />
+                                                        <p className="text-white/90 font-medium tracking-wide uppercase text-xs md:text-sm">By <span className="font-bold">{story.author}</span></p>
+                                                    </div>
+
+                                                    <Link to={`/stories/${story.id}`}>
+                                                        <button className="group/btn relative px-4 py-2 md:px-6 md:py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white overflow-hidden hover:bg-white hover:text-black transition-all duration-300 flex items-center gap-2">
+                                                            <span className="font-bold tracking-wider text-[10px] md:text-xs uppercase relative z-10">Read</span>
+                                                            <ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-1 transition-transform" />
+                                                        </button>
+                                                    </Link>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </motion.div>
                         );
                     })}
+                </AnimatePresence>
+            </motion.div>
 
-                    {/* Navigation Controls */}
-                    <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-1 md:px-0 z-40 pointer-events-none">
-                        <button
-                            onClick={() => handleManualInteraction('prev')}
-                            className="pointer-events-auto p-3 md:p-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/30 hover:scale-110 transition-all shadow-xl"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <button
-                            onClick={() => handleManualInteraction('next')}
-                            className="pointer-events-auto p-3 md:p-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/30 hover:scale-110 transition-all shadow-xl"
-                        >
-                            <ChevronRight size={24} />
-                        </button>
-                    </div>
-                </motion.div>
-
-                {/* Progress Dots + Bar */}
-                <div className="flex flex-col items-center gap-4 mt-6 md:mt-10">
-                    <div className="flex items-center gap-2 md:gap-3">
-                        {STORIES.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => {
-                                    setActiveIndex(i);
-                                    setProgress(0);
-                                }}
-                                className="relative"
-                            >
-                                <div className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full transition-all duration-500 ${i === activeIndex ? 'bg-alpine-glacier dark:bg-alpine-sunrise scale-125' : 'bg-black/15 dark:bg-white/15 hover:bg-black/30 dark:hover:bg-white/30'}`} />
-                                {i === activeIndex && (
-                                    <motion.div
-                                        layoutId="story-dot-ring"
-                                        className="absolute -inset-1 rounded-full border border-alpine-glacier/40 dark:border-alpine-sunrise/40"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                                    />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                    {/* Progress bar for auto-advance */}
-                    <div className="w-24 md:w-32 h-[2px] bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                        <motion.div
-                            className="h-full bg-alpine-glacier/50 dark:bg-alpine-sunrise/50 rounded-full"
-                            style={{ width: `${progress}%` }}
-                            transition={{ duration: 0.1 }}
+            {/* Pagination Controls */}
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="w-full max-w-[1600px] mx-auto flex items-center justify-between mt-6 md:mt-8 relative z-20">
+                <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                        <div 
+                            key={i} 
+                            className={`h-1.5 rounded-full transition-all duration-300 ${i === page ? 'w-8 bg-alpine-glacier' : 'w-2 bg-black/20 dark:bg-white/20'}`}
                         />
-                    </div>
+                    ))}
                 </div>
-
-                {/* Mobile View All Button */}
-                <div className="mt-8 flex justify-center md:hidden">
-                    <Link
-                        to="/stories"
-                        className="flex items-center gap-2 text-base group text-alpine-glacier dark:text-alpine-sunrise font-medium"
+                
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={handlePrevPage}
+                        className="p-3 rounded-full border border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        aria-label="Previous batch"
                     >
-                        {t('stories.view_all')} <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                    </Link>
+                        <ChevronLeft size={20} />
+                    </button>
+                    <button 
+                        onClick={handleNextPage}
+                        className="p-3 rounded-full border border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        aria-label="Next batch"
+                    >
+                        <ChevronRight size={20} />
+                    </button>
                 </div>
-            </div>
+            </motion.div>
+
         </section>
     );
 };

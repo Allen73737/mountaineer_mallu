@@ -31,7 +31,7 @@ export const BackButton = ({ onBack, onHome, backTo, to = "/" }: BackButtonProps
     };
 
     return (
-        <div className="flex items-center gap-3 mb-8 md:mb-12 relative z-[60]">
+        <div className={`flex items-center gap-3 mb-8 md:mb-12 mt-6 md:mt-12 relative z-[60]`}>
             <motion.button
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}

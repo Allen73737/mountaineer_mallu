@@ -6,13 +6,16 @@ import './index.css'
 import './lib/i18n'
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy_client_id_for_dev'}>
-            <BrowserRouter>
-                <App />
-            </BrowserRouter>
+            <ErrorBoundary>
+                <BrowserRouter>
+                    <App />
+                </BrowserRouter>
+            </ErrorBoundary>
         </GoogleOAuthProvider>
     </React.StrictMode>,
 )

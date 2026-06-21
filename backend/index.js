@@ -9,7 +9,14 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 import { randomUUID } from 'crypto';
+import morgan from 'morgan';
+import { createClient } from 'redis';
+import RedisStore from 'rate-limit-redis';
+import logger from './utils/logger.js';
+import { verifyCsrf } from './middleware/csrf.js';
 import { sanitizeInputs } from './middleware/sanitize.js';
 
 import authRoutes from './routes/auth.js';
@@ -25,13 +32,16 @@ import pillarRoutes from './routes/pillars.js';
 import reviewRoutes from './routes/reviews.js';
 import merchandiseRoutes from './routes/merchandiseRoutes.js';
 import aiRoutes from './routes/ai.js';
+import socialRoutes from './routes/social.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { startCronJobs } from './services/cron.js';
 
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL 
+    ? process.env.CLIENT_URL.split(',') 
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
 
 // ─── Socket.io ─────────────────────────────────────────────────────────
 const io = new SocketIOServer(httpServer, {
@@ -63,17 +73,30 @@ app.use((req, res, next) => {
     next();
 });
 
-// Helmet with strict CSP
+// Setup Morgan to use Winston logger
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms', {
+    stream: { write: (message) => logger.info(message.trim()) }
+}));
+
+// Set up Redis Client for Rate Limiting
+const redisClient = createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.on('error', (err) => logger.warn(`Redis Client Error: ${err.message}`));
+redisClient.connect().catch(console.error);
+
+// Helmet with strict CSP (removing unsafe-inline for scripts where possible)
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://apis.google.com"],
+            scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://*.googleusercontent.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            connectSrc: ["'self'", CLIENT_URL, "https://accounts.google.com"],
+            connectSrc: ["'self'", ...CLIENT_URL, "https://accounts.google.com"],
             frameSrc: ["https://accounts.google.com"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
@@ -91,7 +114,10 @@ const limiter = rateLimit({
     max: 200,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Too many requests, please try again later.' }
+    message: { error: 'Too many requests, please try again later.' },
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    })
 });
 app.use('/api/', limiter);
 
@@ -99,7 +125,10 @@ app.use('/api/', limiter);
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
-    message: { error: 'Too many authentication attempts, please try again later.' }
+    message: { error: 'Too many authentication attempts, please try again later.' },
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    })
 });
 app.use('/api/auth/', authLimiter);
 
@@ -107,7 +136,10 @@ app.use('/api/auth/', authLimiter);
 const otpLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 5,
-    message: { error: 'Too many reset attempts. Please wait and try again.' }
+    message: { error: 'Too many reset attempts. Please wait and try again.' },
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    })
 });
 app.use('/api/auth/forgot-password', otpLimiter);
 app.use('/api/auth/verify-otp', otpLimiter);
@@ -117,7 +149,10 @@ app.use('/api/auth/reset-password', otpLimiter);
 const aiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 30,
-    message: { error: 'AI usage limit reached. Please wait a moment.' }
+    message: { error: 'AI usage limit reached. Please wait a moment.' },
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    })
 });
 app.use('/api/ai/', aiLimiter);
 
@@ -126,8 +161,17 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Input sanitization — NoSQL injection, XSS, prototype pollution
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Custom Input sanitization — Deep XSS, prototype pollution
 app.use(sanitizeInputs);
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
+
+// CSRF Protection (Origin Header Verification)
+app.use(verifyCsrf);
 
 app.use(cors({
     origin: CLIENT_URL,
@@ -160,38 +204,40 @@ app.use('/api/pillars', pillarRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/merchandise', merchandiseRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/social', socialRoutes);
 
 // ─── Error Handling ────────────────────────────────────────────────────
 app.use(errorHandler);
 
 // ─── Database Connection & Server Start ────────────────────────────────
-const startServer = async () => {
+export const startServer = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI, {
             dbName: 'mountaineer-mallu',
-            serverSelectionTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 10000,
             socketTimeoutMS: 45000,
-            family: 4, // Use IPv4, skip trying IPv6
-            maxPoolSize: 50, // Premium: handle more concurrent connections
+            maxPoolSize: 10,
             w: 'majority',
             retryWrites: true
         });
-        console.log('✅ MongoDB connected successfully');
+        console.log(`✅ MongoDB connected successfully in Worker ${process.pid}`);
 
         httpServer.listen(PORT, () => {
-            console.log(`🏔️  Mountaineer Mallu API running on port ${PORT}`);
-            console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
-            console.log(`🔌 Socket.io ready on port ${PORT}`);
+            console.log(`🏔️  Worker ${process.pid} running API on port ${PORT}`);
             
-            // Start scheduled background jobs
+            // Only start scheduled background jobs on the primary worker if possible, 
+            // but for simplicity, we start it here. Ideally cron should run on a dedicated instance.
             startCronJobs();
         });
     } catch (error) {
-        console.error('❌ MongoDB connection failed:', error.message);
+        console.error(`❌ Worker ${process.pid} MongoDB connection failed:`, error.message);
         process.exit(1);
     }
 };
 
-startServer();
+// If this file is run directly (not via server.js), start it directly.
+if (process.argv[1] && process.argv[1].endsWith('index.js')) {
+    startServer();
+}
 
 export default app;

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import encrypt from 'mongoose-encryption';
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -96,6 +97,11 @@ const userSchema = new mongoose.Schema({
     lockUntil: {
         type: Date,
         select: false
+    },
+    // ── Security: Session Invalidation ──────────────────────────────────
+    tokenVersion: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true
@@ -170,6 +176,19 @@ userSchema.methods.toProfileJSON = function () {
         wishlist: this.wishlist
     };
 };
+
+// ── Encryption Plugin ──────────────────────────────────────────────────
+// Generate a 32-byte base64 string for ENCRYPTION_KEY if not in .env
+// require('crypto').randomBytes(32).toString('base64')
+if (process.env.ENCRYPTION_KEY) {
+    userSchema.plugin(encrypt.mongoose, {
+        encryptionKey: process.env.ENCRYPTION_KEY,
+        signingKey: process.env.SIGNING_KEY || process.env.ENCRYPTION_KEY,
+        encryptedFields: ['phone', 'whatsapp', 'address']
+    });
+} else {
+    console.warn("⚠️ ENCRYPTION_KEY is missing. Data-at-rest encryption is disabled. Please add it to your .env file.");
+}
 
 const User = mongoose.model('User', userSchema);
 export default User;

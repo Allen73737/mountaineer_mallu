@@ -37,6 +37,10 @@ const galleryItemSchema = new mongoose.Schema({
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    }],
+    aiTags: [{
+        type: String,
+        trim: true
     }]
 }, {
     timestamps: true

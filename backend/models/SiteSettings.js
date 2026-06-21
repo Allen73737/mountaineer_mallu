@@ -1,15 +1,20 @@
 import mongoose from 'mongoose';
 
+const sectionConfigSchema = new mongoose.Schema({
+    status: { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
+    bgTheme: { type: String, enum: ['alpine_blue', 'pitch_black', 'white'], default: 'white' }
+}, { _id: false });
+
 const siteSettingsSchema = new mongoose.Schema({
     sections: {
-        stories:   { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
-        events:    { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
-        gallery:   { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
-        community: { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
-        shop:      { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'coming_soon' },
-        reviews:   { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
-        team:      { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
-        contact:   { type: String, enum: ['visible', 'hidden', 'coming_soon'], default: 'visible' },
+        stories:   { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
+        events:    { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
+        gallery:   { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
+        community: { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
+        shop:      { type: sectionConfigSchema, default: () => ({ status: 'coming_soon', bgTheme: 'white' }) },
+        reviews:   { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
+        team:      { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
+        contact:   { type: sectionConfigSchema, default: () => ({ status: 'visible', bgTheme: 'white' }) },
     },
     maintenance: {
         enabled:         { type: Boolean, default: false },

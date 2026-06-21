@@ -1,68 +1,94 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, LogOut, Check, X } from 'lucide-react';
 
 interface ConfirmDialogProps {
     isOpen: boolean;
     title: string;
-    message: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
+    description?: string;
+    message?: string; // fallback for AdminDashboard
+    confirmText?: string;
+    confirmLabel?: string; // fallback
+    cancelText?: string;
+    icon?: 'warning' | 'logout' | 'default';
+    variant?: 'warning' | 'danger' | 'info'; // fallback
     onConfirm: () => void;
     onCancel: () => void;
-    variant?: 'danger' | 'warning';
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-    isOpen, title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel',
-    onConfirm, onCancel, variant = 'danger'
+    isOpen,
+    title,
+    description,
+    message,
+    confirmText,
+    confirmLabel,
+    cancelText = 'Cancel',
+    icon,
+    variant,
+    onConfirm,
+    onCancel
 }) => {
+    const finalDescription = description || message || '';
+    const finalConfirmText = confirmText || confirmLabel || 'Confirm';
+    const finalIcon = icon || (variant === 'warning' || variant === 'danger' ? 'warning' : 'default');
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-                    onClick={onCancel}
-                >
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-[#02050A]/80 backdrop-blur-md"
+                        onClick={onCancel}
+                    />
                     <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.95, opacity: 0 }}
-                        className="bg-alpine-navy/95 backdrop-blur-xl border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
-                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                        className="relative w-full max-w-md glass-premium rounded-3xl border border-white/10 p-8 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden group"
                     >
-                        <div className="flex items-start gap-4 mb-6">
-                            <div className={`p-3 rounded-xl shrink-0 ${variant === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                <AlertTriangle size={24} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-                                <p className="text-white/60 text-sm leading-relaxed">{message}</p>
-                            </div>
-                        </div>
+                        {/* Ambient glow effect based on icon */}
+                        <div className={`absolute -inset-20 bg-gradient-to-br to-transparent blur-3xl opacity-20 pointer-events-none transition-all duration-500 group-hover:opacity-40
+                            ${finalIcon === 'warning' ? 'from-red-500' : finalIcon === 'logout' ? 'from-orange-500' : 'from-alpine-glacier'}
+                        `} />
 
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                onClick={onCancel}
-                                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-all"
-                            >
-                                {cancelLabel}
-                            </button>
-                            <button
-                                onClick={onConfirm}
-                                className={`px-5 py-2.5 rounded-xl font-bold transition-all ${variant === 'danger'
-                                    ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300 border border-red-500/30'
-                                    : 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30'
-                                }`}
-                            >
-                                {confirmLabel}
-                            </button>
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 
+                                ${finalIcon === 'warning' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 
+                                  finalIcon === 'logout' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 
+                                  'bg-alpine-glacier/10 text-alpine-glacier border border-alpine-glacier/20'}
+                            `}>
+                                {finalIcon === 'warning' && <AlertTriangle size={32} />}
+                                {finalIcon === 'logout' && <LogOut size={32} />}
+                                {finalIcon === 'default' && <Check size={32} />}
+                            </div>
+
+                            <h3 className="text-2xl font-serif font-bold text-white mb-3">{title}</h3>
+                            <p className="text-white/60 mb-8 leading-relaxed">{finalDescription}</p>
+
+                            <div className="flex w-full gap-4">
+                                <button
+                                    onClick={onCancel}
+                                    className="flex-1 py-3 px-4 rounded-xl font-semibold text-white/50 hover:text-white hover:bg-white/5 transition-all border border-transparent flex items-center justify-center gap-2"
+                                >
+                                    <X size={18} /> {cancelText}
+                                </button>
+                                <button
+                                    onClick={onConfirm}
+                                    className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2
+                                        ${finalIcon === 'warning' ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20' : 
+                                          finalIcon === 'logout' ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/20' : 
+                                          'bg-white text-black hover:bg-white/90 shadow-white/20'}
+                                    `}
+                                >
+                                    {finalConfirmText}
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
-                </motion.div>
+                </div>
             )}
         </AnimatePresence>
     );

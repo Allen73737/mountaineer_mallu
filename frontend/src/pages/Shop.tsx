@@ -53,7 +53,7 @@ export const ShopPage = () => {
                             key={product.id}
                             initial={{ opacity: 0, y: 100 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: false, margin: "-50px" }}
+                            viewport={{ once: true, margin: "-50px" }}
                             transition={{ duration: 0.6, delay: i * 0.1, type: 'spring' }}
                             className="group cursor-pointer"
                         >

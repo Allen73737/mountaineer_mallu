@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { ReadingProgressBar } from '../components/ui/ReadingProgressBar';
 import { motion } from 'framer-motion';
 import { MapPin, Calendar, User, BookOpen, Loader2 } from 'lucide-react';
 import { storiesApi } from '../lib/api';
@@ -47,7 +49,10 @@ export const StoryDetail = () => {
     const paragraphs = story.content?.split(/\n\n+/).filter((p: string) => p.trim()) || [];
 
     return (
-        <div className="min-h-screen bg-black text-white pb-24">
+        <div className="min-h-screen bg-alpine-snow dark:bg-[#0B0C10] text-[#0B0C10] dark:text-white pt-24 pb-20">
+            <ReadingProgressBar />
+            
+            {/* Ambient Background Orbs */}
             {/* Hero Section */}
             <div className="relative h-[70vh] w-full overflow-hidden">
                 <img 

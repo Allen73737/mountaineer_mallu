@@ -137,7 +137,7 @@ const OVERRIDES: Record<string, string> = {
   'evide': 'എവിടെ', 'evideyaa': 'എവിടെയാ', 'evitta': 'എവിട്ട',
   'engane': 'എങ്ങനെ', 'engana': 'എങ്ങനെ',
   'eppol': 'എപ്പോൾ', 'eppo': 'എപ്പോ', 'eppozh': 'എപ്പോഴ്',
-  'aaraa': 'ആരാ', 'aar': 'ആർ', 'aaru': 'ആര്',
+  'aaraa': 'ആരാ', 'aar': 'ആർ',
   'ethre': 'എത്ര', 'ethra': 'എത്ര',
 
   // Common verbs / words
@@ -172,7 +172,7 @@ const OVERRIDES: Record<string, string> = {
   'pinne': 'പിന്നെ', 'pinnae': 'പിന്നെ', 'pinneed': 'പിന്നീട്',
   'athae': 'അതെ', 'athe': 'അതെ', 'athey': 'അതെ',
   'angane': 'അങ്ങനെ', 'ingane': 'ഇങ്ങനെ',
-  'pakshe': 'പക്ഷേ', 'pakshe': 'പക്ഷേ', 'pakshae': 'പക്ഷേ',
+  'pakshe': 'പക്ഷേ', 'pakshae': 'പക്ഷേ',
   'kaaranam': 'കാരണം', 'karanam': 'കാരണം',
 
   // Common nouns

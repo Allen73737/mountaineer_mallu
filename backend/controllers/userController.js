@@ -4,6 +4,9 @@ import { uploadToCloudinary } from '../services/cloudinary.js';
 // PUT /api/users/profile — Complete/update profile
 export const updateProfile = async (req, res, next) => {
     try {
+        if (req.user.email === 'demo@mountaineermallu.com') {
+            return res.status(403).json({ error: 'Action not permitted for demo accounts.' });
+        }
         const { place, city, state, zip, phone, whatsapp } = req.body;
 
         const updates = {
@@ -27,6 +30,9 @@ export const updateProfile = async (req, res, next) => {
 // PUT /api/users/password — Change password
 export const changePassword = async (req, res, next) => {
     try {
+        if (req.user.email === 'demo@mountaineermallu.com') {
+            return res.status(403).json({ error: 'Action not permitted for demo accounts.' });
+        }
         const { currentPassword, newPassword } = req.body;
 
         if (!currentPassword || !newPassword) {
@@ -64,6 +70,9 @@ export const changePassword = async (req, res, next) => {
 // PUT /api/users/avatar — Upload avatar
 export const uploadAvatar = async (req, res, next) => {
     try {
+        if (req.user.email === 'demo@mountaineermallu.com') {
+            return res.status(403).json({ error: 'Action not permitted for demo accounts.' });
+        }
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided.' });
         }
@@ -125,6 +134,10 @@ export const deleteUser = async (req, res, next) => {
         const user = await User.findById(req.params.id);
         if (!user) {
             return res.status(404).json({ error: 'User not found.' });
+        }
+
+        if (user.email === 'demo@mountaineermallu.com') {
+            return res.status(403).json({ error: 'Cannot delete the demo account.' });
         }
 
         // Prevent deleting superadmin

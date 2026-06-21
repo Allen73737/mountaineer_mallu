@@ -6,16 +6,18 @@ import {
     deleteMerchandise
 } from '../controllers/merchandiseController.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
-import { upload } from '../middleware/upload.js';
+import { upload, verifyFileSignature } from '../middleware/upload.js';
+import { cacheMiddleware } from '../middleware/cache.js';
 
 const router = express.Router();
 
 router.route('/')
-    .get(getMerchandises)
-    .post(authenticate, requirePermission('manageContent'), upload.single('image'), createMerchandise);
+    .get(cacheMiddleware(300), getMerchandises)
+    .post(authenticate, requirePermission('manageContent'), upload.single('image'), verifyFileSignature, createMerchandise);
 
 router.route('/:id')
-    .put(authenticate, requirePermission('manageContent'), upload.single('image'), updateMerchandise)
+
+    .put(authenticate, requirePermission('manageContent'), upload.single('image'), verifyFileSignature, updateMerchandise)
     .delete(authenticate, requirePermission('manageContent'), deleteMerchandise);
 
 export default router;

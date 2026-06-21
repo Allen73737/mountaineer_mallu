@@ -21,7 +21,7 @@ export const DynamicLogo: React.FC<DynamicLogoProps> = ({
 
     return (
         <div className={`relative flex items-center justify-center gap-1 ${className}`}>
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 <div className="relative h-full flex-shrink-0 flex items-center justify-center aspect-square">
                     <AnimatePresence>
                         <motion.div

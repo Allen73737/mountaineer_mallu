@@ -3,6 +3,8 @@ import Story from '../models/Story.js';
 import Event from '../models/Event.js';
 import GalleryItem from '../models/GalleryItem.js';
 import Group from '../models/Group.js';
+import SecurityLog from '../models/SecurityLog.js';
+import { analyzeSecurityLogs } from '../services/aiInsightsService.js';
 
 // GET /api/admin/overview
 export const getOverview = async (req, res, next) => {
@@ -127,6 +129,44 @@ export const revokeAdmin = async (req, res, next) => {
         await admin.save();
 
         res.json({ message: 'Admin access revoked.', user: admin.toProfileJSON() });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// GET /api/admin/security-digest — AI-analyzed security logs
+export const getSecurityDigest = async (req, res, next) => {
+    try {
+        const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        const [failedLogins, successfulLogins, recentAdminActions] = await Promise.all([
+            SecurityLog.countDocuments({ type: 'login_failure', createdAt: { $gte: last24h } }),
+            SecurityLog.countDocuments({ type: 'login_success', createdAt: { $gte: last24h } }),
+            SecurityLog.countDocuments({ type: 'admin_action', createdAt: { $gte: last24h } })
+        ]);
+
+        // Aggregate top failed users/IPs
+        const topFailedUsers = await SecurityLog.aggregate([
+            { $match: { type: 'login_failure', createdAt: { $gte: last24h } } },
+            { $group: { _id: "$email", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 3 }
+        ]);
+
+        const securityData = {
+            failedLogins,
+            successfulLogins,
+            recentAdminActions,
+            topFailedUsers: topFailedUsers.map(u => ({ email: u._id, count: u.count })),
+            pageViewSpikes: [] // Phase 2 stub
+        };
+
+        const aiDigest = await analyzeSecurityLogs(securityData);
+
+        res.json({
+            rawMetrics: securityData,
+            aiDigest
+        });
     } catch (error) {
         next(error);
     }

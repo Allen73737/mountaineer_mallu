@@ -1,5 +1,5 @@
 import Story from '../models/Story.js';
-import { uploadToCloudinary } from '../services/cloudinary.js';
+import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
 
 // GET /api/stories (Public: only approved. Admin: all if requested)
 export const listStories = async (req, res, next) => {
@@ -66,6 +66,15 @@ export const createStory = async (req, res, next) => {
                 ]
             });
             imageUrl = result.secure_url;
+        } else if (req.body.unsplashUrl) {
+            const result = await uploadUrlToCloudinary(req.body.unsplashUrl, {
+                folder: 'mountaineer-mallu/stories',
+                transformation: [
+                    { width: 1600, crop: 'limit' },
+                    { quality: 'auto', fetch_format: 'auto' }
+                ]
+            });
+            imageUrl = result.secure_url;
         }
 
         const isAdmin = req.user?.permissions?.manageStories;
@@ -91,6 +100,15 @@ export const updateStory = async (req, res, next) => {
 
         if (req.file) {
             const result = await uploadToCloudinary(req.file.buffer, {
+                folder: 'mountaineer-mallu/stories',
+                transformation: [
+                    { width: 1600, crop: 'limit' },
+                    { quality: 'auto', fetch_format: 'auto' }
+                ]
+            });
+            updates.image = result.secure_url;
+        } else if (req.body.unsplashUrl) {
+            const result = await uploadUrlToCloudinary(req.body.unsplashUrl, {
                 folder: 'mountaineer-mallu/stories',
                 transformation: [
                     { width: 1600, crop: 'limit' },

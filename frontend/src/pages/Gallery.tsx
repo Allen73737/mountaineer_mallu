@@ -156,7 +156,7 @@ export const GalleryPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white pt-32 pb-24 px-4 md:px-8">
+        <div className="min-h-screen bg-alpine-navy dark:bg-black text-alpine-snow dark:text-white pt-32 pb-24 px-4 md:px-8">
             {ToastComponent}
 
             <div className="max-w-7xl mx-auto px-4 relative z-50">
@@ -178,7 +178,7 @@ export const GalleryPage = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 1, delay: 0.2 }}
-                        className="text-white/60 text-lg md:text-xl font-light max-w-2xl"
+                        className="text-alpine-snow/60 dark:text-white/60 text-lg md:text-xl font-light max-w-2xl"
                     >
                         An unfiltered collection of our highest altitudes. Click to expand raw footage and high-resolution captures.
                     </motion.p>
@@ -204,7 +204,7 @@ export const GalleryPage = () => {
                     </div>
                 ) : mediaItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[40vh] text-center">
-                        <p className="text-white/30 font-mono text-sm tracking-widest">[ VAULT_EMPTY ]</p>
+                        <p className="text-alpine-snow/30 dark:text-white/30 font-mono text-sm tracking-widest">[ VAULT_EMPTY ]</p>
                     </div>
                 ) : (
                     <motion.div
@@ -238,7 +238,7 @@ export const GalleryPage = () => {
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                             <div className="bg-black/40 backdrop-blur-md p-4 rounded-full">
-                                                <Play fill="white" size={32} />
+                                                <Play className="fill-white text-white" size={32} />
                                             </div>
                                         </div>
                                     </>
@@ -254,9 +254,9 @@ export const GalleryPage = () => {
 
                                 <div className="absolute bottom-6 left-6 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 translate-y-4 group-hover:translate-y-0">
                                     <div className="bg-white/20 backdrop-blur-md p-2 rounded-full">
-                                        <Maximize2 size={16} />
+                                        <Maximize2 className="text-white" size={16} />
                                     </div>
-                                    <span className="font-serif text-xl tracking-wide shadow-black drop-shadow-lg">{media.title}</span>
+                                    <span className="font-serif text-xl tracking-wide text-white shadow-black drop-shadow-lg">{media.title}</span>
                                 </div>
                             </motion.div>
                         ))}
@@ -271,7 +271,7 @@ export const GalleryPage = () => {
                         initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
                         animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
                         exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 md:p-12 cursor-pointer"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-alpine-navy/90 dark:bg-black/90 p-4 md:p-12 cursor-pointer"
                         onClick={() => setSelectedMedia(null)}
                     >
                         <div className="absolute top-8 left-8 md:top-12 md:left-12 z-[60]">
@@ -283,15 +283,15 @@ export const GalleryPage = () => {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95, y: 20 }}
                             transition={{ type: "spring", damping: 20 }}
-                            className="relative w-full max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(255,255,255,0.1)] cursor-default"
+                            className="relative w-full max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_100px_rgba(255,255,255,0.1)] cursor-default"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             {selectedMedia.type === 'video' ? (
-                                <video src={selectedMedia.url} autoPlay loop controls className="w-full h-full object-contain bg-black" />
+                                <video src={selectedMedia.url} autoPlay loop controls className="w-full h-full object-contain bg-gray-100 dark:bg-black" />
                             ) : (
-                                <img src={selectedMedia.url} className="w-full h-full object-contain bg-black" />
+                                <img src={selectedMedia.url} className="w-full h-full object-contain bg-gray-100 dark:bg-black" />
                             )}
-                            <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none flex items-end justify-between">
+                            <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-alpine-navy/90 via-alpine-navy/40 dark:from-black/90 dark:via-black/40 to-transparent pointer-events-none flex items-end justify-between">
                                 <div>
                                     <h2 className="text-4xl font-serif text-white mb-2">{selectedMedia.title}</h2>
                                     <p className="text-white/60 font-medium">Uploaded by {selectedMedia.uploadedBy?.name}</p>
@@ -347,7 +347,7 @@ export const GalleryPage = () => {
                             initial={{ scale: 0.9, y: 30 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95 }}
-                            className="bg-[#11141A] border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
+                            className="bg-alpine-navy dark:bg-[#11141A] border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             <h3 className="text-2xl font-serif text-white mb-6">Save to Collection</h3>

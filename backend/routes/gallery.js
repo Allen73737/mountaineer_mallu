@@ -1,16 +1,17 @@
 import { Router } from 'express';
 import { listApproved, listPending, listAll, uploadMedia, approveMedia, rejectMedia, deleteMedia, getMyMedia, toggleLike, updateMedia } from '../controllers/galleryController.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
-import { upload } from '../middleware/upload.js';
+import { upload, verifyFileSignature } from '../middleware/upload.js';
+import { cacheMiddleware } from '../middleware/cache.js';
 
 const router = Router();
 
 // Public routes
-router.get('/', listApproved);
+router.get('/', cacheMiddleware(300), listApproved);
 
 // User routes
 router.get('/user/me', authenticate, getMyMedia);
-router.post('/', authenticate, upload.single('media'), uploadMedia);
+router.post('/', authenticate, upload.single('media'), verifyFileSignature, uploadMedia);
 router.post('/:id/like', authenticate, toggleLike);
 
 // Admin routes

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image as ImageIcon, Check, X, Play, Loader2, Trash2, UploadCloud, Maximize2, Minimize2, Eye, EyeOff, Edit2 } from 'lucide-react';
-import { galleryApi } from '../../lib/api';
+import { Image as ImageIcon, Check, X, Play, Loader2, Trash2, UploadCloud, Maximize2, Minimize2, Eye, EyeOff, Edit2, Sparkles, Tag, Wand2, CheckCircle } from 'lucide-react';
+import { galleryApi, aiApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useAdminAction } from '../../store/useAdminAction';
+import { UnsplashSearchPicker } from '../../components/ui/UnsplashSearchPicker';
 
 export const GalleryManagement = () => {
     const [allItems, setAllItems] = useState<any[]>([]);
@@ -20,10 +21,36 @@ export const GalleryManagement = () => {
     const [savingEdit, setSavingEdit] = useState(false);
     const [isModalFullscreen, setIsModalFullscreen] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const [taggingId, setTaggingId] = useState<string | null>(null);
+    const [bulkTagging, setBulkTagging] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
     const { showToast, ToastComponent } = useToast();
 
+    // AI Image Suggestion State
+    const [unsplashUrl, setUnsplashUrl] = useState<string | null>(null);
+    const [suggestedImages, setSuggestedImages] = useState<any[]>([]);
+    const [imagesLoading, setImagesLoading] = useState(false);
+    const [imageModalOpen, setImageModalOpen] = useState(false);
+
     const { requestAction } = useAdminAction();
+
+    const handleSuggestImages = async () => {
+        if (!uploadTitle) {
+            showToast('Please enter a title to get AI suggestions.', 'error');
+            return;
+        }
+        setImagesLoading(true);
+        try {
+            const context = { title: uploadTitle };
+            const data = await aiApi.suggestImages(context);
+            setSuggestedImages(data.images);
+            setImageModalOpen(true);
+        } catch (err: any) {
+            showToast(err.message || 'Failed to fetch image suggestions.', 'error');
+        } finally {
+            setImagesLoading(false);
+        }
+    };
 
     useEffect(() => { fetchItems(); }, []);
 
@@ -86,6 +113,7 @@ export const GalleryManagement = () => {
                 return;
             }
             setUploadFile(file);
+            setUnsplashUrl(null);
             if (file.type.startsWith('image')) {
                 setUploadPreview(URL.createObjectURL(file));
             } else {
@@ -95,23 +123,29 @@ export const GalleryManagement = () => {
     };
 
     const handleUpload = () => {
-        if (!uploadFile || !uploadTitle) {
-            showToast('Please provide a title and select a file.', 'error');
+        if ((!uploadFile && !unsplashUrl) || !uploadTitle) {
+            showToast('Please provide a title and select a file or AI suggestion.', 'error');
             return;
         }
 
         const fileToUpload = uploadFile;
         const titleToUpload = uploadTitle;
+        const urlToUpload = unsplashUrl;
 
         requestAction(
             'Upload Media',
-            `Are you sure you want to upload "${fileToUpload.name}" directly to the gallery?`,
+            fileToUpload ? `Are you sure you want to upload "${fileToUpload.name}" directly to the gallery?` : 'Upload AI-suggested image to the gallery?',
             {
                 execute: async () => {
                     const formData = new FormData();
-                    formData.append('media', fileToUpload);
+                    if (fileToUpload) {
+                        formData.append('media', fileToUpload);
+                        formData.append('type', fileToUpload.type.startsWith('video') ? 'video' : 'image');
+                    } else if (urlToUpload) {
+                        formData.append('unsplashUrl', urlToUpload);
+                        formData.append('type', 'image');
+                    }
                     formData.append('title', titleToUpload);
-                    formData.append('type', fileToUpload.type.startsWith('video') ? 'video' : 'image');
                     await galleryApi.upload(formData);
                     fetchItems();
                 },
@@ -120,6 +154,7 @@ export const GalleryManagement = () => {
                     setUploadFile(null);
                     setUploadTitle('');
                     setUploadPreview('');
+                    setUnsplashUrl(null);
                 },
                 successMessage: 'Media uploaded successfully.'
             },
@@ -128,11 +163,41 @@ export const GalleryManagement = () => {
         );
     };
 
+    const handleAiTag = async (itemId: string) => {
+        setTaggingId(itemId);
+        try {
+            const data = await aiApi.tagGalleryItem(itemId);
+            setAllItems(prev => prev.map(i => i._id === itemId ? { ...i, aiTags: data.tags } : i));
+            showToast('AI tags generated!', 'success');
+        } catch (err: any) {
+            showToast(err.message || 'AI tagging failed', 'error');
+        } finally {
+            setTaggingId(null);
+        }
+    };
+
+    const handleBulkTag = async () => {
+        setBulkTagging(true);
+        try {
+            const data = await aiApi.bulkTagGallery();
+            showToast(data.message, 'success');
+            fetchItems(); // Refresh to show new tags
+        } catch (err: any) {
+            showToast(err.message || 'Bulk tagging failed', 'error');
+        } finally {
+            setBulkTagging(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {ToastComponent}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+                <button onClick={handleBulkTag} disabled={bulkTagging} className="py-2.5 px-5 flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 font-bold rounded-xl transition-all disabled:opacity-40">
+                    {bulkTagging ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    <span>{bulkTagging ? 'Tagging...' : 'AI Auto-Tag All'}</span>
+                </button>
                 <button onClick={() => setShowUpload(true)} className="py-2.5 px-5 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium">
                     <UploadCloud size={18} /><span>Upload Media</span>
                 </button>
@@ -148,6 +213,9 @@ export const GalleryManagement = () => {
                                 {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <img src={item.url} className="w-full h-full object-cover" />}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/80 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-[2px] lg:backdrop-blur-sm">
                                     <div className="flex items-center gap-2">
+                                        <button onClick={() => handleAiTag(item._id)} disabled={taggingId === item._id} className="p-2.5 bg-purple-500/80 rounded-xl hover:bg-purple-500 text-white transition-colors shadow-lg disabled:opacity-40" title="AI Auto-Tag">
+                                            {taggingId === item._id ? <Loader2 size={18} className="animate-spin" /> : <Tag size={18} />}
+                                        </button>
                                         <button onClick={() => { setEditItem(item); setEditTitle(item.title); }} className="p-2.5 bg-white/20 rounded-xl hover:bg-white/40 text-white transition-colors shadow-lg" title="Edit Title">
                                             <Edit2 size={18} />
                                         </button>
@@ -165,6 +233,13 @@ export const GalleryManagement = () => {
                             </div>
                             <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                                 <p className="text-xs text-white font-medium">{item.title}</p>
+                                {item.aiTags && item.aiTags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {item.aiTags.map((tag: string, idx: number) => (
+                                            <span key={idx} className="px-1.5 py-0.5 rounded-full bg-purple-500/30 text-purple-200 text-[8px] font-medium border border-purple-500/20">{tag}</span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -186,13 +261,24 @@ export const GalleryManagement = () => {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95 }}
                             className="premium-card p-8 transition-all duration-300 relative max-w-md w-full rounded-3xl"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-white font-serif">Direct Upload</h2>
-                                <button type="button" onClick={() => setShowUpload(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-lg p-2">
-                                    <X size={18} />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleSuggestImages}
+                                        disabled={imagesLoading}
+                                        className="flex items-center gap-1.5 text-alpine-glacier hover:text-white transition-colors text-xs font-medium bg-white/5 hover:bg-white/10 rounded-lg px-3 py-2"
+                                    >
+                                        {imagesLoading ? <Loader2 className="animate-spin" size={14} /> : <Wand2 size={14} />}
+                                        AI Suggest
+                                    </button>
+                                    <button type="button" onClick={() => setShowUpload(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-lg p-2">
+                                        <X size={18} />
+                                    </button>
+                                </div>
                             </div>
 
                             <input
@@ -206,8 +292,8 @@ export const GalleryManagement = () => {
                                 onClick={() => fileRef.current?.click()}
                                 className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center cursor-pointer hover:border-alpine-glacier/50 hover:bg-white/5 transition-all mb-6"
                             >
-                                {uploadPreview ? (
-                                    <img src={uploadPreview} className="max-h-48 mx-auto rounded-xl object-contain" />
+                                {uploadPreview || unsplashUrl ? (
+                                    <img src={uploadPreview || unsplashUrl || ''} className="max-h-48 mx-auto rounded-xl object-contain" />
                                 ) : uploadFile ? (
                                     <p className="text-white/60">{uploadFile.name}</p>
                                 ) : (
@@ -220,11 +306,22 @@ export const GalleryManagement = () => {
                                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" className="hidden" onChange={handleFileSelect} />
                             </div>
 
+                            <div className="mb-6">
+                                <UnsplashSearchPicker 
+                                    placeholder="Or search Unsplash directly for an image..." 
+                                    onSelect={(url) => {
+                                        setUnsplashUrl(url);
+                                        setUploadFile(null);
+                                        setUploadPreview('');
+                                    }} 
+                                />
+                            </div>
+
                             <div className="flex gap-3">
                                 <button onClick={() => setShowUpload(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all">Cancel</button>
                                 <button
                                     onClick={handleUpload}
-                                    disabled={uploading || !uploadFile}
+                                    disabled={uploading || (!uploadFile && !unsplashUrl)}
                                     className="flex-1 py-3 rounded-xl bg-alpine-glacier text-alpine-navy font-bold btn-premium flex items-center justify-center gap-2"
                                 >
                                     {uploading ? <Loader2 className="animate-spin" size={18} /> : 'Upload'}
@@ -250,7 +347,7 @@ export const GalleryManagement = () => {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95 }}
                             className="premium-card p-8 transition-all duration-300 relative max-w-md w-full rounded-3xl"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             <h2 className="text-2xl font-bold text-white font-serif mb-6">Edit Gallery Media</h2>
                             <input
@@ -290,7 +387,7 @@ export const GalleryManagement = () => {
                             exit={{ scale: 0.95, y: 20 }}
                             transition={{ type: "spring", damping: 20 }}
                             className="relative w-full max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(255,255,255,0.1)] cursor-default"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             {selectedMedia.type === 'video' ? (
                                 <video src={selectedMedia.url || selectedMedia.image} autoPlay loop controls className="w-full h-full object-contain bg-black" />
@@ -299,6 +396,63 @@ export const GalleryManagement = () => {
                             )}
                             <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                                 <h2 className="text-4xl font-serif text-white">{selectedMedia.title}</h2>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* AI Image Suggestion Modal */}
+            <AnimatePresence>
+                {imageModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-[#0A0D14] rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg sm:text-xl font-serif text-white">AI Image Suggestions</h3>
+                                    <p className="text-xs sm:text-sm text-white/50">Images sourced from Unsplash based on your title.</p>
+                                </div>
+                                <button
+                                    onClick={() => setImageModalOpen(false)}
+                                    className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            
+                            <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {suggestedImages.map((img: any) => (
+                                        <div 
+                                            key={img.id} 
+                                            className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-black/5"
+                                            onClick={() => {
+                                                setUnsplashUrl(img.url);
+                                                setUploadFile(null);
+                                                setUploadPreview('');
+                                                setImageModalOpen(false);
+                                            }}
+                                        >
+                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                                <span className="text-white text-xs font-medium truncate">Photo by {img.authorName}</span>
+                                                <div className="mt-2 text-alpine-glacier flex items-center gap-1 text-sm font-semibold">
+                                                    <CheckCircle size={14} /> Select
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

@@ -52,6 +52,41 @@ export const uploadToCloudinary = (buffer, options = {}) => {
 };
 
 /**
+ * Upload a remote URL to Cloudinary
+ * @param {String} url - Remote image URL
+ * @param {Object} options - Upload options
+ * @returns {Promise} Cloudinary upload result
+ */
+export const uploadUrlToCloudinary = (url, options = {}) => {
+    return new Promise((resolve, reject) => {
+        const uploadOptions = {
+            folder: options.folder || 'mountaineer-mallu',
+            resource_type: options.resource_type || 'auto',
+            ...options
+        };
+
+        cloudinary.uploader.upload(url, uploadOptions, (error, result) => {
+            if (error) {
+                console.error('Cloudinary remote URL upload error:', error);
+                reject(new Error('Remote media upload failed. Please try again.'));
+            } else {
+                if (result && result.secure_url) {
+                    const urlParts = result.secure_url.split('/upload/');
+                    if (urlParts.length === 2) {
+                        if (result.resource_type === 'image') {
+                            result.secure_url = `${urlParts[0]}/upload/f_auto,q_auto/${urlParts[1]}`;
+                        } else if (result.resource_type === 'video') {
+                            result.secure_url = `${urlParts[0]}/upload/f_auto,q_auto:best/${urlParts[1]}`;
+                        }
+                    }
+                }
+                resolve(result);
+            }
+        });
+    });
+};
+
+/**
  * Delete a resource from Cloudinary by public_id
  */
 export const deleteFromCloudinary = async (publicId, resourceType = 'image') => {

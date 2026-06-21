@@ -27,7 +27,7 @@ const STATUSES: SectionStatus[] = ['visible', 'coming_soon', 'hidden'];
 
 export const SectionSettings = () => {
     const { settings, fetchSettings } = useSiteSettings();
-    const [sections, setSections] = useState<Record<string, SectionStatus>>({});
+    const [sections, setSections] = useState<Record<string, { status: SectionStatus; bgTheme: string }>>({});
     const [maintenance, setMaintenance] = useState({ enabled: false, message: '', allowAdminAccess: true });
     const [saving, setSaving] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
@@ -35,12 +35,16 @@ export const SectionSettings = () => {
     const { requestAction } = useAdminAction();
 
     useEffect(() => {
-        setSections(settings.sections as Record<string, SectionStatus>);
+        setSections(settings.sections as Record<string, { status: SectionStatus; bgTheme: string }>);
         setMaintenance(settings.maintenance);
     }, [settings]);
 
     const handleSectionChange = (key: string, status: SectionStatus) => {
-        setSections(prev => ({ ...prev, [key]: status }));
+        setSections(prev => ({ ...prev, [key]: { ...prev[key], status } }));
+    };
+
+    const handleThemeChange = (key: string, bgTheme: string) => {
+        setSections(prev => ({ ...prev, [key]: { ...prev[key], bgTheme } }));
     };
 
     const handleSave = () => {
@@ -99,7 +103,9 @@ export const SectionSettings = () => {
                     {/* Section Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {Object.entries(SECTION_META).map(([key, meta], i) => {
-                            const status = sections[key] as SectionStatus || 'visible';
+                            const sectionData = sections[key] || { status: 'visible', bgTheme: 'white' };
+                            const status = sectionData.status;
+                            const bgTheme = sectionData.bgTheme;
                             const style = STATUS_STYLES[status];
                             return (
                                 <motion.div
@@ -124,23 +130,48 @@ export const SectionSettings = () => {
                                         </div>
                                     </div>
 
-                                    {/* Three-state segmented control */}
-                                    <div className="flex rounded-xl overflow-hidden border border-white/10 bg-white/[0.03]">
-                                        {STATUSES.map(s => {
-                                            const st = STATUS_STYLES[s];
-                                            const isActive = status === s;
-                                            return (
-                                                <button
-                                                    key={s}
-                                                    onClick={() => handleSectionChange(key, s)}
-                                                    className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isActive ? `${st.bg} border ${st.bg}` : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                                                >
-                                                    {st.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </motion.div>
+                            {/* Three-state segmented control */}
+                            <div className="flex rounded-xl overflow-hidden border border-white/10 bg-white/[0.03] mb-4">
+                                {STATUSES.map(s => {
+                                    const st = STATUS_STYLES[s];
+                                    const isActive = status === s;
+                                    return (
+                                        <button
+                                            key={s}
+                                            onClick={() => handleSectionChange(key, s)}
+                                            className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isActive ? `${st.bg} border ${st.bg}` : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                                        >
+                                            {st.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Section Theme Selector */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-white/40">Section Theme</label>
+                                <div className="flex bg-white/5 rounded-lg border border-white/10 p-1">
+                                    <button 
+                                        onClick={() => handleThemeChange(key, 'alpine_blue')}
+                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md uppercase tracking-wider transition-all ${bgTheme === 'alpine_blue' ? 'bg-alpine-glacier text-alpine-navy shadow-md' : 'text-white/30 hover:text-white/60'}`}
+                                    >
+                                        Alpine Blue
+                                    </button>
+                                    <button 
+                                        onClick={() => handleThemeChange(key, 'pitch_black')}
+                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md uppercase tracking-wider transition-all ${bgTheme === 'pitch_black' ? 'bg-[#0B0C10] border border-white/20 text-white shadow-md' : 'text-white/30 hover:text-white/60'}`}
+                                    >
+                                        Pitch Black
+                                    </button>
+                                    <button 
+                                        onClick={() => handleThemeChange(key, 'white')}
+                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md uppercase tracking-wider transition-all ${bgTheme === 'white' ? 'bg-white text-black shadow-md' : 'text-white/30 hover:text-white/60'}`}
+                                    >
+                                        White
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
                             );
                         })}
                     </div>
@@ -220,7 +251,7 @@ export const SectionSettings = () => {
                                 <div className="w-16 h-3 rounded bg-white/10" />
                                 <div className="flex gap-2">
                                     {Object.entries(SECTION_META).filter(([key]) => ['stories', 'events', 'gallery', 'community'].includes(key)).map(([key, meta]) => {
-                                        const status = sections[key] as SectionStatus || 'visible';
+                                        const status = sections[key]?.status || 'visible';
                                         return (
                                             <div key={key} className={`flex items-center gap-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-wider transition-all ${
                                                 status === 'hidden' ? 'opacity-0 w-0 px-0 overflow-hidden' :
@@ -253,7 +284,7 @@ export const SectionSettings = () => {
                                 {previewOrder.map(key => {
                                     const meta = SECTION_META[key];
                                     if (!meta) return null;
-                                    const status = sections[key] as SectionStatus || 'visible';
+                                    const status = sections[key]?.status || 'visible';
 
                                     if (status === 'hidden') return null;
 

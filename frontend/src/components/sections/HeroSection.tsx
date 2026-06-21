@@ -1,6 +1,9 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool } from '../../data/peaks';
 import { useTranslation } from 'react-i18next';
 import { API_URL } from '../../lib/constants';
@@ -394,6 +397,7 @@ const LightModeAtmosphere: React.FC = () => {
 };
 
 export const HeroSection = () => {
+    const [isHovered, setIsHovered] = useState(false);
     const sectionRef = useRef<HTMLElement>(null);
     const { scrollYProgress } = useScroll({
         target: sectionRef,
@@ -401,12 +405,44 @@ export const HeroSection = () => {
     });
 
     const { theme, weather, setWeather, setWeatherLoaded } = useStore();
+    const { demoLoginAsync } = useAuthStore();
+    const navigate = useNavigate();
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const { t } = useTranslation();
 
+    const [isDemoLoading, setIsDemoLoading] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            setMousePos({ 
+                x: (e.clientX / window.innerWidth - 0.5) * 30, 
+                y: (e.clientY / window.innerHeight - 0.5) * 30 
+            });
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    const handleDemoLogin = async () => {
+        setIsDemoLoading(true);
+        try {
+            const user = await demoLoginAsync();
+            if (['Admin', 'SuperAdmin'].includes(user.role)) {
+                navigate('/summit-control-panel');
+            } else {
+                navigate('/portal');
+            }
+        } catch (err) {
+            console.error('Demo login failed:', err);
+            setIsDemoLoading(false);
+        }
+    };
+
     // Parallax values — cinematic 3-layer depth
-    const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '25%']);
-    const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+    const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '15%']);
+    const bgScale = useTransform(scrollYProgress, [0, 1], [1.05, 0.85]);
+    const bgBorderRadius = useTransform(scrollYProgress, [0, 0.6], ['0px', '60px']);
     const textY = useTransform(scrollYProgress, [0, 1], ['0%', '180%']);
     const textOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
     const textScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.85]);
@@ -517,37 +553,46 @@ export const HeroSection = () => {
             return defaultPool[hash % defaultPool.length];
         }
     };
-
     const activeImage = getActiveImage();
 
     return (
-        <section ref={sectionRef} className="relative h-[150vh] w-full bg-alpine-snow dark:bg-[#0B0C10]">
+        <section ref={sectionRef} className="relative h-[150vh] w-full bg-alpine-snow dark:bg-black hero-section-cursor">
             <div className="sticky top-0 left-0 w-full h-screen overflow-hidden">
 
-                {/* Layer 1: Background with parallax + zoom + Ken Burns slow pan */}
+                {/* Layer 1: Background with Ken Burns slow pan (Stable Cinematic) */}
                 <motion.div
-                    style={{ y: bgY, scale: bgScale }}
-                    className="absolute inset-0 w-full h-[130%] -top-[15%] z-0 bg-gradient-to-b from-blue-100 to-blue-50 dark:from-[#0B0C10] dark:to-[#040911]"
+                    className="absolute inset-0 w-[110%] h-[130%] -left-[5%] -top-[15%] z-0 bg-gradient-to-b from-blue-100 to-blue-50 dark:from-[#0B0C10] dark:to-[#040911] overflow-hidden transform-gpu"
                 >
-                    <motion.img
-                        key={activeImage}
-                        initial={{ opacity: 0, scale: 1.12 }}
-                        animate={{ 
-                            opacity: 1, 
-                            scale: [1.05, 1.08, 1.05],
-                            x: [0, 15, -10, 5, 0],
-                            y: [0, -8, 5, -3, 0],
+                    <motion.div 
+                        className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%] transform-gpu"
+                        style={{
+                            rotateX: mousePos.y * 0.3,
+                            rotateY: -mousePos.x * 0.3,
+                            transformStyle: 'preserve-3d'
                         }}
-                        transition={{ 
-                            opacity: { duration: 2, ease: [0.16, 1, 0.3, 1] },
-                            scale: { duration: 30, repeat: Infinity, ease: 'easeInOut' },
-                            x: { duration: 25, repeat: Infinity, ease: 'easeInOut' },
-                            y: { duration: 20, repeat: Infinity, ease: 'easeInOut' },
-                        }}
-                        src={activeImage}
-                        alt={`Majestic ${peak.name}`}
-                        className="absolute inset-0 w-full h-full object-cover"
-                    />
+                    >
+                        <motion.img
+                            key={activeImage}
+                            initial={{ opacity: 0, scale: 1.12 }}
+                            animate={{ 
+                                opacity: 1, 
+                                scale: [1.05, 1.08, 1.05],
+                                x: [0, 15, -10, 5, 0],
+                                y: [0, -8, 5, -3, 0],
+                            }}
+                            transition={{ 
+                                opacity: { duration: 2, ease: [0.16, 1, 0.3, 1] },
+                                scale: { duration: 30, repeat: Infinity, ease: 'easeInOut' },
+                                x: { duration: 25, repeat: Infinity, ease: 'easeInOut' },
+                                y: { duration: 20, repeat: Infinity, ease: 'easeInOut' },
+                            }}
+                            src={activeImage.includes('unsplash') ? `${activeImage}&w=1920&q=80` : activeImage}
+                            alt={`Majestic ${peak.name}`}
+                            className="absolute inset-0 w-full h-full object-cover bg-alpine-snow/50 dark:bg-black/50"
+                            loading="eager"
+                            fetchPriority="high"
+                        />
+                    </motion.div>
                     {/* Atmospheric color wash */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30 dark:from-[#0B0C10]/30 dark:via-transparent dark:to-[#0B0C10]/50 pointer-events-none" />
                 </motion.div>
@@ -726,6 +771,19 @@ export const HeroSection = () => {
 
                     {/* Vignette */}
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)' }} />
+                    
+                    {/* Cinematic God Rays */}
+                    <motion.div 
+                        className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-30"
+                        animate={{ opacity: [0.1, 0.4, 0.1], rotate: [25, 30, 25] }}
+                        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+                        style={{
+                            background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,1) 45%, transparent 50%, rgba(255,255,255,0.6) 55%, transparent 60%)',
+                            transformOrigin: 'top left',
+                            scale: 1.5
+                        }}
+                    />
+
                     {/* Subtle noise grain */}
                     <div className="absolute inset-0 opacity-[0.03]" style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
@@ -733,11 +791,45 @@ export const HeroSection = () => {
                     }} />
                 </motion.div>
 
-                {/* Layer 2: Massive Typography with 3D depth */}
+                {/* Interactive Dynamic Light Flare tracking cursor */}
+                <motion.div 
+                    className="absolute inset-0 pointer-events-none z-15 mix-blend-overlay opacity-80"
+                    animate={{
+                        background: `radial-gradient(circle 800px at ${(mousePos.x + 1) * 50}% ${(mousePos.y + 1) * 50}%, rgba(255,255,255,0.6), transparent 70%)`
+                    }}
+                    transition={{ type: 'tween', ease: 'easeOut', duration: 0.1 }}
+                />
+
+                {/* Layer 2: Massive Typography with matching Iris Transition */}
                 <motion.div
-                    style={{ y: textY, opacity: textOpacity, scale: textScale }}
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none mt-[-8vh]"
+                    style={{ 
+                        y: textY, 
+                        opacity: textOpacity, 
+                        scale: textScale,
+                        marginTop: '-8vh',
+                        z: 50
+                    }}
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none transform-gpu"
                 >
+                    {/* SVG Filter for Wind Distortion */}
+                    <svg className="hidden">
+                        <filter id="wind-distortion">
+                            <feTurbulence
+                                type="fractalNoise"
+                                baseFrequency="0.015"
+                                numOctaves="3"
+                                result="noise"
+                            />
+                            <motion.feDisplacementMap
+                                in="SourceGraphic"
+                                in2="noise"
+                                scale={isHovered ? 20 : 0}
+                                xChannelSelector="R"
+                                yChannelSelector="G"
+                            />
+                        </filter>
+                    </svg>
+
                     {/* Subtitle above */}
                     <motion.p
                         initial={{ opacity: 0, y: 30 }}
@@ -748,18 +840,29 @@ export const HeroSection = () => {
                         {t('hero.presents', 'Mountaineer Mallu Presents')}
                     </motion.p>
 
-                    {/* Main title with layered shadows for depth */}
-                    <motion.h1
-                        initial={{ opacity: 0, y: 80, filter: 'blur(20px)' }}
-                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                        transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                        className="text-[14vw] md:text-[15vw] font-serif leading-[0.85] tracking-tighter text-white"
-                        style={{
-                            textShadow: '0 4px 30px rgba(0,0,0,0.3), 0 8px 60px rgba(0,0,0,0.2), 0 20px 100px rgba(0,0,0,0.15)',
-                        }}
-                    >
-                        {t('hero.ascend', 'Ascend')}
-                    </motion.h1>
+                    {/* Main title with refined, ultra-premium kinetic typography */}
+                    <motion.div className="relative group">
+                        <motion.h1
+                            className="text-[14vw] sm:text-[13vw] md:text-[12vw] lg:text-[10rem] xl:text-[12rem] font-serif leading-[0.85] tracking-tight font-light pointer-events-auto cursor-default relative text-white uppercase transform-gpu"
+                            style={{
+                                filter: 'drop-shadow(0 4px 15px rgba(0,0,0,0.4)) drop-shadow(0 0 10px rgba(255,255,255,0.1))'
+                            }}
+                            initial={{ scale: 0.8, opacity: 0, filter: 'blur(30px)' }}
+                            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                            transition={{ duration: 1.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            {/* Dynamic shimmering mask overlay inside text */}
+                            <motion.div 
+                                className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent mix-blend-overlay -ml-[100%] pointer-events-none rounded-full"
+                                animate={{ x: ['0%', '100%'] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                            />
+                            
+                            <span className="relative z-10 bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/30 font-light">
+                                {t('hero.ascend', 'Ascend')}
+                            </span>
+                        </motion.h1>
+                    </motion.div>
 
                     {/* Thin decorative line */}
                     <motion.div
@@ -778,15 +881,96 @@ export const HeroSection = () => {
                     >
                         {t('hero.awaits', 'The European Alps Await')}
                     </motion.p>
+
+                    {/* Explore Demo Dashboard Button */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1.5, delay: 1.4 }}
+                        className="mt-8 pointer-events-auto"
+                    >
+                        <button
+                            onClick={handleDemoLogin}
+                            disabled={isDemoLoading}
+                            className="group relative px-8 py-3 rounded-full bg-white/5 border border-white/20 backdrop-blur-md overflow-hidden transition-all hover:bg-white/10 hover:border-alpine-glacier/50 flex items-center gap-3"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-alpine-glacier/0 via-alpine-glacier/20 to-alpine-glacier/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                            {isDemoLoading ? (
+                                <Loader2 size={16} className="text-white animate-spin" />
+                            ) : (
+                                <Sparkles size={16} className="text-alpine-glacier group-hover:animate-pulse" />
+                            )}
+                            <span className="text-white text-sm font-medium tracking-wide uppercase">
+                                Explore Demo Dashboard
+                            </span>
+                        </button>
+                    </motion.div>
                 </motion.div>
 
-                {/* Layer 3: Mountain Foreground with premium shadow */}
+                {/* Layer 2.5: Massive Dynamic Aurora Behind Mountains */}
+                <motion.div 
+                    className="absolute inset-0 z-15 pointer-events-none mix-blend-screen opacity-60"
+                    animate={{ 
+                        background: [
+                            'radial-gradient(circle at 20% 50%, rgba(67,176,241,0.15) 0%, transparent 60%)',
+                            'radial-gradient(circle at 80% 50%, rgba(226,160,113,0.15) 0%, transparent 60%)',
+                            'radial-gradient(circle at 50% 50%, rgba(67,176,241,0.15) 0%, transparent 60%)'
+                        ]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+                />
+
+                {/* Layer 3: Mountain Foreground (Deep Parallax Translation instead of Tilt) */}
+                
+                {/* Back Mountain Layer */}
                 <motion.div
-                    style={{ y: mountainForegroundY }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[40vh] z-30 origin-bottom pointer-events-none"
+                    style={{ 
+                        y: useTransform(scrollYProgress, [0, 1], ['50%', '-20%'])
+                    }}
+                    className="absolute inset-x-0 bottom-0 top-auto h-[50vh] z-20 origin-bottom pointer-events-none opacity-60 mix-blend-multiply dark:mix-blend-screen transform-gpu"
                 >
-                    <svg className="w-full h-full text-alpine-snow dark:text-[#0B0C10] fill-current" preserveAspectRatio="none" viewBox="0 0 1440 200" style={{ filter: 'drop-shadow(0 -30px 60px rgba(0,0,0,0.4))' }}>
-                        <path fillRule="evenodd" clipRule="evenodd" d="M0,200 L1440,200 L1440,120 L1300,60 L1200,90 L1050,40 L900,100 L750,20 L550,110 L400,50 L250,130 L100,70 L0,150 Z" />
+                    <svg className="w-[120%] -ml-[10%] h-full text-alpine-blue/40 dark:text-black/60 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 300" style={{ filter: 'blur(8px)' }}>
+                        <path d="M0,300 L0,150 C300,50 500,200 800,100 C1100,0 1300,150 1440,50 L1440,300 Z" />
+                    </svg>
+                </motion.div>
+                
+                {/* Mid Mountain Layer */}
+                <motion.div
+                    style={{ 
+                        y: useTransform(scrollYProgress, [0, 1], ['40%', '-10%'])
+                    }}
+                    className="absolute inset-x-0 bottom-0 top-auto h-[45vh] z-25 origin-bottom pointer-events-none opacity-80 transform-gpu"
+                >
+                    <svg className="w-[110%] -ml-[5%] h-full text-alpine-navy/40 dark:text-black/80 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 250" style={{ filter: 'drop-shadow(0 -10px 20px rgba(0,0,0,0.4)) backdrop-blur-sm' }}>
+                        <path d="M0,250 L0,120 C250,190 450,60 750,160 C1050,260 1250,80 1440,140 L1440,250 Z" />
+                    </svg>
+                </motion.div>
+
+                {/* Cinematic Drifting Fog */}
+                <motion.div 
+                    className="absolute inset-x-0 bottom-0 h-[40vh] z-25 pointer-events-none opacity-40 overflow-visible"
+                    animate={{ x: ['-5%', '5%', '-5%'] }}
+                    transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                    <div className="absolute bottom-0 w-[120%] -left-[10%] h-full bg-gradient-to-t from-white/40 via-white/10 to-transparent blur-3xl rounded-[100%]" />
+                </motion.div>
+
+                {/* Glowing Mist */}
+                <motion.div 
+                    className="absolute inset-x-0 bottom-0 h-[30vh] z-25 pointer-events-none bg-gradient-to-t from-white/30 to-transparent dark:from-alpine-blue/10 dark:to-transparent blur-[20px]"
+                    animate={{ opacity: [0.2, 0.5, 0.2] }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                {/* Front Mountain Layer (Smooth Glass) */}
+                <motion.div
+                    style={{ 
+                        y: mountainForegroundY
+                    }}
+                    className="absolute inset-x-0 bottom-0 top-auto h-[40vh] z-30 origin-bottom pointer-events-none transform-gpu"
+                >
+                    <svg className="w-full h-full text-alpine-snow dark:text-black fill-current" preserveAspectRatio="none" viewBox="0 0 1440 200" style={{ filter: 'drop-shadow(0 -30px 60px rgba(0,0,0,0.5)) backdrop-blur-md' }}>
+                        <path d="M0,200 L0,80 C200,150 400,30 700,120 C1000,210 1200,40 1440,90 L1440,200 Z" />
                     </svg>
                 </motion.div>
 
@@ -838,7 +1022,7 @@ export const HeroSection = () => {
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="mt-4 pt-4 border-t border-white/10 overflow-hidden"
+                                className="mt-4 pt-4 border-t border-white/10 overflow-hidden max-h-[50vh] overflow-y-auto hide-scrollbar"
                             >
                                 {isPeakLoading ? (
                                     <div className="flex items-center gap-3 text-white/50 text-xs font-medium uppercase tracking-wider">

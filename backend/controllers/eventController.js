@@ -1,6 +1,6 @@
 import Event from '../models/Event.js';
 import User from '../models/User.js';
-import { uploadToCloudinary } from '../services/cloudinary.js';
+import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
 import { sendEventRegistrationEmail } from '../services/email.js';
 
 // GET /api/events
@@ -50,6 +50,15 @@ export const createEvent = async (req, res, next) => {
                 ]
             });
             imageUrl = result.secure_url;
+        } else if (req.body.unsplashUrl) {
+            const result = await uploadUrlToCloudinary(req.body.unsplashUrl, {
+                folder: 'mountaineer-mallu/events',
+                transformation: [
+                    { width: 1600, crop: 'limit' },
+                    { quality: 'auto', fetch_format: 'auto' }
+                ]
+            });
+            imageUrl = result.secure_url;
         }
 
         const event = await Event.create({
@@ -74,6 +83,12 @@ export const updateEvent = async (req, res, next) => {
 
         if (req.file) {
             const result = await uploadToCloudinary(req.file.buffer, {
+                folder: 'mountaineer-mallu/events',
+                transformation: [{ width: 1600, crop: 'limit' }, { quality: 'auto', fetch_format: 'auto' }]
+            });
+            updates.image = result.secure_url;
+        } else if (req.body.unsplashUrl) {
+            const result = await uploadUrlToCloudinary(req.body.unsplashUrl, {
                 folder: 'mountaineer-mallu/events',
                 transformation: [{ width: 1600, crop: 'limit' }, { quality: 'auto', fetch_format: 'auto' }]
             });

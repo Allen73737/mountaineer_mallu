@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Plus, Edit2, Trash2, Save, X, Loader2, Image as ImageIcon, Maximize2, Minimize2, Eye, EyeOff, MapPin, Calendar, User, ArrowLeft, UploadCloud } from 'lucide-react';
-import { storiesApi } from '../../lib/api';
+import { BookOpen, Plus, Edit2, Trash2, Save, X, Loader2, Image as ImageIcon, Maximize2, Minimize2, Eye, EyeOff, MapPin, Calendar, User, ArrowLeft, UploadCloud, Wand2 } from 'lucide-react';
+import { storiesApi, aiApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { LanguageInput } from '../../components/ui/LanguageInput';
 import { TableRowSkeleton } from '../../components/ui/Skeleton';
 import { useAdminAction } from '../../store/useAdminAction';
 import { CheckCircle, XCircle, Type, SplitSquareVertical } from 'lucide-react';
+import { UnsplashSearchPicker } from '../../components/ui/UnsplashSearchPicker';
 
 /* ─── Full Article Preview (editorial reading view) ─── */
-const StoryPreviewFull = ({ form, imageFile }: { form: any; imageFile: File | null }) => {
+const StoryPreviewFull = ({ form, imageFile, unsplashUrl }: { form: any; imageFile: File | null; unsplashUrl?: string | null }) => {
     const previewUrl = useMemo(() => {
         if (imageFile) return URL.createObjectURL(imageFile);
+        if (unsplashUrl) return unsplashUrl;
         return form.image || '';
-    }, [imageFile, form.image]);
+    }, [imageFile, form.image, unsplashUrl]);
 
     // Split content into paragraphs for rendering
     const paragraphs = (form.content || '').split(/\n\n+/).filter((p: string) => p.trim());
@@ -154,8 +156,33 @@ export const StoriesManagement = () => {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [editorMode, setEditorMode] = useState<'split' | 'wysiwyg'>('wysiwyg');
     const contentEditableRef = React.useRef<HTMLDivElement>(null);
+    
+    // AI Image Suggestion State
+    const [unsplashUrl, setUnsplashUrl] = useState<string | null>(null);
+    const [suggestedImages, setSuggestedImages] = useState<any[]>([]);
+    const [imagesLoading, setImagesLoading] = useState(false);
+    const [imageModalOpen, setImageModalOpen] = useState(false);
+
     const { showToast, ToastComponent } = useToast();
     const { requestAction } = useAdminAction();
+
+    const handleSuggestImages = async () => {
+        if (!form.title) {
+            showToast('Please enter a story title to get image suggestions.', 'error');
+            return;
+        }
+        setImagesLoading(true);
+        try {
+            const context = { title: form.title, region: form.region, description: form.excerpt, content: (form.content || '').substring(0, 800) };
+            const data = await aiApi.suggestImages(context);
+            setSuggestedImages(data.images);
+            setImageModalOpen(true);
+        } catch (err: any) {
+            showToast(err.message || 'Failed to fetch image suggestions.', 'error');
+        } finally {
+            setImagesLoading(false);
+        }
+    };
 
     useEffect(() => { fetchStories(); }, []);
 
@@ -171,6 +198,7 @@ export const StoriesManagement = () => {
         setEditing(null);
         setForm({ title: '', excerpt: '', content: '', author: '', date: '', region: '', image: '' });
         setImageFile(null);
+        setUnsplashUrl(null);
         setShowPreview(false);
         setShowForm(true);
     };
@@ -179,6 +207,7 @@ export const StoriesManagement = () => {
         setEditing(story);
         setForm({ title: story.title, excerpt: story.excerpt, content: story.content || '', author: story.author, date: story.date, region: story.region, image: story.image });
         setImageFile(null);
+        setUnsplashUrl(null);
         setShowPreview(false);
         setShowForm(true);
     };
@@ -196,6 +225,7 @@ export const StoriesManagement = () => {
                     const formData = new FormData();
                     Object.entries(form).forEach(([k, v]) => { if (v) formData.append(k, v as string); });
                     if (imageFile) formData.append('image', imageFile);
+                    else if (unsplashUrl) formData.append('unsplashUrl', unsplashUrl);
 
                     if (isUpdate) await storiesApi.update(editing._id, formData);
                     else await storiesApi.create(formData);
@@ -417,13 +447,27 @@ export const StoriesManagement = () => {
                                         </div>
                                         <input placeholder="Region" value={form.region} onChange={e => setForm({...form, region: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-alpine-glacier/50" />
                                         <div>
-                                            <label className="block text-white/50 text-xs mb-2 uppercase tracking-wider">Cover Image</label>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-white/50 text-xs uppercase tracking-wider">Cover Image</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSuggestImages}
+                                                    disabled={imagesLoading}
+                                                    className="flex items-center gap-1.5 text-alpine-glacier hover:text-white transition-colors text-xs font-medium"
+                                                >
+                                                    {imagesLoading ? <Loader2 className="animate-spin" size={14} /> : <Wand2 size={14} />}
+                                                    AI Suggest
+                                                </button>
+                                            </div>
                                             <div className="flex flex-col sm:flex-row items-center gap-4">
                                                 <div className="w-full sm:flex-1 relative">
                                                     <input
                                                         type="url"
-                                                        value={form.image || ''}
-                                                        onChange={e => setForm({ ...form, image: e.target.value })}
+                                                        value={unsplashUrl || form.image || ''}
+                                                        onChange={e => {
+                                                            setUnsplashUrl(null);
+                                                            setForm({ ...form, image: e.target.value });
+                                                        }}
                                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-alpine-glacier/50"
                                                         placeholder="Enter image URL..."
                                                     />
@@ -433,7 +477,10 @@ export const StoriesManagement = () => {
                                                     <input
                                                         type="file"
                                                         accept="image/*"
-                                                        onChange={e => setImageFile(e.target.files?.[0] || null)}
+                                                        onChange={e => {
+                                                            setImageFile(e.target.files?.[0] || null);
+                                                            setUnsplashUrl(null);
+                                                        }}
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                                     />
                                                     <div className={`w-full bg-white/5 border ${imageFile ? 'border-alpine-glacier/50 text-alpine-glacier' : 'border-white/10 text-white/60'} group-hover:border-alpine-glacier/50 group-hover:text-alpine-glacier rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition-all`}>
@@ -442,7 +489,17 @@ export const StoriesManagement = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {form.image && !imageFile && <img src={form.image} className="mt-2 h-20 rounded-lg object-cover" />}
+                                            {(unsplashUrl || form.image) && !imageFile && <img src={unsplashUrl || form.image} className="mt-2 h-20 rounded-lg object-cover" />}
+                                            <div className="mt-4">
+                                                <UnsplashSearchPicker 
+                                                    placeholder="Or search Unsplash directly for a cover image..." 
+                                                    onSelect={(url) => {
+                                                        setUnsplashUrl(url);
+                                                        setForm({ ...form, image: url });
+                                                        setImageFile(null);
+                                                    }} 
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-3 mt-6">
@@ -461,7 +518,7 @@ export const StoriesManagement = () => {
                                         transition={{ type: 'spring', damping: 20 }}
                                         className="w-1/2 border-l border-white/10 pl-8 overflow-hidden"
                                     >
-                                        <StoryPreviewFull form={form} imageFile={imageFile} />
+                                        <StoryPreviewFull form={form} imageFile={imageFile} unsplashUrl={unsplashUrl} />
                                     </motion.div>
                                 )}
                             </div>
@@ -493,6 +550,62 @@ export const StoriesManagement = () => {
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             <img src={selectedImage} className="max-w-full max-h-full object-contain" />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* AI Image Suggestion Modal */}
+            <AnimatePresence>
+                {imageModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-[#0A0D14] rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg sm:text-xl font-serif text-white">AI Cover Suggestions</h3>
+                                    <p className="text-xs sm:text-sm text-white/50">Images sourced from Unsplash based on your story.</p>
+                                </div>
+                                <button
+                                    onClick={() => setImageModalOpen(false)}
+                                    className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            
+                            <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {suggestedImages.map((img: any) => (
+                                        <div 
+                                            key={img.id} 
+                                            className="group relative aspect-video rounded-xl overflow-hidden cursor-pointer bg-black/5"
+                                            onClick={() => {
+                                                setUnsplashUrl(img.url);
+                                                setImageFile(null);
+                                                setImageModalOpen(false);
+                                            }}
+                                        >
+                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                                <span className="text-white text-xs font-medium truncate">Photo by {img.authorName}</span>
+                                                <div className="mt-2 text-alpine-glacier flex items-center gap-1 text-sm font-semibold">
+                                                    <CheckCircle size={14} /> Select
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

@@ -59,7 +59,7 @@ export const ReviewsPage = () => {
                             key={review.id}
                             initial={{ opacity: 0, y: 50, scale: 0.95 }}
                             whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                            viewport={{ once: false, margin: "-50px" }}
+                            viewport={{ once: true, margin: "-50px" }}
                             transition={{ duration: 0.6, delay: i * 0.1, type: "spring", bounce: 0.4 }}
                             className="glass-dark bg-white/50 dark:bg-black/20 p-8 rounded-3xl border border-black/5 dark:border-white/10 shadow-xl hover:shadow-2xl transition-all duration-500 group relative overflow-hidden"
                         >

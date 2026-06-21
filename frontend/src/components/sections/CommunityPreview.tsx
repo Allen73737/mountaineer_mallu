@@ -1,233 +1,281 @@
-import React, { useRef } from 'react';
-import { motion, useInView, useAnimationFrame, useMotionValue, useTransform, wrap } from 'framer-motion';
-import { Users, MapPin, ArrowRight, ShieldCheck, Compass } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useInView, useAnimation } from 'framer-motion';
+import { Users, MapPin, ArrowRight, ShieldCheck, Compass, Mountain, Map, Snowflake } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const GROUPS = [
-    { id: 1, name: 'Alpine Vanguards', region: 'Chamonix, FR', members: 128, desc: 'Technical ascents and mixed climbing focus. High altitude experience required.', icon: ShieldCheck },
-    { id: 2, name: 'Bavarian Trekkers', region: 'Munich, DE', members: 450, desc: 'Weekend hiking operations across the Zugspitze region. All levels welcome.', icon: Compass },
-    { id: 3, name: 'Dolomites Scramblers', region: 'Cortina, IT', members: 85, desc: 'Via Ferrata, ridge traverses, and light mountaineering.', icon: ShieldCheck },
-    { id: 4, name: 'Swiss High Route', region: 'Zermatt, CH', members: 210, desc: 'Multi-day hut-to-hut glacier expeditions and logistics planning.', icon: Compass }
+    { 
+        id: 1, 
+        name: 'Alpine Vanguards', 
+        region: 'Chamonix, FR', 
+        members: 128, 
+        desc: 'Technical ascents and mixed climbing focus. High altitude experience required.', 
+        icon: ShieldCheck,
+        image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=1200&auto=format&fit=crop',
+    },
+    { 
+        id: 2, 
+        name: 'Bavarian Trekkers', 
+        region: 'Munich, DE', 
+        members: 450, 
+        desc: 'Weekend hiking operations across the Zugspitze region. All levels welcome.', 
+        icon: Compass,
+        image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
+    },
+    { 
+        id: 3, 
+        name: 'Dolomite Scramblers', 
+        region: 'Cortina, IT', 
+        members: 85, 
+        desc: 'Via Ferrata, ridge traverses, and light mountaineering.', 
+        icon: Mountain,
+        image: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?q=80&w=800&auto=format&fit=crop',
+    },
+    { 
+        id: 4, 
+        name: 'Swiss High Route', 
+        region: 'Zermatt, CH', 
+        members: 210, 
+        desc: 'Multi-day hut-to-hut glacier expeditions and logistics planning.', 
+        icon: Map,
+        image: 'https://images.unsplash.com/photo-1516655855035-d5215bcb5604?q=80&w=1200&auto=format&fit=crop',
+    },
+    { 
+        id: 5, 
+        name: 'Nordic Trailblazers', 
+        region: 'Tromsø, NO', 
+        members: 156, 
+        desc: 'Arctic circle expeditions and winter survival training. Auroral ascents.', 
+        icon: Snowflake,
+        image: 'https://images.unsplash.com/photo-1517823382935-51bfcb0ec6bc?q=80&w=1200&auto=format&fit=crop',
+    }
 ];
 
 export const CommunityPreview = () => {
     const { t } = useTranslation();
-    const baseX = useMotionValue(0);
-    const containerRef = useRef(null);
-    const isInView = useInView(containerRef, { once: false, margin: "-100px" });
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [isHovered, setIsHovered] = useState(false);
 
-    const scrollItems = [...GROUPS, ...GROUPS, ...GROUPS];
-    const baseVelocity = -0.03; // Slightly slower than events for reading text
+    const total = GROUPS.length;
+    const sectionRef = useRef(null);
+    const isInView = useInView(sectionRef, { once: true, margin: "-10%" });
+    const controls = useAnimation();
 
-    useAnimationFrame((t: any, delta: any) => {
-        let moveBy = baseVelocity * (delta / 16);
-        baseX.set(baseX.get() + moveBy);
-    });
+    useEffect(() => {
+        if (isInView) {
+            controls.start('visible');
+        } else {
+            controls.start('hidden');
+        }
+    }, [isInView, controls]);
 
-    const x = useTransform(baseX, (v: any) => `${wrap(-33.33, 0, v)}%`);
+    // Auto-cycle logic
+    useEffect(() => {
+        if (isHovered || !isInView) return; // Pause if hovered or out of view
+        
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % total);
+        }, 4000); // Rotate every 4 seconds
 
-    // Mobile carousel state
-    const [mobileIndex, setMobileIndex] = React.useState(0);
-    const mobileCarouselRef = useRef<HTMLDivElement>(null);
+        return () => clearInterval(timer);
+    }, [isHovered, total, isInView]);
 
-    React.useEffect(() => {
-        const interval = setInterval(() => {
-            if (mobileCarouselRef.current) {
-                const nextIndex = (mobileIndex + 1) % GROUPS.length;
-                setMobileIndex(nextIndex);
-                mobileCarouselRef.current.scrollTo({
-                    left: mobileCarouselRef.current.clientWidth * nextIndex,
-                    behavior: 'smooth'
-                });
-            }
-        }, 4000); // Pause for 4 seconds before turning
-        return () => clearInterval(interval);
-    }, [mobileIndex]);
+    const activeGroup = GROUPS[activeIndex];
+    const ActiveIcon = activeGroup.icon;
+
+    // Animation Variants
+    const fadeUp = {
+        hidden: { opacity: 0, y: 30, transition: { duration: 0.5 } },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+    };
+    
+    const fadeUpDelayed = {
+        hidden: { opacity: 0, y: 30, transition: { duration: 0.5 } },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.2, ease: "easeOut" } }
+    };
+
+    const scaleIn = {
+        hidden: { opacity: 0, scale: 0.95, transition: { duration: 0.5 } },
+        visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: "easeOut" } }
+    };
 
     return (
-        <section ref={containerRef} id="community" className="py-20 md:py-28 px-6 md:px-12 relative z-10 bg-alpine-snow dark:bg-black border-t border-black/5 dark:border-white/5 overflow-hidden">
-            {/* Ambient Background Orbs for Glassmorphism */}
-            <div className="absolute top-[10%] right-[-10%] w-[45vw] h-[45vw] rounded-full opacity-[0.12] dark:opacity-[0.1] pointer-events-none blur-[100px]" style={{ background: '#E2A071' }} />
-            <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full opacity-[0.12] dark:opacity-[0.1] pointer-events-none blur-[100px]" style={{ background: '#A3C9E2' }} />
-            <div className="absolute top-[40%] left-[30%] w-[25vw] h-[25vw] rounded-full opacity-[0.08] dark:opacity-[0.06] pointer-events-none blur-[80px]" style={{ background: '#4A6A8C' }} />
+        <section 
+            id="community" 
+            ref={sectionRef}
+            className="min-h-[100dvh] flex flex-col justify-center py-16 md:py-24 px-6 md:px-12 relative z-10 bg-alpine-navy dark:bg-black overflow-hidden"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => setIsHovered(true)}
+            onTouchEnd={() => setIsHovered(false)}
+        >
+            {/* Ambient Lighting behind the monolith */}
+            <div className="absolute top-1/2 left-1/4 w-[40vw] h-[40vw] rounded-full bg-alpine-glacier/10 blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-            <div className="max-w-7xl mx-auto flex flex-col gap-12 md:gap-16">
+            <div className="w-full max-w-[1600px] mx-auto">
+                
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
-                    <div>
-                        <motion.p
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                            transition={{ duration: 0.6 }}
-                            className="text-alpine-forest dark:text-alpine-glacier text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3"
-                        >
-                            {t('community.join_brotherhood', 'Join the Ranks')}
-                        </motion.p>
-                        <motion.h2
-                            initial={{ y: 30, opacity: 0 }}
-                            animate={isInView ? { y: 0, opacity: 1 } : { y: 30, opacity: 0 }}
-                            transition={{ duration: 0.8, type: "spring", damping: 20 }}
-                            className="text-4xl md:text-6xl lg:text-7xl font-serif mb-3 md:mb-4 text-alpine-navy dark:text-alpine-snow"
-                        >
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 md:mb-12 relative z-20">
+                    <motion.div 
+                        variants={fadeUp}
+                        initial="hidden"
+                        animate={controls}
+                        className="max-w-2xl"
+                    >
+                        <p className="text-alpine-glacier dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3">
+                            {t('community.join_brotherhood', 'Global Factions')}
+                        </p>
+                        <h2 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-white mb-4">
                             {t('community.title', 'Community')}
-                        </motion.h2>
-                        <motion.p
-                            initial={{ x: -30, opacity: 0 }}
-                            animate={isInView ? { x: 0, opacity: 1 } : { x: -30, opacity: 0 }}
-                            transition={{ duration: 0.8, delay: 0.2 }}
-                            className="text-alpine-navy/60 dark:text-alpine-snow/60 max-w-xl font-light text-base md:text-xl"
-                        >
+                        </h2>
+                        <p className="text-white/60 font-light text-lg md:text-2xl leading-relaxed">
                             {t('community.subtitle', 'Join specialized factions. Coordinate expeditions, share intelligence, and find your ropemates.')}
-                        </motion.p>
-                    </div>
+                        </p>
+                    </motion.div>
+                    
                     <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={isInView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 100, damping: 10, delay: 0.3 }}
+                        variants={fadeUpDelayed}
+                        initial="hidden"
+                        animate={controls}
                     >
                         <Link
                             to="/community"
-                            className="hidden md:flex items-center gap-2 group text-alpine-forest dark:text-alpine-glacier transition-colors"
+                            className="hidden md:flex items-center gap-4 group text-white hover:text-black bg-white/5 hover:bg-white transition-all duration-500 border border-white/20 hover:border-white px-8 py-4 rounded-full"
                         >
-                            <span className="font-medium tracking-wide">{t('community.access_comms', 'Enter Hub')}</span>
-                            <div className="bg-black/5 dark:bg-white/5 p-3 md:p-4 rounded-full group-hover:bg-black/10 dark:group-hover:bg-white/10 transition-colors">
-                                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                            </div>
+                            <span className="font-bold tracking-wide uppercase text-xs tracking-[0.2em]">Enter Hub</span>
+                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </motion.div>
                 </div>
 
-                {/* Desktop Continuous Marquee Area */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 1, type: "spring", damping: 15, delay: 0.2 }}
-                    className="w-full relative overflow-hidden py-4 md:py-6 hidden md:block"
+                {/* 3D Typography Wheel Layout */}
+                <motion.div 
+                    variants={scaleIn}
+                    initial="hidden"
+                    animate={controls}
+                    className="w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-8 h-[450px] lg:h-[550px] relative"
                 >
-                    <motion.div
-                        className="flex gap-4 md:gap-6 w-max"
-                        style={{ x }}
-                        drag="x"
-                        dragConstraints={{ left: -1000, right: 1000 }}
-                        dragElastic={0.1}
-                        onDrag={(e: any, info: any) => {
-                            const velocityOverride = info.delta.x * 2;
-                            baseX.set(baseX.get() + velocityOverride);
-                        }}
-                    >
-                        {scrollItems.map((group, i) => {
-                            const Icon = group.icon;
-                            return (
-                                <div
-                                    key={`${group.id}-${i}`}
-                                    className="relative min-w-[300px] md:min-w-[420px] pb-4 flex-shrink-0 group cursor-grab active:cursor-grabbing"
-                                >
-                                    <div className="h-full premium-card-light dark:premium-card rounded-2xl md:rounded-3xl p-6 md:p-8 flex flex-col justify-between border border-black/5 dark:border-white/[0.06] hover:border-alpine-glacier/30 dark:hover:border-white/15 transition-all duration-500 shadow-lg group-hover:shadow-2xl">
-                                        <div>
-                                            <div className="flex justify-between items-start mb-5 md:mb-6">
-                                                <div className="bg-alpine-navy dark:bg-white/10 p-2.5 md:p-3 rounded-xl md:rounded-2xl shrink-0">
-                                                    <Icon size={24} className="text-white" />
-                                                </div>
-                                                <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0">
-                                                    <Users size={13} className="text-alpine-navy/60 dark:text-alpine-snow/60" />
-                                                    <span className="text-xs font-bold text-alpine-navy/80 dark:text-alpine-snow/80">{group.members}</span>
-                                                </div>
-                                            </div>
-                                            <h3 className="font-serif text-xl md:text-2xl font-bold text-alpine-navy dark:text-white mb-2 leading-tight">{group.name}</h3>
-                                            <div className="flex items-center gap-1.5 text-alpine-forest dark:text-alpine-glacier mb-3 md:mb-4">
-                                                <MapPin size={14} />
-                                                <span className="text-xs md:text-sm font-semibold tracking-wide uppercase">{group.region}</span>
-                                            </div>
-                                            <p className="text-alpine-navy/70 dark:text-white/60 text-sm md:text-base leading-relaxed mb-6 md:mb-8 whitespace-normal">
-                                                {group.desc}
-                                            </p>
-                                        </div>
-        
-                                        <Link to="/community" className="w-full mt-auto">
-                                            <button className="w-full py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] hover:bg-alpine-navy hover:text-white dark:hover:bg-white dark:hover:text-black transition-all duration-300 font-semibold tracking-wide text-sm md:text-base flex items-center justify-center gap-2 group-hover:shadow-lg btn-premium">
-                                                {t('community.join_now', 'Request to Join')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                            </button>
-                                        </Link>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </motion.div>
-                </motion.div>
-
-                {/* Mobile Snap Carousel */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 1, type: "spring", damping: 15, delay: 0.2 }}
-                    className="w-full md:hidden"
-                >
+                    
+                    {/* Left: 3D Text Cylinder */}
                     <div 
-                        ref={mobileCarouselRef}
-                        className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4"
-                        onScroll={(e) => {
-                            const target = e.target as HTMLDivElement;
-                            const newIndex = Math.round(target.scrollLeft / target.clientWidth);
-                            if (newIndex !== mobileIndex) setMobileIndex(newIndex);
-                        }}
+                        className="w-full lg:w-3/5 h-full relative flex items-center justify-start overflow-hidden lg:overflow-visible mask-vertical-fade z-20"
+                        style={{ perspective: '1200px' }}
                     >
-                        {GROUPS.map((group) => {
-                            const Icon = group.icon;
-                            return (
-                                <div key={group.id} className="w-[85vw] shrink-0 snap-center pb-2">
-                                    <div className="h-full premium-card-light dark:premium-card rounded-3xl p-6 flex flex-col justify-between border border-black/5 dark:border-white/[0.06] shadow-xl">
-                                        <div>
-                                            <div className="flex justify-between items-start mb-5">
-                                                <div className="bg-alpine-navy dark:bg-white/10 p-2.5 rounded-2xl shrink-0">
-                                                    <Icon size={24} className="text-white" />
-                                                </div>
-                                                <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0">
-                                                    <Users size={13} className="text-alpine-navy/60 dark:text-white/60" />
-                                                    <span className="text-xs font-bold text-alpine-navy/80 dark:text-white/80">{group.members}</span>
-                                                </div>
-                                            </div>
-                                            <h3 className="font-serif text-xl font-bold text-alpine-navy dark:text-white mb-2 leading-tight">{group.name}</h3>
-                                            <div className="flex items-center gap-1.5 text-alpine-forest dark:text-alpine-glacier mb-3">
-                                                <MapPin size={14} />
-                                                <span className="text-xs font-semibold tracking-wide uppercase">{group.region}</span>
-                                            </div>
-                                            <p className="text-alpine-navy/70 dark:text-white/60 text-sm leading-relaxed mb-6 whitespace-normal min-h-[4rem]">
-                                                {group.desc}
-                                            </p>
+                        <div className="relative w-full h-[300px] flex items-center" style={{ transformStyle: 'preserve-3d' }}>
+                            {GROUPS.map((group, index) => {
+                                // Calculate shortest distance on the wheel for infinite looping
+                                let diff = (index - activeIndex) % total;
+                                if (diff > Math.floor(total / 2)) diff -= total;
+                                if (diff < -Math.floor(total / 2)) diff += total;
+
+                                const isCenter = diff === 0;
+
+                                // The math ensures that when an item wraps from bottom (+2) to top (-2), 
+                                // it is completely invisible (opacity 0) so the user doesn't see it fly across the screen.
+                                const isVisible = Math.abs(diff) <= 1.5;
+
+                                return (
+                                    <motion.div
+                                        key={group.id}
+                                        animate={{
+                                            y: diff * 110, // Vertical spacing reduced to fit screen
+                                            rotateX: diff * -35, // Tilt backwards into the screen
+                                            z: -Math.abs(diff) * 120, // Push backward in 3D space
+                                            scale: 1 - Math.abs(diff) * 0.05,
+                                            opacity: isVisible ? (1 - Math.abs(diff) * 0.6) : 0,
+                                            zIndex: 50 - Math.abs(diff) // Ensure center item is always on top for clicking
+                                        }}
+                                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                        className={`absolute w-full flex items-center left-0 ${isVisible ? 'cursor-pointer pointer-events-auto' : 'pointer-events-none'}`}
+                                        onClick={() => setActiveIndex(index)}
+                                    >
+                                        <div className="flex items-center gap-6">
+                                            {isCenter && (
+                                                <motion.div 
+                                                    layoutId="activeWheelDot"
+                                                    className="w-3 h-3 rounded-full bg-alpine-glacier hidden md:block"
+                                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                                />
+                                            )}
+                                            <h3 className={`text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-serif font-black tracking-tighter leading-none whitespace-nowrap transition-colors duration-500 ${isCenter ? 'text-white' : 'text-transparent webkit-text-stroke-1'}`}>
+                                                {group.name}
+                                            </h3>
                                         </div>
-        
-                                        <Link to="/community" className="w-full mt-auto">
-                                            <button className="w-full py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] hover:bg-alpine-navy hover:text-white dark:hover:bg-white dark:hover:text-black transition-all duration-300 font-semibold tracking-wide text-sm flex items-center justify-center gap-2 group-hover:shadow-lg btn-premium">
-                                                {t('community.join_now', 'Request to Join')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                            </button>
-                                        </Link>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Right: The Cinematic Glassmorphic Portal */}
+                    <div className="w-full lg:w-2/5 h-[350px] lg:h-full relative flex items-center justify-center pointer-events-none z-10">
+                        <div className="w-full max-w-[450px] aspect-[4/5] lg:h-[90%] relative rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl border border-white/10 group pointer-events-auto">
+                            
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={activeGroup.id}
+                                    initial={{ opacity: 0, scale: 1.1 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                                    className="absolute inset-0"
+                                >
+                                    <img 
+                                        src={activeGroup.image} 
+                                        alt={activeGroup.name}
+                                        className="w-full h-full object-cover object-center brightness-75 group-hover:brightness-100 transition-all duration-700"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                                </motion.div>
+                            </AnimatePresence>
+
+                            {/* Portal Content Overlay */}
+                            <div className="absolute inset-0 p-8 md:p-10 flex flex-col justify-between z-10 pointer-events-none">
+                                <div className="flex justify-between items-start">
+                                    <div className="bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                                        <ActiveIcon size={24} className="text-white" />
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                                        <Users size={14} className="text-alpine-glacier" />
+                                        <span className="text-xs font-bold text-white tracking-wider">{activeGroup.members} Active</span>
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                    {/* Pagination Dots */}
-                    <div className="flex justify-center gap-2 mt-2">
-                        {GROUPS.map((_, idx) => (
-                            <div 
-                                key={idx} 
-                                className={`h-1.5 rounded-full transition-all duration-300 ${idx === mobileIndex ? 'w-6 bg-alpine-glacier' : 'w-1.5 bg-black/20 dark:bg-white/20'}`}
-                            />
-                        ))}
+                                
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <MapPin size={16} className="text-alpine-glacier" />
+                                        <span className="text-sm font-bold tracking-[0.2em] uppercase text-white">{activeGroup.region}</span>
+                                    </div>
+                                    <p className="text-white/80 text-sm md:text-base leading-relaxed mb-6 line-clamp-3">
+                                        {activeGroup.desc}
+                                    </p>
+                                    
+                                    <Link to="/community" className="pointer-events-auto w-max">
+                                        <button className="flex items-center gap-3 text-xs font-bold tracking-[0.2em] uppercase text-white hover:text-alpine-glacier transition-colors group/btn">
+                                            Request to Join <ArrowRight size={16} className="group-hover/btn:translate-x-2 transition-transform" />
+                                        </button>
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </motion.div>
 
-                {/* Mobile View All */}
-                <div className="flex justify-center md:hidden">
-                    <Link
-                        to="/community"
-                        className="flex items-center gap-2 text-base group text-alpine-forest dark:text-alpine-glacier font-medium"
-                    >
-                        {t('community.access_comms', 'Enter Community Hub')} <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                    </Link>
-                </div>
             </div>
+
+            {/* Global style for mask and text-stroke */}
+            <style>
+                {`
+                .mask-vertical-fade {
+                    -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+                    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+                }
+                .webkit-text-stroke-1 {
+                    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+                }
+                `}
+            </style>
         </section>
     );
 };

@@ -93,7 +93,7 @@ export const MerchandiseManagement = () => {
 
         requestAction(
             'Remove Merchandise',
-            `Are you sure you want to remove "${itemToDelete.title}"?`,
+            `Are you sure you want to remove "${itemToDelete.name}"?`,
             {
                 execute: async () => { await merchandiseApi.delete(id); fetchItems(); },
                 optimistic: () => setItems(prev => prev.filter(i => i._id !== id)),

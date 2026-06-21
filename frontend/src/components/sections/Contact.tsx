@@ -7,25 +7,41 @@ import { useTranslation } from 'react-i18next';
 export const Contact = () => {
     const { t } = useTranslation();
     return (
-        <section id="contact" className="py-20 md:py-28 px-6 md:px-12 bg-alpine-navy dark:bg-black text-alpine-snow relative overflow-hidden">
+        <section id="contact" className="py-20 md:py-28 px-6 md:px-12 bg-alpine-navy dark:bg-black text-alpine-snow relative mt-20">
 
-            {/* Topographic pattern background */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
-                backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(163,201,226,0.3) 40px, rgba(163,201,226,0.3) 41px),
-                repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(163,201,226,0.2) 40px, rgba(163,201,226,0.2) 41px)`
-            }} />
+            {/* Ultra-Premium Glowing Divider */}
+            <div className="absolute top-0 left-0 w-full flex items-center justify-center transform -translate-y-1/2 z-30">
+                {/* The Line */}
+                <div className="absolute inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-alpine-glacier/40 dark:via-alpine-sunrise/40 to-transparent" />
+                <div className="absolute inset-x-0 h-[1px] blur-[8px] bg-gradient-to-r from-transparent via-alpine-glacier/60 dark:via-alpine-sunrise/60 to-transparent" />
+                
+                {/* The Pill */}
+                <div className="relative px-6 py-2 bg-[#0B0C10] border border-alpine-glacier/30 dark:border-alpine-sunrise/30 rounded-full shadow-[0_0_30px_rgba(163,201,226,0.3)] dark:shadow-[0_0_30px_rgba(226,160,113,0.2)]">
+                    <span className="text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase text-alpine-glacier dark:text-alpine-sunrise">
+                        {t('contact.hq', 'Base Camp')}
+                    </span>
+                </div>
+            </div>
 
-            {/* Ambient glow */}
-            <div className="absolute bottom-0 right-0 w-[40vw] h-[40vw] rounded-full opacity-[0.04] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(226,160,113,0.6) 0%, transparent 60%)' }} />
+            {/* Background wrapper (replaces overflow-hidden on section) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                {/* Topographic pattern background */}
+                <div className="absolute inset-0 opacity-[0.03]" style={{
+                    backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(163,201,226,0.3) 40px, rgba(163,201,226,0.3) 41px),
+                    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(163,201,226,0.2) 40px, rgba(163,201,226,0.2) 41px)`
+                }} />
+                {/* Ambient glow */}
+                <div className="absolute bottom-0 right-0 w-[40vw] h-[40vw] rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, rgba(226,160,113,0.6) 0%, transparent 60%)' }} />
+            </div>
 
-            <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12 md:gap-16 md:items-center h-full relative z-10">
+            <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row gap-12 md:gap-16 md:items-center h-full relative z-10">
 
                 {/* Left Side: Call to Action */}
                 <div className="md:w-1/2 flex flex-col justify-center">
                     <motion.p
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: false }}
+                        viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
                         className="text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3 md:mb-4"
                     >
@@ -34,7 +50,7 @@ export const Contact = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 100, rotate: -5 }}
                         whileInView={{ opacity: 1, y: 0, rotate: 0 }}
-                        viewport={{ once: false, amount: 0.5 }}
+                        viewport={{ once: true, amount: 0.5 }}
                         transition={{ type: "spring", bounce: 0.4, duration: 1.5 }}
                     >
                         <h2 className="text-5xl md:text-7xl lg:text-8xl font-serif mb-6 md:mb-8 leading-[0.9] text-alpine-glacier drop-shadow-lg" dangerouslySetInnerHTML={{ __html: t('contact.base_camp').replace(' ', '<br />') }}>
@@ -44,7 +60,7 @@ export const Contact = () => {
                     <motion.p
                         initial={{ opacity: 0, x: -50 }}
                         whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: false, amount: 0.5 }}
+                        viewport={{ once: true, amount: 0.5 }}
                         transition={{ duration: 1, delay: 0.3 }}
                         className="text-white/60 font-light text-lg md:text-2xl max-w-md mb-8 md:mb-12"
                     >
@@ -54,7 +70,7 @@ export const Contact = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
                         whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: false }}
+                        viewport={{ once: true }}
                         transition={{ duration: 0.8, delay: 0.5, type: 'spring' }}
                     >
                         <Link
@@ -69,7 +85,7 @@ export const Contact = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: false }}
+                        viewport={{ once: true }}
                         transition={{ duration: 1, delay: 0.8 }}
                         className="flex gap-4 md:gap-6 mt-10 md:mt-16 text-white/40"
                     >
@@ -84,14 +100,14 @@ export const Contact = () => {
                     <motion.div
                         initial={{ opacity: 0, x: 200 }}
                         whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: false, amount: 0.1 }}
+                        viewport={{ once: true, amount: 0.1 }}
                         transition={{ duration: 1.5, type: "spring", bounce: 0.2 }}
                         className="flex flex-col lg:flex-row gap-4 md:gap-6 w-full"
                     >
                         <motion.div
                             initial={{ opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: false, margin: "-50px" }}
+                            viewport={{ once: true, margin: "-50px" }}
                             transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
                             className="w-full flex-1 premium-card p-8 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl border border-white/[0.06] group flex flex-col justify-center"
                         >
@@ -107,7 +123,7 @@ export const Contact = () => {
                         <motion.div
                             initial={{ opacity: 0, y: 50 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: false, margin: "-50px" }}
+                            viewport={{ once: true, margin: "-50px" }}
                             transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
                             className="w-full flex-1 premium-card p-8 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl border border-white/[0.06] group flex flex-col justify-center"
                         >
@@ -128,7 +144,7 @@ export const Contact = () => {
             <div className="mt-16 md:mt-12 section-divider opacity-50" />
 
             {/* Footer credits */}
-            <div className="max-w-7xl mx-auto mt-6 md:mt-4 flex flex-col md:flex-row justify-between items-center gap-4 px-4">
+            <div className="w-full max-w-[1600px] mx-auto mt-6 md:mt-4 flex flex-col md:flex-row justify-between items-center gap-4 px-4">
                 <p className="text-white/40 text-xs tracking-[0.2em] uppercase font-semibold glow-text text-center md:text-left">{t('contact.rights')}</p>
                 <div className="flex items-center gap-3">
                     <span className="w-8 h-[1px] bg-alpine-glacier/30 hidden md:block"></span>

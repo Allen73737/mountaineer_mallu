@@ -67,7 +67,7 @@ export const StoriesPage = () => {
                                     key={story._id || i}
                                     initial={{ opacity: 0, y: 100 }}
                                     whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: false, margin: "-100px" }}
+                                    viewport={{ once: true, margin: "-100px" }}
                                     transition={{ duration: 0.8, delay: i * 0.1, type: "spring", damping: 15 }}
                                     className={`group relative rounded-3xl overflow-hidden glass-dark bg-white/50 dark:bg-black/30 border border-black/5 dark:border-white/10 hover:shadow-2xl transition-shadow ${i === 0 || i === 3 ? 'md:col-span-2 lg:col-span-2 aspect-[21/9] md:aspect-[21/10]' : 'aspect-square md:aspect-[3/4]'}`}
                                 >

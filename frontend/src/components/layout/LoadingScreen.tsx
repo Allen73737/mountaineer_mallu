@@ -1,293 +1,256 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState, useMemo } from 'react';
+import { motion, animate, useMotionValue, useTransform } from 'framer-motion';
 import { useStore } from '../../store/useStore';
-
-/* ═══════════════════════════════════════════════════════════════
-   ULTRA PREMIUM CINEMATIC LOADING SCREEN
-   Features:
-   - Dual Logo Morph (Summer to Winter transition)
-   - Typewriter Text Reveal with Glowing Cursor
-   - Enhanced Visibility & Contrast
-   - 3D Astrolabe Light Rings
-   - Parallax Cinematic Mountains
-   ═══════════════════════════════════════════════════════════════ */
-
-const PARTICLE_COUNT = 30;
-
-const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2.5 + 1,
-    delay: Math.random() * 5,
-    duration: Math.random() * 15 + 10,
-    opacity: Math.random() * 0.5 + 0.2,
-}));
+import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool } from '../../data/peaks';
 
 export const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
-    const { weatherLoaded } = useStore();
+    const { weatherLoaded, weather, theme } = useStore();
     const [minTimeElapsed, setMinTimeElapsed] = useState(false);
     const [isExiting, setIsExiting] = useState(false);
     const [phase, setPhase] = useState<'summer' | 'winter'>('summer');
 
-    // Timeline for the loading screen phases
+    const peak = useMemo(() => {
+        const date = new Date();
+        const dateSeed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+        return peaksData[dateSeed % peaksData.length];
+    }, []);
+
+    const targetElevation = parseInt(peak.elevation.replace(/[^0-9]/g, ''), 10) || 4000;
+    const count = useMotionValue(0);
+    const rounded = useTransform(count, Math.round);
+    const displayElevation = useTransform(rounded, (latest: number) => `${latest.toLocaleString()}`);
+
+    // Timeline
     useEffect(() => {
-        // Phase 1: Summer Logo (0s - 1.8s)
-        // Phase 2: Morph to Winter Logo (1.8s - ...)
-        const t1 = setTimeout(() => setPhase('winter'), 1800);
-        
-        // Minimum screen time before allowing exit
-        const t2 = setTimeout(() => setMinTimeElapsed(true), 6500);
-        
+        const t1 = setTimeout(() => setPhase('winter'), 2500);
+        const t2 = setTimeout(() => setMinTimeElapsed(true), 6500); 
         return () => { clearTimeout(t1); clearTimeout(t2); };
     }, []);
+
+    // Animate altitude counter
+    useEffect(() => {
+        const controls = animate(count, targetElevation, { 
+            duration: 5.5, 
+            ease: [0.16, 1, 0.3, 1] // Custom ultra-smooth spring-like ease
+        });
+        return controls.stop;
+    }, [count, targetElevation]);
 
     // Handle Exit
     useEffect(() => {
         if (minTimeElapsed && weatherLoaded) {
             setIsExiting(true);
-            setTimeout(() => onComplete(), 1200);
+            setTimeout(() => onComplete(), 2500); // Wait for the new awwwards shutter to finish
         }
     }, [minTimeElapsed, weatherLoaded, onComplete]);
 
+    // Preload Logic
+    const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const getActiveImage = () => {
+        const isFreezing = weather.isSnowing || (weather.temp !== null && weather.temp <= 0);
+        if (peak.images) {
+            return isDark ? peak.images.night : (isFreezing ? peak.images.snowy : peak.images.default);
+        } else {
+            const hash = hashPeakName(peak.name);
+            if (isDark) return nightPool[hash % nightPool.length];
+            if (isFreezing) return snowyPool[hash % snowyPool.length];
+            return defaultPool[hash % defaultPool.length];
+        }
+    };
+    const activeImage = getActiveImage();
+    const preloadUrl = activeImage.includes('unsplash') ? `${activeImage}&w=1920&q=80` : activeImage;
+
     return (
         <motion.div
-            key="ultra-premium-loader"
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-[#030508]"
+            key="awwwards-loader-v4"
+            className="fixed inset-0 z-[9999] pointer-events-none"
             initial={{ opacity: 1 }}
-            animate={{ opacity: isExiting ? 0 : 1 }}
-            transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+            animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
+            transition={{ duration: 0.1, delay: 2.0 }} // Drop container only after shutter fully opens
         >
-            {/* ═══ LAYER 1: Deep Cinematic Glows ═══ */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <motion.div
-                    className="absolute w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] opacity-30 transform-gpu will-change-transform"
-                    style={{
-                        background: 'radial-gradient(circle, rgba(163,201,226,0.15) 0%, rgba(74,106,140,0.05) 50%, transparent 70%)',
-                        left: '10%', top: '10%',
-                    }}
-                    animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-                    transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
-                />
-                <motion.div
-                    className="absolute w-[70vw] h-[70vw] md:w-[50vw] md:h-[50vw] opacity-20 transform-gpu will-change-transform"
-                    style={{
-                        background: 'radial-gradient(circle, rgba(226,160,113,0.15) 0%, transparent 60%)',
-                        right: '5%', bottom: '10%',
-                    }}
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
-                    transition={{ duration: 12, ease: "easeInOut", repeat: Infinity, delay: 2 }}
-                />
-            </div>
+            {weatherLoaded && <link rel="preload" as="image" href={preloadUrl} />}
 
-            {/* ═══ LAYER 2: Ethereal Particle Field ═══ */}
-            <div className="absolute inset-0 pointer-events-none">
-                {particles.map((p) => (
+            {/* ═══ THE AWWWARDS SHUTTER (STAGGERED BLINDS) ═══ */}
+            <div className="absolute inset-0 z-0 flex">
+                {[...Array(5)].map((_, i) => (
                     <motion.div
-                        key={p.id}
-                        className="absolute rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] transform-gpu will-change-transform"
-                        style={{
-                            left: `${p.x}%`,
-                            top: `${p.y}%`,
-                            width: p.size,
-                            height: p.size,
-                        }}
-                        initial={{ opacity: 0, y: 0, scale: 0 }}
-                        animate={isExiting ? { opacity: 0, scale: 0 } : {
-                            opacity: [0, p.opacity, 0],
-                            y: [0, -150, -300],
-                            scale: [0, 1, 0.5],
-                        }}
-                        transition={{
-                            duration: p.duration,
-                            delay: p.delay,
-                            repeat: Infinity,
-                            ease: "linear",
+                        key={i}
+                        className="h-full bg-[#020202]"
+                        style={{ width: '20.2%' }} // Slightly over 20% to prevent 1px hairline gaps
+                        initial={{ y: '0%' }}
+                        animate={isExiting ? { y: '-100%' } : { y: '0%' }}
+                        transition={{ 
+                            duration: 1.4, 
+                            delay: i * 0.1, // Staggered wipe
+                            ease: [0.76, 0, 0.24, 1] // Classic Awwwards premium ease
                         }}
                     />
                 ))}
             </div>
 
-            {/* ═══ LAYER 3: Intricate Astrolabe Rings (Ultra Premium UI) ═══ */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <motion.div
-                    className="absolute w-[300px] h-[300px] md:w-[450px] md:h-[450px] rounded-full border border-white/5 transform-gpu will-change-transform"
-                    style={{ borderTopColor: 'rgba(255,255,255,0.2)', borderRightColor: 'rgba(255,255,255,0.1)' }}
-                    animate={isExiting ? { scale: 2, opacity: 0 } : { rotate: 360 }}
-                    transition={isExiting ? { duration: 1 } : { duration: 20, repeat: Infinity, ease: "linear" }}
-                />
-                <motion.div
-                    className="absolute w-[350px] h-[350px] md:w-[520px] md:h-[520px] rounded-full border border-white/5 border-dashed transform-gpu will-change-transform"
-                    animate={isExiting ? { scale: 2.2, opacity: 0 } : { rotate: -360 }}
-                    transition={isExiting ? { duration: 1 } : { duration: 35, repeat: Infinity, ease: "linear" }}
-                />
-                <motion.div
-                    className="absolute w-[450px] h-[450px] md:w-[650px] md:h-[650px] rounded-full border border-white/[0.03] transform-gpu will-change-transform"
-                    style={{ borderBottomColor: 'rgba(163,201,226,0.2)' }}
-                    animate={isExiting ? { scale: 2.5, opacity: 0 } : { rotate: 360 }}
-                    transition={isExiting ? { duration: 1 } : { duration: 50, repeat: Infinity, ease: "linear" }}
-                />
-            </div>
-
-            {/* ═══ LAYER 4: Parallax Mountains ═══ */}
-            <div className="absolute inset-x-0 bottom-0 h-[45vh] pointer-events-none overflow-hidden opacity-80">
-                <motion.svg viewBox="0 0 1440 400" className="absolute bottom-0 w-[130%] -ml-[15%] h-auto drop-shadow-[0_-10px_20px_rgba(0,0,0,0.5)] transform-gpu will-change-transform" preserveAspectRatio="none"
-                    initial={{ y: 200, opacity: 0 }} animate={isExiting ? { y: 300, opacity: 0 } : { y: 0, opacity: 0.1 }} transition={{ duration: 4, delay: 0.5 }}>
-                    <path fill="#4A6A8C" d="M0,300 L120,180 L240,260 L400,120 L520,220 L680,80 L800,200 L960,100 L1080,180 L1200,60 L1320,160 L1440,90 L1440,400 L0,400 Z"/>
-                </motion.svg>
-                <motion.svg viewBox="0 0 1440 350" className="absolute bottom-0 w-[115%] -ml-[7%] h-auto drop-shadow-[0_-10px_20px_rgba(0,0,0,0.8)] transform-gpu will-change-transform" preserveAspectRatio="none"
-                    initial={{ y: 250, opacity: 0 }} animate={isExiting ? { y: 350, opacity: 0 } : { y: 0, opacity: 0.2 }} transition={{ duration: 5, delay: 1 }}>
-                    <path fill="#1a2d42" d="M0,250 L100,200 L250,280 L380,140 L500,230 L650,100 L780,220 L900,150 L1050,250 L1180,120 L1300,200 L1440,170 L1440,350 L0,350 Z"/>
-                </motion.svg>
-                <motion.svg viewBox="0 0 1440 300" className="absolute bottom-0 w-full h-auto drop-shadow-[0_-20px_30px_rgba(0,0,0,1)] transform-gpu will-change-transform" preserveAspectRatio="none"
-                    initial={{ y: 300, opacity: 0 }} animate={isExiting ? { y: 400, opacity: 0 } : { y: 0, opacity: 0.4 }} transition={{ duration: 6, delay: 1.5 }}>
-                    <path fill="#0d1b2a" d="M0,220 L80,180 L200,250 L320,160 L440,210 L580,130 L720,200 L840,140 L980,220 L1100,160 L1200,240 L1360,180 L1440,210 L1440,300 L0,300 Z"/>
-                </motion.svg>
-            </div>
-
-            {/* ═══ LAYER 5: The Masterpiece (Dual Logos & Text) ═══ */}
-            <div className="relative z-20 flex flex-col items-center mt-[-10vh]">
-                
-                {/* Image Logos — Summer to Winter Morph */}
-                <div className="relative w-56 h-56 md:w-72 md:h-72 flex items-center justify-center ml-4">
-                    
-                    {/* Deep Backing Glow for Maximum Visibility */}
+            {/* ═══ CONTENT WRAPPER ═══ */}
+            <motion.div 
+                className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden z-10"
+                animate={isExiting ? { opacity: 0, scale: 1.2, filter: 'blur(20px)' } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }} // Zoom and blur out as the blinds go up
+            >
+                {/* Layer 0: Deep Ambient Aurora & Noise */}
+                <div className="absolute inset-0 z-0 opacity-40">
                     <motion.div 
-                        className="absolute inset-0 rounded-full bg-black/60 blur-2xl"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: isExiting ? 0 : 1 }}
-                        transition={{ duration: 2 }}
+                        className="absolute top-[-20%] left-[-10%] w-[120vw] h-[120vh] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent blur-[120px] mix-blend-screen"
+                        animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.1, 1] }}
+                        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                     />
-                    
-                    <motion.div
-                        className="relative w-full h-full flex items-center justify-center"
-                        initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                        animate={isExiting
-                            ? { scale: 1.2, opacity: 0, y: -40 }
-                            : { scale: 1, opacity: 1, y: 0 }
-                        }
-                        transition={isExiting ? { duration: 0.8 } : { duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                        {/* 1. Summer Logo (Base) */}
-                        <motion.img
-                            src="/logos/summer-logo.png"
-                            alt="Summer Logo"
-                            className="absolute w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(226,160,113,0.3)] transform-gpu will-change-[filter,transform,opacity]"
-                            initial={{ filter: 'brightness(1) blur(0px)', opacity: 1 }}
-                            animate={{ 
-                                filter: phase === 'winter' ? 'brightness(0.5) blur(12px)' : 'brightness(1.1) drop-shadow(0 0 20px rgba(255,255,255,0.2))',
-                                opacity: phase === 'winter' ? 0 : 1,
-                                scale: phase === 'winter' ? 1.05 : 1
-                            }}
-                            transition={{ duration: 2, ease: "easeInOut" }}
-                        />
-
-                        {/* 2. Winter Logo (Seamless Freezing Reveal) */}
-                        <motion.img
-                            src="/logos/winter-logo.png"
-                            alt="Winter Logo"
-                            className="absolute w-full h-full object-contain drop-shadow-[0_0_40px_rgba(163,201,226,0.6)] transform-gpu will-change-[filter,transform,opacity]"
-                            initial={{ filter: 'brightness(3) blur(10px)', opacity: 0, scale: 0.95 }}
-                            animate={phase === 'winter' 
-                                ? { filter: 'brightness(1) blur(0px)', opacity: 1, scale: 1 } 
-                                : { filter: 'brightness(3) blur(10px)', opacity: 0, scale: 0.95 }
-                            }
-                            transition={{ duration: 2.5, ease: "easeOut" }}
-                        />
-
-                        {/* Ambient Breathing effect post-reveal */}
-                        <motion.div
-                            className="absolute inset-0 rounded-full pointer-events-none"
-                            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)' }}
-                            animate={phase === 'winter' ? { scale: [1, 1.1, 1], opacity: [0, 1, 0] } : { opacity: 0 }}
-                            transition={{ duration: 3, repeat: Infinity, delay: 2 }}
-                        />
-                    </motion.div>
+                    <motion.div 
+                        className="absolute bottom-[-20%] right-[-10%] w-[120vw] h-[120vh] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-transparent to-transparent blur-[120px] mix-blend-screen"
+                        animate={{ rotate: [0, -5, 5, 0], scale: [1, 1.15, 1] }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
                 </div>
 
-                {/* Text Logo — Typewriter Effect */}
-                <div className="relative -mt-4 md:-mt-6 flex justify-center">
-                    <div className="relative inline-block px-4">
-                        {/* Text Reveal Container */}
+                {/* Layer 1: The Masterpiece Logo Reveal */}
+                <div className="relative z-10 flex flex-col items-center">
+                    
+                    {/* Orbital HUD Rings */}
+                    <motion.div 
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[800px] md:h-[800px] flex items-center justify-center opacity-60 z-[-1] pointer-events-none"
+                        initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                        animate={isExiting ? { scale: 1.5, opacity: 0, rotate: 90 } : { scale: 1, opacity: 1, rotate: 0 }}
+                        transition={{ duration: 4, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        <motion.div 
+                            className="absolute w-[300px] h-[300px] md:w-[450px] md:h-[450px] border border-white/5 rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                        />
+                        <motion.div 
+                            className="absolute w-[320px] h-[320px] md:w-[480px] md:h-[480px] border-t border-b border-white/10 rounded-full"
+                            animate={{ rotate: -360 }}
+                            transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+                        />
+                        
+                        {/* Laser Scanner Line */}
+                        <motion.div 
+                            className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-blue-400/50 to-transparent"
+                            initial={{ y: -250, opacity: 0 }}
+                            animate={{ y: [ -250, 250, -250 ], opacity: [0, 1, 0] }}
+                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        />
+                    </motion.div>
+
+                    {/* 3D Image Logo Mask Reveal */}
+                    <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center mb-8">
+                        <motion.div 
+                            className="absolute inset-0 bg-blue-500/10 rounded-full blur-[80px]"
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        />
+
                         <motion.div
-                            initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                            className="relative w-full h-full"
+                            initial={{ clipPath: 'circle(0% at 50% 50%)', scale: 0.8 }}
                             animate={isExiting
-                                ? { opacity: 0, y: -20, filter: 'blur(8px)' }
-                                : { clipPath: 'inset(0 0% 0 0)' }
+                                ? { clipPath: 'circle(0% at 50% 50%)', scale: 1.2, opacity: 0 }
+                                : { clipPath: 'circle(100% at 50% 50%)', scale: 1, opacity: 1 }
                             }
-                            transition={isExiting
-                                ? { duration: 0.5 }
-                                : { duration: 2, delay: 3.5, ease: "linear" }
-                            }
+                            transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
                         >
-                            {/* Filter forces the dark text image to pure white with a premium glow */}
-                            <img
-                                src="/logos/text-logo.png"
-                                alt="Mountaineer Mallu"
-                                className="h-14 md:h-20 w-auto object-contain"
-                                style={{ filter: 'brightness(0) invert(1) drop-shadow(0 4px 15px rgba(255,255,255,0.4))' }}
+                            {/* Summer Logo */}
+                            <motion.img
+                                src="/logos/summer-logo.png"
+                                alt="Summer Logo"
+                                className="absolute w-full h-full object-contain"
+                                initial={{ filter: 'grayscale(100%) contrast(1.5)', opacity: 0 }}
+                                animate={{ 
+                                    filter: phase === 'winter' ? 'grayscale(100%) contrast(1.5) blur(10px)' : 'grayscale(0%) contrast(1) drop-shadow(0 20px 40px rgba(255,255,255,0.1)) blur(0px)',
+                                    opacity: phase === 'winter' ? 0 : 1,
+                                }}
+                                transition={{ duration: 2 }}
+                            />
+
+                            {/* Winter Logo */}
+                            <motion.img
+                                src="/logos/winter-logo.png"
+                                alt="Winter Logo"
+                                className="absolute w-full h-full object-contain drop-shadow-[0_0_60px_rgba(163,201,226,0.6)]"
+                                initial={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
+                                animate={phase === 'winter' 
+                                    ? { opacity: 1, scale: 1, filter: 'blur(0px)' } 
+                                    : { opacity: 0, scale: 1.1, filter: 'blur(10px)' }
+                                }
+                                transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
                             />
                         </motion.div>
+                    </div>
 
-                        {/* Blinking Typewriter Cursor */}
-                        <motion.div 
-                            className="absolute top-1 bottom-1 w-[3px] bg-white rounded-full z-20 shadow-[0_0_12px_#fff,0_0_20px_rgba(163,201,226,0.8)]"
-                            initial={{ left: '0%', opacity: 0 }}
-                            animate={isExiting ? { opacity: 0 } : { 
-                                left: ['0%', '100%'],
-                                opacity: [0, 1, 0, 1, 0, 1, 1, 0] 
-                            }}
-                            transition={isExiting ? { duration: 0.3 } : {
-                                left: { duration: 2, delay: 3.5, ease: "linear" },
-                                opacity: { duration: 2.8, delay: 3.5, times: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1] }
-                            }}
-                        />
+                    {/* Text Logo with Premium Slide-up Clip */}
+                    <div className="relative overflow-hidden pt-2 pb-6 px-4">
+                        <motion.div
+                            initial={{ y: '100%', opacity: 0 }}
+                            animate={isExiting ? { y: '-100%', opacity: 0 } : { y: '0%', opacity: 1 }}
+                            transition={{ duration: 1.5, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            <div 
+                                className="h-16 md:h-24 w-[400px] md:w-[600px] bg-white drop-shadow-[0_10px_30px_rgba(255,255,255,0.2)]"
+                                style={{
+                                    WebkitMaskImage: 'url(/logos/text-logo.png)',
+                                    WebkitMaskSize: 'contain',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    WebkitMaskPosition: 'center',
+                                    maskImage: 'url(/logos/text-logo.png)',
+                                    maskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    maskPosition: 'center'
+                                }}
+                            />
+                        </motion.div>
                     </div>
                 </div>
 
-                {/* Tagline */}
-                <motion.p
-                    className="mt-6 text-white/40 text-[10px] md:text-xs tracking-[0.5em] uppercase font-light"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={isExiting ? { opacity: 0, y: -15 } : { opacity: 1, y: 0 }}
-                    transition={{ duration: 1.2, delay: 5.5, ease: "easeOut" }}
-                >
-                    Conquer • Share • Belong
-                </motion.p>
-            </div>
+                {/* Layer 3: Cinematic Typography Altitude Counter */}
+                <div className="absolute bottom-12 md:bottom-20 right-8 md:right-16 z-20 flex flex-col items-end border-r-2 border-white/20 pr-6">
+                    <div className="overflow-hidden mb-2">
+                        <motion.div 
+                            className="flex items-center gap-3"
+                            initial={{ y: '100%' }}
+                            animate={isExiting ? { y: '-100%' } : { y: 0 }}
+                            transition={{ duration: 1, delay: 1, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                            <p className="text-xs md:text-sm font-mono tracking-[0.5em] text-white/60 uppercase">
+                                {peak.name} TARGET
+                            </p>
+                        </motion.div>
+                    </div>
 
-            {/* ═══ LAYER 6: Premium Progress Bar ═══ */}
-            <motion.div
-                className="absolute bottom-12 md:bottom-20 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-4 w-full max-w-xs"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isExiting ? 0 : 1 }}
-                transition={{ delay: 2.5, duration: 1.5 }}
-            >
-                <div className="w-full h-[2px] bg-white/10 rounded-full relative overflow-hidden">
-                    <motion.div
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-alpine-navy via-white to-alpine-glacier rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                        initial={{ width: '0%' }}
-                        animate={{ width: isExiting ? '100%' : '95%' }}
-                        transition={{ duration: 6, ease: "circOut" }}
+                    <div className="overflow-hidden">
+                        <motion.div 
+                            className="flex items-baseline tracking-tighter text-white relative"
+                            initial={{ y: '100%' }}
+                            animate={isExiting ? { y: '-100%' } : { y: 0 }}
+                            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 1.2 }}
+                        >
+                            <motion.h1 
+                                className="text-[60px] sm:text-[90px] md:text-[120px] font-thin leading-[0.8] drop-shadow-[0_0_40px_rgba(255,255,255,0.2)]" 
+                                style={{ fontVariantNumeric: 'tabular-nums' }}
+                            >
+                                {displayElevation}
+                            </motion.h1>
+                            <span className="text-2xl sm:text-3xl md:text-5xl font-light ml-2 text-white/40">M</span>
+                        </motion.div>
+                    </div>
+                    
+                    {/* Minimalist Progress Line */}
+                    <motion.div 
+                        className="absolute -right-[2px] top-0 w-[2px] bg-white"
+                        initial={{ height: '0%' }}
+                        animate={isExiting ? { height: '0%', opacity: 0 } : { height: '100%', opacity: 1 }}
+                        transition={{ duration: 5.5, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ scaleY: useTransform(count, (v) => v / targetElevation), transformOrigin: 'bottom' }}
                     />
                 </div>
-
-                <motion.span
-                    className="text-white/30 text-[9px] md:text-[10px] tracking-[0.4em] uppercase font-medium"
-                    animate={isExiting ? { opacity: 0 } : { opacity: [0.3, 0.8, 0.3] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                    Initializing Experience
-                </motion.span>
             </motion.div>
-
-            {/* ═══ LAYER 7: Exit Flash ═══ */}
-            <motion.div
-                className="absolute inset-0 bg-white pointer-events-none z-50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isExiting ? [0, 1, 1] : 0 }}
-                transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-            />
         </motion.div>
     );
 };

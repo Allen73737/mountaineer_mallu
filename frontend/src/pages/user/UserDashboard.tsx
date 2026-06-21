@@ -3,9 +3,11 @@ import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTranslation } from 'react-i18next';
-import { Home, LogOut, User, PenTool, Layers, Archive, Upload, Menu, X, Calendar, Compass, Heart } from 'lucide-react';
+import { Home, LogOut, User, PenTool, Layers, Archive, Upload, Menu, X, Calendar, Compass, Heart, Backpack } from 'lucide-react';
 import { DynamicLogo } from '../../components/ui/DynamicLogo';
 import { useSiteSettings } from '../../store/useSiteSettings';
+import { useAdaptiveTheme } from '../../store/useAdaptiveTheme';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 import { UserProfileTab } from './UserProfileTab';
 import { UserStoryEditorTab } from './UserStoryEditorTab';
@@ -15,6 +17,21 @@ import { UserMediaUploadTab } from './UserMediaUploadTab';
 import { UserExpeditionsTab } from './UserExpeditionsTab';
 import { UserCommunitiesTab } from './UserCommunitiesTab';
 import { UserWishlistTab } from './UserWishlistTab';
+import { UserGearVaultTab } from './UserGearVaultTab';
+
+const RouteWrapper = ({ children }: { children: React.ReactNode }) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="w-full h-full"
+        >
+            {children}
+        </motion.div>
+    );
+};
 
 /**
  * Each nav item can optionally declare a `sectionKey`.
@@ -25,12 +42,38 @@ const allNavItems = [
     { id: 'profile', path: '/portal', label: 'My Profile', icon: User },
     { id: 'expeditions', path: '/portal/expeditions', label: 'My Expeditions', icon: Calendar, sectionKey: 'events' },
     { id: 'communities', path: '/portal/communities', label: 'My Factions', icon: Compass, sectionKey: 'community' },
+    { id: 'gear', path: '/portal/gear', label: 'Gear Vault', icon: Backpack },
     { id: 'wishlist', path: '/portal/wishlist', label: 'My Wishlist', icon: Heart, sectionKey: 'shop' },
     { id: 'write', path: '/portal/write', label: 'Write Story', icon: PenTool, sectionKey: 'stories' },
     { id: 'upload', path: '/portal/upload', label: 'Upload Media', icon: Upload },
     { id: 'submissions', path: '/portal/submissions', label: 'My Submissions', icon: Layers },
     { id: 'collections', path: '/portal/collections', label: 'Collections & Downloads', icon: Archive },
 ];
+
+const InteractiveBackground = () => {
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+    useEffect(() => {
+        const updateMousePosition = (ev: MouseEvent) => {
+            setMousePosition({ x: ev.clientX, y: ev.clientY });
+        };
+        window.addEventListener('mousemove', updateMousePosition);
+        return () => window.removeEventListener('mousemove', updateMousePosition);
+    }, []);
+
+    return (
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-alpine-snow dark:bg-[#020408]">
+            <motion.div 
+                className="absolute inset-0 transition-opacity duration-300"
+                style={{
+                    background: `radial-gradient(circle 800px at ${mousePosition.x}px ${mousePosition.y}px, rgba(67,176,241,0.08), transparent 80%)`
+                }}
+            />
+            {/* Subtle topographic / tactical grid pattern */}
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#43B0F1 1px, transparent 1px), linear-gradient(90deg, #43B0F1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        </div>
+    );
+};
 
 export const UserDashboard = () => {
     const { user, logoutAsync } = useAuthStore();
@@ -39,7 +82,17 @@ export const UserDashboard = () => {
     const { t } = useTranslation();
     const [showIntro, setShowIntro] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const { settings } = useSiteSettings();
+    const { theme } = useAdaptiveTheme();
+
+    const themeStyle = theme ? {
+        '--adaptive-primary': theme.primary,
+        '--adaptive-glow': theme.glow,
+        '--adaptive-accent': theme.accent,
+        '--adaptive-bg-from': theme.bgGradientFrom,
+        '--adaptive-bg-to': theme.bgGradientTo,
+    } as React.CSSProperties : {};
 
     // Filter nav items based on admin section visibility
     const navItems = useMemo(() => {
@@ -61,8 +114,14 @@ export const UserDashboard = () => {
         setMobileMenuOpen(false);
     }, [location.pathname]);
 
-    const handleLogout = async () => {
+    const handleLogoutClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setShowLogoutConfirm(true);
+    };
+
+    const confirmLogout = async () => {
         await logoutAsync();
+        setShowLogoutConfirm(false);
         navigate('/');
     };
 
@@ -101,40 +160,30 @@ export const UserDashboard = () => {
                 )}
             </AnimatePresence>
 
-            <div className="min-h-screen bg-alpine-snow dark:bg-[#050505] text-alpine-navy dark:text-white flex overflow-hidden font-sans selection:bg-alpine-glacier/30 transition-colors duration-500">
-                
+            <div 
+                className="min-h-screen bg-transparent text-alpine-navy dark:text-white flex overflow-hidden font-sans selection:bg-alpine-glacier/30 relative"
+                style={themeStyle}
+            >
+                <InteractiveBackground />
+
                 {/* Mobile Header Bar */}
-                <div className="fixed top-0 left-0 right-0 h-14 bg-white/80 dark:bg-[#0A0D14]/90 backdrop-blur-md border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 z-30 lg:hidden">
+                <div className="fixed top-0 left-0 right-0 h-14 bg-white/80 dark:bg-[#0A0D14]/90 backdrop-blur-xl border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 z-30 lg:hidden">
                     <DynamicLogo className="h-7" showText={true} />
                     <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="p-2 rounded-xl bg-black/5 dark:bg-white/5 text-alpine-navy dark:text-white"
+                        onClick={handleLogoutClick}
+                        className="p-2 rounded-xl bg-red-400/10 text-red-500 hover:bg-red-400/20 transition-colors"
                     >
-                        {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        <LogOut size={18} />
                     </button>
                 </div>
 
-                {/* Mobile Sidebar Overlay */}
-                <AnimatePresence>
-                    {mobileMenuOpen && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-                            onClick={() => setMobileMenuOpen(false)}
-                        />
-                    )}
-                </AnimatePresence>
-
-                {/* Sidebar - Desktop: always visible, Mobile: slide in/out */}
+                {/* Sidebar - Tactical Glass Dock (Desktop Only) */}
                 <motion.aside 
-                    className={`fixed lg:relative top-0 left-0 h-screen w-72 bg-white/70 dark:bg-[#0A0D14] border-r border-black/5 dark:border-white/5 flex flex-col z-40 backdrop-blur-md transform transition-transform duration-300 ease-in-out ${
-                        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-                    }`}
+                    id="tour-sidebar"
+                    className="hidden lg:flex relative top-0 left-0 h-[calc(100vh-2rem)] w-80 bg-white/60 dark:bg-[#0A0D14]/60 m-4 rounded-3xl border border-black/5 dark:border-white/10 flex-col z-40 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
                 >
                     {/* Brand Area */}
-                    <div className="p-6 sm:p-8 border-b border-black/5 dark:border-white/5 relative overflow-hidden group">
+                    <div id="tour-user-info" className="p-6 sm:p-8 border-b border-black/5 dark:border-white/5 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-gradient-to-br from-alpine-blue/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                         <DynamicLogo className="h-8 mb-4 sm:mb-6" showText={true} />
                         <div className="flex items-center gap-3 sm:gap-4 relative z-10">
@@ -198,8 +247,8 @@ export const UserDashboard = () => {
                         </Link>
                         <motion.button 
                             whileHover={{ x: 4 }}
-                            onClick={handleLogout}
-                            className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all duration-300"
+                            onClick={handleLogoutClick}
+                            className="relative z-[70] w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all duration-300"
                         >
                             <LogOut size={18} />
                             <span className="font-semibold text-sm sm:text-base tracking-wide">Secure Logout</span>
@@ -207,31 +256,71 @@ export const UserDashboard = () => {
                     </div>
                     
                     {/* Background ambient light */}
-                    <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-alpine-blue/5 to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-alpine-blue/5 to-transparent pointer-events-none lg:rounded-b-3xl" />
                 </motion.aside>
 
                 {/* Main Content Area */}
-                <main className="flex-1 relative h-screen overflow-y-auto custom-scrollbar bg-alpine-snow dark:bg-[#050505] pt-14 lg:pt-0">
+                <main id="tour-main-content" className="flex-1 relative h-screen overflow-y-auto custom-scrollbar pt-14 pb-24 lg:pt-0 lg:pb-0 z-10 lg:pl-4">
                     {/* Premium Background Elements */}
-                    <div className="fixed top-[-20%] right-[-10%] w-[60%] h-[60%] bg-alpine-blue/5 rounded-full blur-[120px] pointer-events-none" />
-                    <div className="fixed bottom-[-20%] left-[20%] w-[50%] h-[50%] bg-alpine-navy/5 dark:bg-alpine-navy/10 rounded-full blur-[100px] pointer-events-none" />
+                    <div 
+                        className="fixed top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none transition-colors duration-1000 ease-in-out" 
+                        style={{ backgroundColor: theme ? 'var(--adaptive-glow)' : 'rgba(100, 190, 255, 0.05)', opacity: theme ? 0.3 : 1 }}
+                    />
+                    <div 
+                        className="fixed bottom-[-20%] left-[20%] w-[50%] h-[50%] rounded-full blur-[100px] pointer-events-none transition-colors duration-1000 ease-in-out"
+                        style={{ backgroundColor: theme ? 'var(--adaptive-primary)' : 'rgba(8, 16, 28, 0.05)', opacity: theme ? 0.2 : 1 }}
+                    />
                     
-                    <div className="relative z-10 p-4 sm:p-8 md:p-12 lg:p-16 max-w-7xl mx-auto min-h-full">
+                    <div className="relative z-10 p-4 sm:p-8 md:p-12 lg:py-16 lg:px-12 max-w-[1600px] mx-auto min-h-full">
                         <AnimatePresence mode="wait">
                             <Routes location={location} key={location.pathname}>
-                                <Route index element={<UserProfileTab />} />
-                                <Route path="expeditions" element={<UserExpeditionsTab />} />
-                                <Route path="communities" element={<UserCommunitiesTab />} />
-                                <Route path="wishlist" element={<UserWishlistTab />} />
-                                <Route path="write" element={<UserStoryEditorTab />} />
-                                <Route path="upload" element={<UserMediaUploadTab />} />
-                                <Route path="submissions" element={<UserSubmissionsTab />} />
-                                <Route path="collections" element={<UserCollectionsTab />} />
+                                <Route index element={<RouteWrapper><UserProfileTab /></RouteWrapper>} />
+                                <Route path="expeditions" element={<RouteWrapper><UserExpeditionsTab /></RouteWrapper>} />
+                                <Route path="gear" element={<RouteWrapper><UserGearVaultTab /></RouteWrapper>} />
+                                <Route path="communities" element={<RouteWrapper><UserCommunitiesTab /></RouteWrapper>} />
+                                <Route path="wishlist" element={<RouteWrapper><UserWishlistTab /></RouteWrapper>} />
+                                <Route path="write" element={<RouteWrapper><UserStoryEditorTab /></RouteWrapper>} />
+                                <Route path="upload" element={<RouteWrapper><UserMediaUploadTab /></RouteWrapper>} />
+                                <Route path="submissions" element={<RouteWrapper><UserSubmissionsTab /></RouteWrapper>} />
+                                <Route path="collections" element={<RouteWrapper><UserCollectionsTab /></RouteWrapper>} />
                             </Routes>
                         </AnimatePresence>
                     </div>
                 </main>
+
+                {/* Mobile Bottom Dock */}
+                <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#0A0D14]/90 backdrop-blur-2xl border-t border-black/5 dark:border-white/5 flex lg:hidden items-center px-4 py-3 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] overflow-x-auto hide-scrollbar gap-6" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                    {navItems.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <Link key={item.id} to={item.path} className="flex flex-col items-center gap-1 min-w-[3.5rem] shrink-0">
+                                <motion.div
+                                    whileTap={{ scale: 0.9 }}
+                                    className={`p-2.5 rounded-2xl transition-colors ${
+                                        isActive ? 'bg-alpine-glacier text-alpine-navy shadow-[0_0_15px_rgba(163,201,226,0.4)]' : 'text-alpine-navy/50 dark:text-white/40 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+                                    }`}
+                                >
+                                    <item.icon size={20} />
+                                </motion.div>
+                                <span className={`text-[9px] font-bold tracking-wider uppercase text-center truncate w-full ${isActive ? 'text-alpine-glacier' : 'text-alpine-navy/50 dark:text-white/40'}`}>
+                                    {item.label.split(' ')[0]}
+                                </span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </div>
+
+            <ConfirmDialog 
+                isOpen={showLogoutConfirm}
+                title="Disconnect from Basecamp"
+                description="Are you sure you want to end your active session? Your progress is saved."
+                confirmText="Log Out"
+                cancelText="Cancel"
+                icon="logout"
+                onConfirm={confirmLogout}
+                onCancel={() => setShowLogoutConfirm(false)}
+            />
         </>
     );
 };

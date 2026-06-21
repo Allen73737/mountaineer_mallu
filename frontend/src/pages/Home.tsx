@@ -9,7 +9,10 @@ import { Reviews } from '../components/sections/Reviews';
 import { Contact } from '../components/sections/Contact';
 import { Merch } from '../components/sections/Merch';
 import { CommunityPreview } from '../components/sections/CommunityPreview';
+import { AltitudeNetwork } from '../components/sections/AltitudeNetwork';
 import { ComingSoon } from '../components/ui/ComingSoon';
+import { AltitudeTracker } from '../components/ui/AltitudeTracker';
+import { AmbientFrost } from '../components/ui/AmbientFrost';
 import { useSiteSettings } from '../store/useSiteSettings';
 
 const SectionDivider = () => (
@@ -21,7 +24,10 @@ const SectionDivider = () => (
 /** Render a section based on its visibility status */
 const Section = ({ sectionKey, label, children }: { sectionKey: string; label: string; children: React.ReactNode }) => {
     const { settings } = useSiteSettings();
-    const status = settings.sections[sectionKey];
+    const config = settings.sections[sectionKey];
+    if (!config) return <>{children}</>; // Fallback if not loaded
+    const status = config.status || 'visible';
+    
     if (status === 'hidden') return null;
     if (status === 'coming_soon') return <ComingSoon sectionName={label} sectionId={sectionKey} />;
     return <>{children}</>;
@@ -30,7 +36,9 @@ const Section = ({ sectionKey, label, children }: { sectionKey: string; label: s
 export const Home = () => {
     return (
         <main className="relative w-full overflow-hidden">
+            <AmbientFrost />
             <HeroSection />
+            <AltitudeTracker />
             <MissionVision />
             <SectionDivider />
 
@@ -47,6 +55,8 @@ export const Home = () => {
             <Section sectionKey="events" label="Events">
                 <Events />
             </Section>
+
+            <AltitudeNetwork />
 
             <Section sectionKey="gallery" label="Gallery">
                 <Gallery />

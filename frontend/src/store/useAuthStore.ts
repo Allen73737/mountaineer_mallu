@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authApi, usersApi } from '../lib/api';
+import { useStore } from './useStore';
 
 export type Role = 'User' | 'Admin' | 'SuperAdmin';
 
@@ -33,6 +34,7 @@ interface AuthState {
     // Actions
     checkAuth: () => Promise<void>;
     loginAsync: (email: string, password: string) => Promise<UserProfile>;
+    demoLoginAsync: () => Promise<UserProfile>;
     loginWithGoogleAsync: (credential: string) => Promise<UserProfile>;
     signupAsync: (name: string, email: string, password: string, gdprConsent: boolean) => Promise<UserProfile>;
     logoutAsync: () => Promise<void>;
@@ -74,6 +76,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
             enrichedError.status = err.status;
             enrichedError.data = err.data;
             throw enrichedError;
+        }
+    },
+
+    demoLoginAsync: async () => {
+        try {
+            set({ isLoading: true, error: null });
+            const { user } = await authApi.demoLogin();
+            useStore.getState().setHasSeenWalkthrough(false); // Force demo video prompt
+            set({ user, isLoggedIn: true, isLoading: false });
+            return user;
+        } catch (err: any) {
+            set({ isLoading: false, error: err.message });
+            throw err;
         }
     },
 

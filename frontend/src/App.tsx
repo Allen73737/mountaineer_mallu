@@ -5,9 +5,12 @@ import { AnimatePresence } from 'framer-motion';
 import { Navbar } from './components/layout/Navbar';
 import { SidePanel } from './components/layout/SidePanel';
 import { LoadingScreen } from './components/layout/LoadingScreen';
+import { Toaster } from 'sonner';
 import { MaintenanceBanner } from './components/ui/MaintenanceBanner';
 import { ComingSoon } from './components/ui/ComingSoon';
 import { CookieBanner } from './components/ui/CookieBanner';
+import { CustomCursor } from './components/ui/CustomCursor';
+import { InteractiveParticles } from './components/ui/InteractiveParticles';
 import { Home } from './pages/Home';
 import { StoriesPage } from './pages/Stories';
 import { EventsPage } from './pages/Events';
@@ -16,11 +19,13 @@ import { TeamPage } from './pages/Team';
 import { ReviewsPage } from './pages/Reviews';
 import { ShopPage } from './pages/Shop';
 import { ContactPage } from './pages/Contact';
+
+import { Preloader } from './components/ui/Preloader';
 import { CommunityPage } from './pages/CommunityPage';
 import { useStore } from './store/useStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useSiteSettings } from './store/useSiteSettings';
-import { setAuthInvalidatedCallback } from './lib/api';
+import { setAuthInvalidatedCallback, setDemoMode } from './lib/api';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { ProfileCompletion } from './pages/auth/ProfileCompletion';
@@ -40,9 +45,12 @@ import { SectionSettings } from './pages/admin/SectionSettings';
 import { PillarsManagement } from './pages/admin/PillarsManagement';
 import { ReviewsManagement } from './pages/admin/ReviewsManagement';
 import { MerchandiseManagement } from './pages/admin/MerchandiseManagement';
+import { CampaignAutopilot } from './pages/admin/CampaignAutopilot';
 import { StoryDetail } from './pages/StoryDetail';
 import { EventDetail } from './pages/EventDetail';
 import { AIChatAssistant } from './components/ui/AIChatAssistant';
+import { TourGuide } from './components/ui/TourGuide';
+import { DemoLockOverlay } from './components/ui/DemoLockOverlay';
 
 function ScrollToTop() {
     const { pathname } = useLocation();
@@ -122,6 +130,10 @@ function App() {
     // Framer motion whileInView configurations need x overflow hidden for horizontal sections
     return (
         <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow transition-colors duration-500 overflow-x-hidden film-grain">
+            <Toaster richColors position="bottom-right" theme={theme === 'system' ? 'system' : theme as 'light' | 'dark'} />
+            <CustomCursor />
+            <InteractiveParticles />
+            <Preloader />
             <ScrollToTop />
 
             <AnimatePresence>
@@ -133,6 +145,7 @@ function App() {
                 <MaintenanceBanner
                     message={settings.maintenance.message}
                     isAdmin={isAdmin}
+                    theme={settings.maintenance.theme}
                 />
             )}
 
@@ -203,11 +216,22 @@ function App() {
                         </ProtectedRoute>
                     } />
                     <Route path="users" element={<UsersManagement />} />
+                    <Route path="campaigns" element={
+                        <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                            <CampaignAutopilot />
+                        </ProtectedRoute>
+                    } />
                 </Route>
             </Routes>
 
             {/* Global Cookie Consent Banner */}
             <CookieBanner />
+
+            {/* Global Demo Lock for Read-Only Mode */}
+            {user?.email === 'demo@mountaineermallu.com' && <DemoLockOverlay />}
+
+            {/* Global Tour Guide */}
+            <TourGuide />
 
             {/* Global AI Chat Assistant */}
             {!isLoading && <AIChatAssistant />}

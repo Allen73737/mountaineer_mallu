@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Clock, Mountain, AlertTriangle, Loader2, CheckCircle, MessageCircle, ShieldCheck, Users } from 'lucide-react';
+import { Calendar, MapPin, Clock, Mountain, AlertTriangle, Loader2, CheckCircle, MessageCircle, ShieldCheck, Users, ArrowRight } from 'lucide-react';
 import { eventsApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
+import { ReadingProgressBar } from '../components/ui/ReadingProgressBar';
 
 export const EventDetail = () => {
     const { id } = useParams<{ id: string }>();
@@ -68,6 +69,7 @@ export const EventDetail = () => {
 
     return (
         <div className="min-h-screen bg-black text-white pb-24">
+            <ReadingProgressBar />
             {ToastComponent}
             
             {/* Hero Section */}

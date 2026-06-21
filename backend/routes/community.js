@@ -6,7 +6,7 @@ import {
     assignModerator, deleteGroup, getMyGroups
 } from '../controllers/communityController.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
-import { upload } from '../middleware/upload.js';
+import { upload, verifyFileSignature } from '../middleware/upload.js';
 
 const router = Router();
 
@@ -18,7 +18,7 @@ router.delete('/groups/:id', authenticate, requirePermission('manageCommunity'),
 router.post('/groups/:id/join', authenticate, requestJoin);
 router.put('/groups/:id/approve/:userId', authenticate, approveJoin);
 router.delete('/groups/:id/members/:userId', authenticate, removeMember);
-router.post('/groups/:id/posts', authenticate, upload.single('image'), createPost);
+router.post('/groups/:id/posts', authenticate, upload.single('image'), verifyFileSignature, createPost);
 router.post('/groups/:id/posts/:postId/comments', authenticate, addComment);
 router.put('/groups/:id/pin', authenticate, pinMessage);
 router.put('/groups/:id/moderators/:userId', authenticate, requirePermission('manageCommunity'), assignModerator);

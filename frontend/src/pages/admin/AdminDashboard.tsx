@@ -4,7 +4,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, Calendar, Image as ImageIcon,
     Users, Settings, Menu, X, Shield, LogOut,
-    Clock, Globe, Layers, UserCircle, Star, ShoppingBag, ExternalLink
+    Clock, Globe, Layers, UserCircle, Star, ShoppingBag, ExternalLink, Sparkles
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DynamicLogo } from '../../components/ui/DynamicLogo';
@@ -84,6 +84,7 @@ export const AdminDashboard = () => {
     const { user, logoutAsync } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const now = useLiveClock();
 
     useEffect(() => {
@@ -98,8 +99,14 @@ export const AdminDashboard = () => {
 
     if (!user) return null;
 
-    const handleLogout = async () => {
+    const handleLogoutClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setShowLogoutConfirm(true);
+    };
+
+    const confirmLogout = async () => {
         await logoutAsync();
+        setShowLogoutConfirm(false);
         navigate('/');
     };
 
@@ -120,6 +127,7 @@ export const AdminDashboard = () => {
         { path: 'users', name: 'Users', icon: <UserCircle size={20} />, permission: 'manageUsers' },
         { path: 'sections', name: 'Section Control', icon: <Layers size={20} />, role: 'SuperAdmin' },
         { path: 'management', name: 'Admin Management', icon: <Shield size={20} />, role: 'SuperAdmin' },
+        { path: 'campaigns', name: 'Campaign Autopilot', icon: <Sparkles size={20} />, role: 'SuperAdmin' },
         { path: 'profile', name: 'Profile & Security', icon: <Settings size={20} />, alwaysVisible: true },
     ];
 
@@ -204,7 +212,7 @@ export const AdminDashboard = () => {
                                     <motion.div layoutId="active-nav" className="absolute left-0 top-0 bottom-0 w-1 bg-alpine-glacier rounded-r-full" />
                                 )}
                                 <div className={`shrink-0 ${isActive ? 'text-alpine-glacier' : 'group-hover:text-alpine-glacier'}`}>
-                                    {React.cloneElement(item.icon as React.ReactElement, { size: isMobile ? 18 : 20 })}
+                                    {React.cloneElement(item.icon as React.ReactElement<any>, { size: isMobile ? 18 : 20 })}
                                 </div>
                                 <AnimatePresence>
                                     {(isSidebarOpen || isMobile) && (
@@ -250,7 +258,7 @@ export const AdminDashboard = () => {
                             </div>
                         )}
                         {(isSidebarOpen || isMobile) && (
-                            <button onClick={handleLogout} className="p-2 text-white/40 hover:text-red-400 transition-colors" title="Logout">
+                            <button onClick={handleLogoutClick} className="p-2 text-white/40 hover:text-red-400 transition-colors" title="Logout">
                                 <LogOut size={16} />
                             </button>
                         )}
@@ -308,6 +316,16 @@ export const AdminDashboard = () => {
                 </div>
             </main>
             <GlobalAdminUI />
+            <ConfirmDialog 
+                isOpen={showLogoutConfirm}
+                title="Disconnect from Mission Control"
+                description="Are you sure you want to log out of the admin panel?"
+                confirmText="Log Out"
+                cancelText="Cancel"
+                icon="logout"
+                onConfirm={confirmLogout}
+                onCancel={() => setShowLogoutConfirm(false)}
+            />
         </div>
     );
 };

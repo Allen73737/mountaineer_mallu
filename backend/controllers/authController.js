@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import SecurityLog from '../models/SecurityLog.js';
 import { generateToken, setTokenCookie, clearTokenCookie } from '../middleware/auth.js';
 import { OAuth2Client } from 'google-auth-library';
 import otpGenerator from 'otp-generator';
@@ -68,7 +69,7 @@ export const signup = async (req, res, next) => {
             gdprConsent: gdprConsent || false
         });
 
-        const token = generateToken(user._id);
+        const token = generateToken(user._id, user.tokenVersion);
         setTokenCookie(res, token);
 
         res.status(201).json({
@@ -118,6 +119,18 @@ export const login = async (req, res, next) => {
 
         const isPasswordCorrect = await user.comparePassword(password);
         if (!isPasswordCorrect) {
+            // Log security event
+            try {
+                await SecurityLog.create({
+                    type: 'login_failure',
+                    email: normalizedEmail,
+                    userId: user._id,
+                    ip: req.ip || req.connection.remoteAddress,
+                    userAgent: req.headers['user-agent'],
+                    details: 'Invalid password'
+                });
+            } catch (e) { console.error('Failed to log security event:', e); }
+
             // Increment failed login attempts
             await user.incrementLoginAttempts();
 
@@ -142,11 +155,64 @@ export const login = async (req, res, next) => {
             await user.resetLoginAttempts();
         }
 
-        const token = generateToken(user._id);
+        // Log security event
+        try {
+            await SecurityLog.create({
+                type: 'login_success',
+                email: normalizedEmail,
+                userId: user._id,
+                ip: req.ip || req.connection.remoteAddress,
+                userAgent: req.headers['user-agent']
+            });
+        } catch (e) { console.error('Failed to log security event:', e); }
+
+        const token = generateToken(user._id, user.tokenVersion);
         setTokenCookie(res, token);
 
         res.json({
             message: 'Login successful.',
+            user: user.toProfileJSON()
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// POST /api/auth/demo-login
+export const demoLogin = async (req, res, next) => {
+    try {
+        const demoEmail = 'demo@mountaineermallu.com';
+        let user = await User.findOne({ email: demoEmail });
+
+        if (!user) {
+            // Generate a random strong password for the demo user
+            const randomPassword = 'Demo' + Math.random().toString(36).slice(-8) + '123!@#';
+            
+            user = await User.create({
+                name: 'Explorer Demo',
+                email: demoEmail,
+                password: randomPassword,
+                gdprConsent: true,
+                isProfileComplete: true,
+                bio: 'Passionate alpine explorer checking out the Mountaineer Mallu portal. Love the fresh mountain air and the thrill of the ascent!',
+                socialLinks: {
+                    instagram: 'https://instagram.com/mountaineermallu',
+                    strava: 'https://strava.com'
+                },
+                roles: ['user']
+            });
+        }
+
+        // Reset any lockout just in case
+        if (user.loginAttempts > 0 || user.lockUntil) {
+            await user.resetLoginAttempts();
+        }
+
+        const token = generateToken(user._id, user.tokenVersion);
+        setTokenCookie(res, token);
+
+        res.json({
+            message: 'Demo login successful.',
             user: user.toProfileJSON()
         });
     } catch (error) {
@@ -160,8 +226,14 @@ export const logout = (req, res) => {
     res.json({ message: 'Logged out successfully.' });
 };
 
-// GET /api/auth/me — persistent login check
+// GET /api/auth/me — persistent login check + silent token refresh
+// Every time this is called (on page load), we issue a fresh token.
+// This means as long as the user visits within 30 days, they stay logged in forever.
 export const getMe = async (req, res) => {
+    // Silently refresh the token to extend the session
+    const freshToken = generateToken(req.user._id, req.user.tokenVersion);
+    setTokenCookie(res, freshToken);
+
     res.json({ user: req.user.toProfileJSON() });
 };
 
@@ -229,7 +301,7 @@ export const googleSignIn = async (req, res, next) => {
             await user.resetLoginAttempts();
         }
 
-        const token = generateToken(user._id);
+        const token = generateToken(user._id, user.tokenVersion);
         setTokenCookie(res, token);
 
         res.json({
@@ -362,6 +434,8 @@ export const resetPassword = async (req, res, next) => {
         // Reset lockout on password reset
         user.loginAttempts = 0;
         user.lockUntil = undefined;
+        // Invalidate all existing sessions
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
         await user.save();
 
         res.json({ message: 'Password reset successfully. You can now log in.' });

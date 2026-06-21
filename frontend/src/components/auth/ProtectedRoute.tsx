@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, Role, Permissions } from '../../store/useAuthStore';
+import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -8,6 +9,17 @@ interface ProtectedRouteProps {
     requiredPermission?: keyof Permissions;
     requireProfileComplete?: boolean;
 }
+
+const RedirectWithToast = ({ to, state, message, description }: { to: string, state?: any, message: string, description: string }) => {
+    useEffect(() => {
+        toast.error(message, {
+            description: description,
+            duration: 5000,
+        });
+    }, [message, description]);
+    
+    return <Navigate to={to} state={state} replace />;
+};
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     children,
@@ -29,28 +41,47 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     // 1. Check basic authentication
     if (!isLoggedIn || !user) {
-        // Redirect to login, but save the intended destination
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        return <RedirectWithToast 
+            to="/login" 
+            state={{ from: location }} 
+            message="Authentication Required" 
+            description="You must be logged in to access this area."
+        />;
     }
 
     // 2. Check profile completion requirement
     if (requireProfileComplete && !user.isProfileComplete && location.pathname !== '/profile-complete') {
-        return <Navigate to="/profile-complete" replace />;
+        return <RedirectWithToast 
+            to="/profile-complete" 
+            message="Profile Incomplete" 
+            description="Please complete your profile to continue."
+        />;
     }
 
     // 3. Check role-based access
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // If it's a dashboard route, redirect to access denied. Otherwise redirect to home.
         if (location.pathname.startsWith('/summit-control-panel')) {
-            return <Navigate to="/summit-control-panel/access-denied" replace />;
+            return <RedirectWithToast 
+                to="/summit-control-panel/access-denied" 
+                message="Access Denied" 
+                description={`You do not have the necessary clearance level to access Summit Control Panel.`}
+            />;
         }
-        return <Navigate to="/" replace />;
+        return <RedirectWithToast 
+            to="/" 
+            message="Access Denied" 
+            description={`Your current role (${user.role}) does not permit access to this section.`}
+        />;
     }
 
     // 4. Check specific permissions for Admins
     if (requiredPermission && user.role === 'Admin') {
         if (!user.permissions[requiredPermission]) {
-            return <Navigate to="/summit-control-panel/access-denied" replace />;
+            return <RedirectWithToast 
+                to="/summit-control-panel/access-denied" 
+                message="Restricted Zone" 
+                description={`You are missing the required clearance: ${requiredPermission}.`}
+            />;
         }
     }
 

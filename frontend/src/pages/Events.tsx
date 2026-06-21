@@ -111,7 +111,7 @@ export const EventsPage = () => {
                                 key={evt._id || i}
                                 initial={{ opacity: 0, x: 100 }}
                                 whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: false, margin: "-100px" }}
+                                viewport={{ once: true, margin: "-100px" }}
                                 transition={{ duration: 0.8, type: "spring", damping: 15 }}
                                 className="relative group"
                             >

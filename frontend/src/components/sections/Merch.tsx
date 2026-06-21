@@ -13,6 +13,44 @@ const PRODUCTS = [
     { id: 5, title: 'Alpine Sunglasses', price: '€159', category: 'Accessories', img: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?q=80&w=600&h=800&fit=crop' }
 ];
 
+const TiltCard = ({ children, className = '', style = {} }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const [isHovered, setIsHovered] = useState(false);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    };
+
+    const rotateX = isHovered ? (mousePosition.y / (cardRef.current?.offsetHeight || 1) - 0.5) * -15 : 0;
+    const rotateY = isHovered ? (mousePosition.x / (cardRef.current?.offsetWidth || 1) - 0.5) * 15 : 0;
+
+    return (
+        <motion.div
+            ref={cardRef}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onMouseMove={handleMouseMove}
+            animate={{ rotateX, rotateY, scale: isHovered ? 1.02 : 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className={`relative transform-style-3d ${className}`}
+            style={style}
+        >
+            {children}
+            {isHovered && (
+                <div 
+                    className="absolute inset-0 z-50 pointer-events-none mix-blend-overlay transition-opacity duration-300"
+                    style={{
+                        background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,255,255,0.4) 0%, transparent 60%)`,
+                    }}
+                />
+            )}
+        </motion.div>
+    );
+};
+
 export const Merch = () => {
     const [rotation, setRotation] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
@@ -60,26 +98,26 @@ export const Merch = () => {
     const zRadius = 400;
 
     return (
-        <section id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-alpine-snow dark:bg-black relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-screen">
+        <section id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-alpine-snow dark:bg-[#000000] relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-screen">
 
             {/* Background massive typography */}
             <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 0.03 }}
-                viewport={{ once: false, amount: 0.1 }}
+                viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 2, ease: "easeOut" }}
                 className="absolute bottom-10 text-[8rem] md:text-[16rem] lg:text-[20rem] font-serif font-black text-alpine-navy dark:text-alpine-snow whitespace-nowrap pointer-events-none select-none z-0"
             >
                 PROVISIONS
             </motion.div>
 
-            <div className="max-w-7xl mx-auto relative z-10 w-full mb-16 md:mb-0">
+            <div className="w-full max-w-[1600px] mx-auto relative z-10 mb-16 md:mb-0">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 md:mb-24 gap-6 md:gap-8">
                     <div>
                         <motion.p
                             initial={{ opacity: 0, y: 10 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: false }}
+                            viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                             className="text-alpine-blue dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3"
                         >
@@ -88,7 +126,7 @@ export const Merch = () => {
                         <motion.h2
                             initial={{ opacity: 0, x: -50 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: false }}
+                            viewport={{ once: true }}
                             transition={{ duration: 1 }}
                             className="text-4xl md:text-6xl lg:text-7xl font-serif text-alpine-navy dark:text-alpine-snow"
                         >
@@ -111,16 +149,16 @@ export const Merch = () => {
                 <div ref={scrollRef} className="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-6 px-2">
                     {PRODUCTS.map((product) => (
                         <div key={product.id} className="min-w-[240px] snap-start flex-shrink-0">
-                            <div className="premium-card-light dark:premium-card rounded-2xl overflow-hidden border border-black/5 dark:border-white/[0.06]">
+                            <TiltCard className="premium-card-light dark:premium-card rounded-2xl overflow-hidden border border-black/5 dark:border-white/[0.06] h-full shadow-lg group-hover:shadow-2xl">
                                 <div className="relative h-52 overflow-hidden">
                                     <img src={product.img} alt={product.title} className="w-full h-full object-cover" />
-                                    <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm">
+                                    <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10">
                                         {product.category}
                                     </div>
                                     {isLoggedIn && (
                                         <button
                                             onClick={(e) => toggleWishlist(String(product.id), e)}
-                                            className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-sm ${
+                                            className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-sm z-10 ${
                                                 wishlist.includes(String(product.id))
                                                     ? 'bg-red-500 text-white scale-110'
                                                     : 'bg-white/80 dark:bg-black/50 text-alpine-navy/50 dark:text-white/50 hover:text-red-500 hover:scale-110'
@@ -130,7 +168,7 @@ export const Merch = () => {
                                         </button>
                                     )}
                                 </div>
-                                <div className="p-4">
+                                <div className="p-4 bg-alpine-snow dark:bg-black translate-z-10 relative">
                                     <h3 className="font-serif text-base text-alpine-navy dark:text-alpine-snow mb-1">{product.title}</h3>
                                     <div className="flex justify-between items-center">
                                         <span className="text-alpine-blue dark:text-alpine-sunrise font-semibold">{product.price}</span>
@@ -139,7 +177,7 @@ export const Merch = () => {
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </TiltCard>
                         </div>
                     ))}
                 </div>
@@ -165,19 +203,19 @@ export const Merch = () => {
                     {PRODUCTS.map((product, i) => {
                         const currentAngle = angleSlice * i;
                         return (
-                            <div
+                            <TiltCard
                                 key={product.id}
                                 className="absolute inset-0 bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 overflow-hidden transform-style-3d group"
                                 style={{ transform: `rotateY(${currentAngle}deg) translateZ(${zRadius}px)` }}
                             >
-                                <img src={product.img} alt={product.title} className="w-full h-2/3 object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-                                <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm">
+                                <img src={product.img} alt={product.title} className="w-full h-2/3 object-cover opacity-90 group-hover:opacity-100 transition-opacity translate-z-10" />
+                                <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10 translate-z-10">
                                     {product.category}
                                 </div>
                                 {isLoggedIn && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); toggleWishlist(String(product.id), e); }}
-                                        className={`absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-lg z-10 ${
+                                        className={`absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-lg z-20 translate-z-10 ${
                                             wishlist.includes(String(product.id))
                                                 ? 'bg-red-500 text-white scale-110'
                                                 : 'bg-white/80 dark:bg-black/50 text-alpine-navy/50 dark:text-white/50 hover:text-red-500 hover:scale-110'
@@ -186,14 +224,14 @@ export const Merch = () => {
                                         <Heart size={18} className={wishlist.includes(String(product.id)) ? 'fill-current' : ''} />
                                     </button>
                                 )}
-                                <div className="p-5 md:p-6 h-1/3 flex flex-col justify-between bg-alpine-snow dark:bg-black/80">
+                                <div className="p-5 md:p-6 h-1/3 flex flex-col justify-between bg-alpine-snow dark:bg-black relative translate-z-10">
                                     <h3 className="font-serif text-lg md:text-xl text-alpine-navy dark:text-alpine-snow">{product.title}</h3>
                                     <div className="flex justify-between items-center w-full">
                                         <span className="text-alpine-blue dark:text-alpine-sunrise font-medium text-base md:text-lg">{product.price}</span>
                                         <button className="text-sm font-bold uppercase tracking-wider text-alpine-navy/50 hover:text-alpine-navy dark:text-white/50 dark:hover:text-white transition-colors">Details</button>
                                     </div>
                                 </div>
-                            </div>
+                            </TiltCard>
                         );
                     })}
                 </motion.div>

@@ -5,6 +5,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DynamicLogo } from '../ui/DynamicLogo';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useState } from 'react';
 
 const sideNavLinks = [
     { name: 'Mission', href: '#mission', icon: Mountain },
@@ -18,6 +20,7 @@ export const SidePanel = () => {
     const { isSidebarOpen, setSidebarOpen, theme, setTheme } = useStore();
     const { isLoggedIn, user, logoutAsync } = useAuthStore();
     const navigate = useNavigate();
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const containerVars = {
         hidden: { opacity: 0 },
@@ -33,6 +36,7 @@ export const SidePanel = () => {
     };
 
     return (
+        <>
         <AnimatePresence>
             {isSidebarOpen && (
                 <>
@@ -195,7 +199,7 @@ export const SidePanel = () => {
                         {isLoggedIn && (
                             <motion.div variants={itemVars} initial="hidden" animate="show" className="pt-2 sm:pt-4 border-t border-white/10 shrink-0 mt-2 sm:mt-4 relative z-10">
                                 <button
-                                    onClick={async () => { await logoutAsync(); setSidebarOpen(false); }}
+                                    onClick={() => setShowLogoutConfirm(true)}
                                     className="w-full py-1.5 sm:py-3 px-3 sm:px-4 rounded-xl text-red-400/80 hover:text-red-400 hover:bg-red-500/10 font-bold tracking-wide text-[12px] sm:text-sm flex items-center justify-center gap-2 transition-all duration-300 group border border-transparent hover:border-red-500/20"
                                 >
                                     <LogOut size={14} className="group-hover:-translate-x-1 transition-transform" /> Sign Out
@@ -206,6 +210,22 @@ export const SidePanel = () => {
                 </>
             )}
         </AnimatePresence>
+        <ConfirmDialog 
+            isOpen={showLogoutConfirm}
+            title="Secure Sign Out"
+            description="Are you sure you want to end your current session?"
+            confirmText="Sign Out"
+            cancelText="Cancel"
+            icon="logout"
+            onConfirm={async () => {
+                await logoutAsync();
+                setShowLogoutConfirm(false);
+                setSidebarOpen(false);
+                navigate('/');
+            }}
+            onCancel={() => setShowLogoutConfirm(false)}
+        />
+        </>
     );
 };
 
