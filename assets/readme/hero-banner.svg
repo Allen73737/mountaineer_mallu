@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <!-- Dark Space Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#030712" />
+      <stop offset="50%" stop-color="#08182B" />
+      <stop offset="100%" stop-color="#020408" />
+    </linearGradient>
+
+    <!-- Animated Aurora Gradient 1 -->
+    <linearGradient id="aurora1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" stop-opacity="0.35">
+        <animate attributeName="stop-color" values="#00F2FE;#4FACFE;#7F00FF;#00F2FE" dur="12s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="50%" stop-color="#7F00FF" stop-opacity="0.25">
+        <animate attributeName="stop-color" values="#7F00FF;#00F2FE;#E2A071;#7F00FF" dur="12s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0">
+        <animate attributeName="stop-color" values="#38BDF8;#A3C9E2;#64BEFF;#38BDF8" dur="12s" repeatCount="indefinite" />
+      </stop>
+    </linearGradient>
+
+    <!-- Animated Aurora Gradient 2 -->
+    <linearGradient id="aurora2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E2A071" stop-opacity="0.25">
+        <animate attributeName="stop-color" values="#E2A071;#C9A96E;#FA709A;#E2A071" dur="16s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="60%" stop-color="#64BEFF" stop-opacity="0.2">
+        <animate attributeName="stop-color" values="#64BEFF;#38F9D7;#A3C9E2;#64BEFF" dur="16s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%" stop-color="#08284C" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Text Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Beacon Pulse Filter -->
+    <filter id="beaconGlow">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+    @keyframes floatAurora {
+      0%, 100% { transform: translateY(0px) scaleY(1); }
+      50% { transform: translateY(-25px) scaleY(1.15); }
+    }
+    @keyframes shootingStar {
+      0% { transform: translate(0, 0) scale(0); opacity: 0; }
+      10% { opacity: 1; transform: translate(-30px, 20px) scale(1); }
+      30% { transform: translate(-280px, 180px) scale(1); opacity: 0; }
+      100% { transform: translate(-280px, 180px) scale(0); opacity: 0; }
+    }
+    @keyframes pulseRing {
+      0% { r: 4; opacity: 1; }
+      100% { r: 35; opacity: 0; }
+    }
+    @keyframes radarScan {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .star { transform-origin: center; animation: twinkle 3s ease-in-out infinite; }
+    .star-1 { animation-delay: 0.2s; }
+    .star-2 { animation-delay: 0.8s; }
+    .star-3 { animation-delay: 1.5s; }
+    .star-4 { animation-delay: 2.1s; }
+    .star-5 { animation-delay: 2.7s; }
+    .aurora-mesh { animation: floatAurora 8s ease-in-out infinite alternate; transform-origin: bottom center; }
+    .meteor { animation: shootingStar 7s linear infinite; }
+    .pulse-beacon { animation: pulseRing 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+    .text-title {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+    }
+    .text-subtitle {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+    }
+    .mono-badge {
+      font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+    }
+  </style>
+
+  <!-- Background Base -->
+  <rect width="1200" height="400" fill="url(#bgGrad)" />
+
+  <!-- Aurora Borealis Cloud Waves -->
+  <path class="aurora-mesh" d="M0,220 Q300,100 600,180 T1200,140 L1200,400 L0,400 Z" fill="url(#aurora1)" />
+  <path class="aurora-mesh" style="animation-delay: -4s;" d="M0,260 Q400,120 800,220 T1200,180 L1200,400 L0,400 Z" fill="url(#aurora2)" />
+
+  <!-- Twinkling Starlight Field -->
+  <g fill="#FFFFFF">
+    <circle cx="120" cy="60" r="1.5" class="star star-1" />
+    <circle cx="280" cy="40" r="1.2" class="star star-2" />
+    <circle cx="450" cy="80" r="1.8" class="star star-3" />
+    <circle cx="620" cy="30" r="1.4" class="star star-4" />
+    <circle cx="780" cy="70" r="1.6" class="star star-5" />
+    <circle cx="920" cy="45" r="1.2" class="star star-2" />
+    <circle cx="1060" cy="85" r="1.9" class="star star-1" />
+    <circle cx="180" cy="110" r="1.1" class="star star-4" />
+    <circle cx="340" cy="130" r="1.5" class="star star-5" />
+    <circle cx="510" cy="115" r="1.3" class="star star-1" />
+    <circle cx="850" cy="120" r="1.7" class="star star-3" />
+    <circle cx="1120" cy="50" r="1.4" class="star star-2" />
+  </g>
+
+  <!-- Shooting Meteor Streak -->
+  <g transform="translate(1050, 40)" class="meteor">
+    <line x1="0" y1="0" x2="100" y2="-65" stroke="url(#aurora1)" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="0" cy="0" r="3.5" fill="#FFFFFF" filter="url(#beaconGlow)" />
+  </g>
+
+  <!-- Background Mountain Silhouette (Far Distance) -->
+  <polygon points="0,400 120,310 280,360 480,270 650,330 820,250 990,320 1140,260 1200,290 1200,400" fill="#08182B" opacity="0.6" />
+
+  <!-- Midground Mountain Silhouette -->
+  <polygon points="0,400 180,280 340,320 540,220 720,290 920,190 1080,280 1200,240 1200,400" fill="#0A223B" opacity="0.85" />
+
+  <!-- Foreground Dramatic Summit Ridge -->
+  <polygon points="0,400 90,340 240,370 420,280 600,160 780,290 960,250 1120,330 1200,300 1200,400" fill="#040D1A" />
+  <!-- Summit Peak Highlight Line -->
+  <polyline points="420,280 600,160 780,290" fill="none" stroke="#64BEFF" stroke-width="1.8" opacity="0.6" />
+
+  <!-- Summit Beacon & Radar Pulse at Peak (600, 160) -->
+  <circle cx="600" cy="160" r="4" fill="#FFFFFF" filter="url(#beaconGlow)" />
+  <circle cx="600" cy="160" r="4" fill="none" stroke="#64BEFF" stroke-width="1.5" class="pulse-beacon" />
+  <circle cx="600" cy="160" r="4" fill="none" stroke="#E2A071" stroke-width="1" class="pulse-beacon" style="animation-delay: 1.2s;" />
+
+  <!-- Status HUD Pill -->
+  <g transform="translate(600, 52)">
+    <rect x="-190" y="-14" width="380" height="28" rx="14" fill="#08284C" fill-opacity="0.85" stroke="#64BEFF" stroke-opacity="0.35" stroke-width="1" />
+    <!-- Blinking GPS Indicator -->
+    <circle cx="-165" cy="0" r="4" fill="#43E97B">
+      <animate attributeName="opacity" values="1;0.2;1" dur="1.8s" repeatCount="indefinite" />
+    </circle>
+    <text x="-150" y="4" fill="#A3C9E2" class="mono-badge">TELEMETRY // LAT 45.83° N • ELEV 4,808M</text>
+  </g>
+
+  <!-- Main Hero Brand Typography -->
+  <text x="600" y="115" text-anchor="middle" fill="#FFFFFF" font-size="34" class="text-title" filter="url(#glow)">
+    MOUNTAINEER MALLU
+  </text>
+  <text x="600" y="142" text-anchor="middle" fill="#A3C9E2" font-size="12" class="text-subtitle">
+    THE PREMIER MALAYALEE ALPINE COMMUNITY IN EUROPE
+  </text>
+
+  <!-- Bottom Accent Line -->
+  <line x1="200" y1="398" x2="1000" y2="398" stroke="url(#aurora1)" stroke-width="2" opacity="0.8" />
+</svg>

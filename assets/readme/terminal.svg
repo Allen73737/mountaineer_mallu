@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="termBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0A0E17" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+    <linearGradient id="termBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64BEFF" stop-opacity="0.4" />
+      <stop offset="50%" stop-color="#A3C9E2" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#E2A071" stop-opacity="0.3" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    @keyframes lineFade1 {
+      0%, 15% { opacity: 0; transform: translateY(4px); }
+      20%, 100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes lineFade2 {
+      0%, 35% { opacity: 0; transform: translateY(4px); }
+      40%, 100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes lineFade3 {
+      0%, 55% { opacity: 0; transform: translateY(4px); }
+      60%, 100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes lineFade4 {
+      0%, 75% { opacity: 0; transform: translateY(4px); }
+      80%, 100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes lineFade5 {
+      0%, 88% { opacity: 0; transform: translateY(4px); }
+      92%, 100% { opacity: 1; transform: translateY(0); }
+    }
+    .term-text {
+      font-family: 'SF Mono', Monaco, 'Fira Code', 'Roboto Mono', Consolas, monospace;
+      font-size: 13.5px;
+      letter-spacing: 0.04em;
+    }
+    .cursor { animation: blink 1s step-end infinite; }
+    .line-1 { animation: lineFade1 8s ease forwards infinite; }
+    .line-2 { animation: lineFade2 8s ease forwards infinite; }
+    .line-3 { animation: lineFade3 8s ease forwards infinite; }
+    .line-4 { animation: lineFade4 8s ease forwards infinite; }
+    .line-5 { animation: lineFade5 8s ease forwards infinite; }
+  </style>
+
+  <!-- Terminal Window Background -->
+  <rect x="2" y="2" width="846" height="356" rx="16" fill="url(#termBg)" stroke="url(#termBorder)" stroke-width="1.5" />
+
+  <!-- Terminal Title Bar -->
+  <path d="M2,18 Q2,2 18,2 L832,2 Q848,2 848,18 L848,42 L2,42 Z" fill="#0D1524" />
+  <line x1="2" y1="42" x2="848" y2="42" stroke="#1E2D4A" stroke-width="1" />
+
+  <!-- Window Control Buttons (macOS style) -->
+  <circle cx="24" cy="22" r="6" fill="#FF5F56" />
+  <circle cx="44" cy="22" r="6" fill="#FFBD2E" />
+  <circle cx="64" cy="22" r="6" fill="#27C93F" />
+
+  <!-- Title Text -->
+  <text x="425" y="26" text-anchor="middle" fill="#64BEFF" font-family="'Inter', sans-serif" font-size="12" font-weight="600" letter-spacing="0.1em">
+    🏔️ mountaineer-mallu — bash — 80x24
+  </text>
+
+  <!-- Terminal Content Lines -->
+  <!-- Line 1: Command Entry -->
+  <g transform="translate(30, 80)" class="term-text">
+    <text x="0" y="0" fill="#E2A071" font-weight="bold">summit@alpine-node</text>
+    <text x="165" y="0" fill="#A3C9E2">:</text>
+    <text x="180" y="0" fill="#64BEFF">~/mountaineer_mallu</text>
+    <text x="345" y="0" fill="#FFFFFF">$</text>
+    <text x="365" y="0" fill="#F8FAF9" font-weight="600">docker compose up -d --build</text>
+  </g>
+
+  <!-- Line 2: Build Stage -->
+  <g transform="translate(30, 120)" class="term-text line-1">
+    <text x="0" y="0" fill="#4FACFE">⠿</text>
+    <text x="18" y="0" fill="#94A3B8">[1/3] Building client environment (Vite + React 19 + Tailwind v4)...</text>
+    <text x="690" y="0" fill="#43E97B" font-weight="bold">[DONE 14.4s]</text>
+  </g>
+
+  <!-- Line 3: Multi-Stage Runner -->
+  <g transform="translate(30, 160)" class="term-text line-2">
+    <text x="0" y="0" fill="#4FACFE">⠿</text>
+    <text x="18" y="0" fill="#94A3B8">[2/3] Initializing Node 20 Alpine runner &amp; connection pools...</text>
+    <text x="690" y="0" fill="#43E97B" font-weight="bold">[DONE 4.1s]</text>
+  </g>
+
+  <!-- Line 4: Services Started -->
+  <g transform="translate(30, 200)" class="term-text line-3">
+    <text x="0" y="0" fill="#22C55E">✔</text>
+    <text x="18" y="0" fill="#F8FAF9">Container <tspan fill="#64BEFF">mountaineer-mallu-mongo</tspan> Healthy (27017)</text>
+    <text x="540" y="0" fill="#E2A071">[Pool: 5-50]</text>
+  </g>
+
+  <g transform="translate(30, 235)" class="term-text line-4">
+    <text x="0" y="0" fill="#22C55E">✔</text>
+    <text x="18" y="0" fill="#F8FAF9">Container <tspan fill="#64BEFF">mountaineer-mallu-redis</tspan> Healthy (6379)</text>
+    <text x="540" y="0" fill="#E2A071">[AOF: Active]</text>
+  </g>
+
+  <!-- Line 5: Online Status & Telemetry Link -->
+  <g transform="translate(30, 275)" class="term-text line-5">
+    <text x="0" y="0" fill="#22C55E">✔</text>
+    <text x="18" y="0" fill="#F8FAF9">Container <tspan fill="#64BEFF">mountaineer-mallu-app</tspan> Live on <tspan fill="#43E97B" font-weight="bold">http://localhost:5000</tspan></text>
+  </g>
+
+  <!-- Line 6: Ready Prompt with blinking cursor -->
+  <g transform="translate(30, 315)" class="term-text">
+    <text x="0" y="0" fill="#43E97B">●</text>
+    <text x="18" y="0" fill="#A3C9E2">Telemetry: 60/120 FPS WebGL soft aurora online &amp; gzip enabled</text>
+    <rect x="580" y="-12" width="8.5" height="16" fill="#64BEFF" class="cursor" />
+  </g>
+</svg>
