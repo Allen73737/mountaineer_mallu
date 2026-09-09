@@ -100,26 +100,46 @@ const CinematicFrozenEarth = () => {
 };
 
 export const EarthGlobe = () => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isVisible, setIsVisible] = React.useState(true);
+
+    React.useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsVisible(entry.isIntersecting),
+            { threshold: 0.05 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <div className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing">
-            {/* Moved camera significantly back (from 6 to 10) to ensure the globe is NEVER cut off by the canvas edges */}
-            <Canvas camera={{ position: [0, 0, 10], fov: 45 }} gl={{ antialias: true, alpha: true }}>
-                <ambientLight intensity={0.8} color="#E0F7FA" />
-                <directionalLight position={[10, 5, 5]} intensity={4} color="#ffffff" />
-                <directionalLight position={[-10, -5, -5]} intensity={1.5} color="#81D4FA" />
-                
-                <React.Suspense fallback={null}>
-                    <CinematicFrozenEarth />
-                </React.Suspense>
-                
-                <OrbitControls 
-                    enableZoom={false} 
-                    enablePan={false} 
-                    rotateSpeed={0.3} 
-                    autoRotate 
-                    autoRotateSpeed={0.5} 
-                />
-            </Canvas>
+        <div ref={containerRef} className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing">
+            {isVisible && (
+                <Canvas 
+                    camera={{ position: [0, 0, 10], fov: 45 }} 
+                    gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+                    dpr={[1, 1.5]}
+                    frameloop="always"
+                >
+                    <ambientLight intensity={0.8} color="#E0F7FA" />
+                    <directionalLight position={[10, 5, 5]} intensity={4} color="#ffffff" />
+                    <directionalLight position={[-10, -5, -5]} intensity={1.5} color="#81D4FA" />
+                    
+                    <React.Suspense fallback={null}>
+                        <CinematicFrozenEarth />
+                    </React.Suspense>
+                    
+                    <OrbitControls 
+                        enableZoom={false} 
+                        enablePan={false} 
+                        rotateSpeed={0.3} 
+                        autoRotate 
+                        autoRotateSpeed={0.5} 
+                    />
+                </Canvas>
+            )}
         </div>
     );
 };

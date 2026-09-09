@@ -9,20 +9,15 @@ import { useStore } from '../../store/useStore';
 const SummitBotIcon = ({ size = 24, glowing = false }: { size?: number; glowing?: boolean }) => (
     <div className="relative flex items-center justify-center w-full h-full">
         {glowing && (
-            <motion.div
-                className="absolute inset-0 rounded-full bg-[#64BEFF]/30 blur-md"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            <div
+                className="absolute inset-0 rounded-full bg-[#64BEFF]/30 blur-md animate-pulse pointer-events-none"
+                style={{ animationDuration: '3s' }}
             />
         )}
         <MountainSnow size={size} className="text-white drop-shadow-[0_0_10px_rgba(100,190,255,0.8)] z-10" strokeWidth={1.5} />
         
         {/* Animated AI Core / Sparkle */}
-        <motion.div 
-            className="absolute top-[25%] right-[25%] w-1.5 h-1.5 rounded-full bg-[#64BEFF] shadow-[0_0_8px_#64BEFF] z-20"
-            animate={{ opacity: [1, 0.4, 1], scale: [1, 0.8, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-        />
+        <div className="absolute top-[25%] right-[25%] w-1.5 h-1.5 rounded-full bg-[#64BEFF] shadow-[0_0_8px_#64BEFF] z-20 animate-ping" style={{ animationDuration: '2s' }} />
     </div>
 );
 
@@ -101,10 +96,15 @@ const MessageBubble = ({ msg, isLatest }: { msg: ChatMessage; isLatest: boolean 
     );
 };
 
-// ─── Simple Markdown Formatter ─────────────────────────────────────────────────
+// ─── Simple Safe Markdown Formatter ─────────────────────────────────────────────
 const formatMarkdown = (text: string): string => {
     if (!text) return '';
-    return text
+    const safeText = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    return safeText
         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#64BEFF] font-semibold">$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/`(.*?)`/g, '<code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>')
@@ -249,22 +249,18 @@ export const AIChatAssistant = () => {
             <AnimatePresence>
                 {!isOpen && (
                     <motion.button
-                        drag
-                        dragMomentum={false}
-                        initial={{ scale: 0, opacity: 0 }}
+                        initial={{ scale: 1, opacity: 1 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                        onClick={() => setIsOpen(true)}
-                        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] group cursor-grab active:cursor-grabbing"
+                        transition={{ duration: 0.2 }}
+                        onClick={() => requestAnimationFrame(() => setIsOpen(true))}
+                        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] group cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200"
                         aria-label="Open Summit Guide AI Assistant"
                     >
                         {/* Pulse ring */}
-                        <div className="absolute inset-0 rounded-full bg-[#64BEFF]/20 animate-ping" style={{ animationDuration: '3s' }} />
+                        <div className="absolute inset-0 rounded-full bg-[#64BEFF]/20 animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
                         {/* Glow backdrop */}
-                        <div className="absolute -inset-2 rounded-full bg-[#64BEFF]/10 blur-xl group-hover:bg-[#64BEFF]/20 transition-colors duration-500" />
+                        <div className="absolute -inset-2 rounded-full bg-[#64BEFF]/10 blur-xl group-hover:bg-[#64BEFF]/20 transition-colors duration-500 pointer-events-none" />
                         {/* Icon container */}
                         <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#111F30] to-[#050A14] border border-[#64BEFF]/40 shadow-[0_0_30px_rgba(100,190,255,0.25)] flex items-center justify-center overflow-hidden group-hover:border-[#64BEFF]/80 group-hover:shadow-[0_0_50px_rgba(100,190,255,0.4)] transition-all duration-300">
                             <SummitBotIcon size={24} glowing />
@@ -283,11 +279,11 @@ export const AIChatAssistant = () => {
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, x: 40, scale: 0.9, originX: 1, originY: 1 }}
+                        initial={{ opacity: 0, x: 20, scale: 0.95 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: 40, scale: 0.9 }}
-                        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                        className={`fixed z-[9999] flex flex-col transition-all duration-300 ${
+                        exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className={`fixed z-[9999] flex flex-col ${
                             isExpanded
                                 ? 'inset-4 md:right-4 md:left-auto md:top-4 md:bottom-4 md:w-[500px]'
                                 : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-32px)] sm:w-[380px] h-[75vh] max-h-[600px] sm:h-auto'
@@ -318,7 +314,7 @@ export const AIChatAssistant = () => {
                                         {messages.length > 0 && (
                                             <button
                                                 onClick={clearChat}
-                                                className="p-2 text-white/30 hover:text-red-400 hover:bg-white/5 rounded-lg transition-all"
+                                                className="p-2 text-white/30 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
                                                 title="Clear chat"
                                             >
                                                 <Trash2 size={14} />
@@ -326,14 +322,14 @@ export const AIChatAssistant = () => {
                                         )}
                                         <button
                                             onClick={() => setIsExpanded(!isExpanded)}
-                                            className="p-2 text-white/30 hover:text-white/80 hover:bg-white/5 rounded-lg transition-all"
+                                            className="p-2 text-white/30 hover:text-white/80 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
                                             title={isExpanded ? 'Minimize' : 'Expand'}
                                         >
                                             {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                                         </button>
                                         <button
-                                            onClick={() => { setIsOpen(false); setIsExpanded(false); }}
-                                            className="p-2 text-white/30 hover:text-white/80 hover:bg-white/5 rounded-lg transition-all"
+                                            onClick={() => requestAnimationFrame(() => { setIsOpen(false); setIsExpanded(false); })}
+                                            className="p-2 text-white/30 hover:text-white/80 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
                                             title="Close"
                                         >
                                             <X size={14} />

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
+import { getDeviceConfig } from '../../lib/deviceOptimization';
 
 export const InteractiveParticles = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { theme, weather } = useStore();
+    const { theme, weather, isSnowEffectEnabled } = useStore();
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -16,12 +17,34 @@ export const InteractiveParticles = () => {
         let particles: Particle[] = [];
         let animationFrameId: number;
 
-        // Determine Theme context for particle styles
-        const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        const isFreezing = weather.isSnowing || (weather.temp !== null && weather.temp <= 0);
+        // Determine weather condition for particle styles
+        const isFreezingOrSnowing = weather.isSnowing || (weather.temp !== null && weather.temp <= 0);
         
-        // If it's dark OR freezing, we want a cool 'snow/bokeh' vibe. Else, a warm 'sun dust' vibe.
-        const useCoolVibe = isDark || isFreezing;
+        // Snow effect is based on featured peak weather OR toggled by user via hamburger menu button
+        const useCoolVibe = isSnowEffectEnabled || isFreezingOrSnowing;
+
+        // Create pre-rendered glowing sprites to avoid 5,400+ createRadialGradient calls per second!
+        const createSprite = (rgb: string) => {
+            const size = 64;
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = size * 2;
+            offCanvas.height = size * 2;
+            const offCtx = offCanvas.getContext('2d');
+            if (offCtx) {
+                const gradient = offCtx.createRadialGradient(size, size, 0, size, size, size);
+                gradient.addColorStop(0, `rgba(${rgb}, 1)`);
+                gradient.addColorStop(0.4, `rgba(${rgb}, 0.5)`);
+                gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+                offCtx.fillStyle = gradient;
+                offCtx.beginPath();
+                offCtx.arc(size, size, size, 0, Math.PI * 2);
+                offCtx.fill();
+            }
+            return offCanvas;
+        };
+
+        const whiteSprite = createSprite('255, 255, 255');
+        const goldSprite = createSprite('226, 160, 113');
 
         // Mouse coordinates for global parallax
         let mouseX = width / 2;
@@ -40,8 +63,8 @@ export const InteractiveParticles = () => {
             targetMouseY = e.clientY;
         };
 
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('resize', handleResize, { passive: true });
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
         class Particle {
             x: number;
@@ -79,37 +102,24 @@ export const InteractiveParticles = () => {
 
             draw() {
                 if (!ctx) return;
+                const sprite = useCoolVibe ? whiteSprite : goldSprite;
+                const parallaxX = ((mouseX - width / 2) * -0.005) * this.z;
+                const parallaxY = ((mouseY - height / 2) * -0.005) * this.z;
                 
-                // Create soft glowing radial gradient for ultra-premium look
-                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-                
-                const rgb = useCoolVibe ? '255, 255, 255' : '226, 160, 113'; // White/Ice vs Warm Gold
-                
-                gradient.addColorStop(0, `rgba(${rgb}, ${this.baseAlpha})`);
-                gradient.addColorStop(0.4, `rgba(${rgb}, ${this.baseAlpha * 0.5})`);
-                gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+                const renderX = this.x + parallaxX;
+                const renderY = this.y + parallaxY;
 
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.globalAlpha = this.baseAlpha;
+                ctx.drawImage(sprite, renderX - this.size, renderY - this.size, this.size * 2, this.size * 2);
             }
 
             update() {
-                // Smooth mouse interpolation
-                mouseX += (targetMouseX - mouseX) * 0.05;
-                mouseY += (targetMouseY - mouseY) * 0.05;
-
-                // Parallax effect: closer particles move more relative to mouse
-                const parallaxX = ((mouseX - width / 2) * -0.01) * this.z;
-                const parallaxY = ((mouseY - height / 2) * -0.01) * this.z;
-
                 // Sine wave drift
                 this.angle += 0.01;
-                const driftX = Math.sin(this.angle) * 0.2 * this.z;
+                const driftX = Math.sin(this.angle) * 0.15 * this.z;
 
-                this.x += this.vx + parallaxX + driftX;
-                this.y += this.vy + parallaxY;
+                this.x += this.vx + driftX;
+                this.y += this.vy;
 
                 // Wrap around edges gracefully
                 if (this.y < -this.size * 2) this.y = height + this.size * 2;
@@ -121,38 +131,85 @@ export const InteractiveParticles = () => {
 
         const initParticles = () => {
             particles = [];
-            // Vastly reduced number of particles for elegance (clutter free)
-            let numberOfParticles = window.innerWidth < 768 ? 20 : 45; 
+            const deviceConfig = getDeviceConfig();
+            if (deviceConfig.prefersReducedMotion) return;
             
-            for (let i = 0; i < numberOfParticles; i++) {
+            for (let i = 0; i < deviceConfig.particleCount; i++) {
                 particles.push(new Particle());
             }
         };
 
-        const animate = () => {
+        let isIntersecting = true;
+        let observer: IntersectionObserver | null = null;
+
+        let lastParticleTime = 0;
+        const animate = (time: number = 0) => {
             if (!ctx) return;
-            // Clear entire canvas explicitly without trail to maintain sharp gradients
+            if (document.hidden || !isIntersecting) {
+                animationFrameId = 0;
+                return;
+            }
+
+            const deviceConfig = getDeviceConfig();
+            const isScrolling = typeof document !== 'undefined' && document.body.classList.contains('is-scrolling');
+            const targetFpsInterval = isScrolling ? Math.max(33, deviceConfig.particleFpsInterval * 2) : deviceConfig.particleFpsInterval;
+
+            if (time - lastParticleTime < targetFpsInterval) {
+                animationFrameId = requestAnimationFrame(animate);
+                return;
+            }
+            lastParticleTime = time;
+
             ctx.clearRect(0, 0, width, height);
             
+            mouseX += (targetMouseX - mouseX) * 0.05;
+            mouseY += (targetMouseY - mouseY) * 0.05;
+
             for (let i = 0; i < particles.length; i++) {
                 particles[i].draw();
                 particles[i].update();
             }
+            ctx.globalAlpha = 1.0;
             animationFrameId = requestAnimationFrame(animate);
         };
 
+        if (typeof IntersectionObserver !== 'undefined' && canvas) {
+            observer = new IntersectionObserver(([entry]) => {
+                isIntersecting = entry.isIntersecting;
+                if (isIntersecting && !document.hidden && !animationFrameId) {
+                    animationFrameId = requestAnimationFrame(animate);
+                } else if (!isIntersecting && animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = 0;
+                }
+            }, { threshold: 0.05 });
+            observer.observe(canvas);
+        }
+
+        const handleVisibility = () => {
+            if (document.hidden && animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = 0;
+            } else if (!document.hidden && isIntersecting && !animationFrameId) {
+                animationFrameId = requestAnimationFrame(animate);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibility);
         initParticles();
         animate();
 
         return () => {
+            if (observer) observer.disconnect();
+            document.removeEventListener('visibilitychange', handleVisibility);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('mousemove', handleMouseMove);
-            cancelAnimationFrame(animationFrameId);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
         };
-    }, [theme, weather]);
+    }, [theme, weather, isSnowEffectEnabled]);
 
     return (
-        <div className="fixed inset-0 z-[40] pointer-events-none overflow-hidden mix-blend-screen opacity-100">
+        <div className="fixed inset-0 z-[40] pointer-events-none overflow-hidden opacity-90">
             <canvas ref={canvasRef} className="w-full h-full" />
         </div>
     );

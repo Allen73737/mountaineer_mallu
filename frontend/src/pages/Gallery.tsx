@@ -7,13 +7,16 @@ import { useAuthStore } from '../store/useAuthStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import { usersApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
-import { Heart, BookmarkPlus, Download } from 'lucide-react';
+import { Heart, BookmarkPlus, Download, Camera } from 'lucide-react';
 import { BackButton } from '../components/ui/BackButton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const GalleryPage = () => {
     const [mediaItems, setMediaItems] = useState<any[]>([]);
     const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showUpload, setShowUpload] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -33,17 +36,21 @@ export const GalleryPage = () => {
         }
     }, [isLoggedIn]);
 
+    const fetchGallery = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await galleryApi.list(1, 50);
+            setMediaItems(data.items || []);
+        } catch (err: any) {
+            console.error('Failed to load gallery:', err);
+            setError(err.message || 'Alpine imagery telemetry link could not be established.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchGallery = async () => {
-            try {
-                const data = await galleryApi.list(1, 50);
-                setMediaItems(data.items);
-            } catch (err) {
-                console.error('Failed to load gallery:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchGallery();
     }, []);
 
@@ -202,10 +209,20 @@ export const GalleryPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[200px] gap-4 md:gap-6">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <Skeleton key={i} className="rounded-3xl" />)}
                     </div>
+                ) : error ? (
+                    <ErrorState
+                        title="Gallery Downlink Disrupted"
+                        message={error}
+                        onRetry={fetchGallery}
+                    />
                 ) : mediaItems.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[40vh] text-center">
-                        <p className="text-alpine-snow/30 dark:text-white/30 font-mono text-sm tracking-widest">[ VAULT_EMPTY ]</p>
-                    </div>
+                    <EmptyState
+                        icon={Camera}
+                        title="Alpine Vault Empty"
+                        description="No high-altitude photographs or summit captures are currently on display. Expeditions upload new captures from the field."
+                        actionText="Upload Capture"
+                        onAction={() => setShowUpload(true)}
+                    />
                 ) : (
                     <motion.div
                         initial="hidden"

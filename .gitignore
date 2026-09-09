@@ -1,4 +1,14 @@
 node_modules
+*/node_modules
 .env
+*.env
 backend/.env
 frontend/.env
+*.log
+backend/logs/
+build.log
+errors.log
+crash.log
+debug.log
+.DS_Store
+Thumbs.db

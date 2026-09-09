@@ -29,6 +29,7 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
 
     const config: RequestInit = {
         credentials: 'include',
+        signal: fetchOptions.signal || (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(3000) : undefined),
         headers: {
             ...(!(fetchOptions.body instanceof FormData) && { 'Content-Type': 'application/json' }),
             ...fetchOptions.headers,
@@ -63,10 +64,9 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
 
         return response.json();
     } catch (error: any) {
-        // Retry on network failures with exponential backoff (max 2 retries)
-        if (!error.status && retries < 2) {
-            const delay = Math.pow(2, retries) * 500;
-            await new Promise(resolve => setTimeout(resolve, delay));
+        // Fast-fail on auth check or initial settings to avoid blocking initial render
+        if (!error.status && retries < 1 && endpoint !== '/auth/me' && endpoint !== '/settings') {
+            await new Promise(resolve => setTimeout(resolve, 300));
             return request<T>(endpoint, { ...options, retries: retries + 1 });
         }
         throw error;
@@ -413,9 +413,9 @@ export const contactApi = {
 
 export const settingsApi = {
     get: () =>
-        request<{ settings: { sections: Record<string, string>; maintenance: { enabled: boolean; message: string; allowAdminAccess: boolean } } }>('/settings'),
+        request<{ settings: { sections: Record<string, any>; maintenance: { enabled: boolean; message: string; allowAdminAccess: boolean; theme?: string } } }>('/settings'),
 
-    update: (data: { sections?: Record<string, string>; maintenance?: { enabled?: boolean; message?: string; allowAdminAccess?: boolean } }) =>
+    update: (data: { sections?: Record<string, any>; maintenance?: { enabled?: boolean; message?: string; allowAdminAccess?: boolean; theme?: string } }) =>
         request<{ settings: any; message: string }>('/settings', {
             method: 'PUT',
             body: JSON.stringify(data),

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { storiesApi, galleryApi } from '../../lib/api';
-import { CheckCircle, Clock, XCircle, FileText, Image as ImageIcon, Loader } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, FileText, Image as ImageIcon } from 'lucide-react';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const UserSubmissionsTab = () => {
     const [stories, setStories] = useState<any[]>([]);
@@ -9,36 +10,36 @@ export const UserSubmissionsTab = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchSubmissions = async () => {
+        const fetchData = async () => {
             try {
-                const [storiesRes, mediaRes] = await Promise.all([
+                const [storiesData, mediaData] = await Promise.all([
                     storiesApi.getMyStories(),
                     galleryApi.getMyMedia()
                 ]);
-                setStories(storiesRes.stories);
-                setMedia(mediaRes.items);
-            } catch (err) {
-                console.error(err);
+                setStories(storiesData.stories || []);
+                setMedia(mediaData.items || []);
+            } catch (error) {
+                console.error('Failed to load submissions:', error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchSubmissions();
+        fetchData();
     }, []);
 
     const renderStatus = (status: string) => {
         switch (status) {
             case 'approved':
-                return <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400 bg-green-500/10 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-green-500/20"><CheckCircle size={14} /> Approved</span>;
+                return <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-emerald-500/20"><CheckCircle size={14} /> Approved</span>;
             case 'rejected':
-                return <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400 bg-red-500/10 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-red-500/20"><XCircle size={14} /> Rejected</span>;
+                return <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-rose-500/20"><XCircle size={14} /> Rejected</span>;
             default:
                 return <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-500/20"><Clock size={14} /> Pending</span>;
         }
     };
 
     if (loading) {
-        return <div className="flex items-center justify-center h-full"><Loader className="w-8 h-8 text-alpine-glacier animate-spin" /></div>;
+        return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
     }
 
     return (

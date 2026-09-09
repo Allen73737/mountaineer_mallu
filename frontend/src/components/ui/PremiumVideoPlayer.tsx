@@ -92,6 +92,7 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
                 ref={videoRef}
                 src={src}
                 poster={poster}
+                preload="none"
                 className="w-full h-full object-cover"
                 loop
                 muted={isMuted}

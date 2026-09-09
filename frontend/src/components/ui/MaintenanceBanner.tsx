@@ -58,12 +58,7 @@ export const MaintenanceBanner: React.FC<MaintenanceBannerProps> = ({ message, i
                 <div className={`relative overflow-hidden rounded-2xl border ${currentTheme.border} ${currentTheme.bg} backdrop-blur-xl ${currentTheme.glow} p-1`}>
                     
                     {/* Animated Warning Track / Scanning Laser */}
-                    <motion.div 
-                        className="absolute inset-0 opacity-20 pointer-events-none"
-                        style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)' }}
-                        animate={{ backgroundPosition: ['0px 0px', '40px 40px'] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 dark:via-white/10 to-transparent pointer-events-none" />
                     
                     <motion.div 
                         className={`absolute top-0 bottom-0 w-32 ${currentTheme.accent} opacity-20 blur-2xl pointer-events-none`}

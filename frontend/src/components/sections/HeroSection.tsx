@@ -1,12 +1,13 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring, useMotionTemplate } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, UserPlus, LogIn } from 'lucide-react';
 import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool } from '../../data/peaks';
 import { useTranslation } from 'react-i18next';
 import { API_URL } from '../../lib/constants';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 // ─── Live Wallpaper: Starfield Canvas (Ultra Premium) ──────────────────
 const StarfieldCanvas: React.FC = () => {
@@ -22,36 +23,55 @@ const StarfieldCanvas: React.FC = () => {
         let w = 0, h = 0;
         const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
         resize();
-        window.addEventListener('resize', resize);
+        window.addEventListener('resize', resize, { passive: true });
 
-        // Generate layered stars — small background, medium mid, large foreground
+        // Pre-render star sprites to eliminate 40,000+ per-second canvas arc calls!
+        const createStarSprite = (size: number, cr: number, cg: number, cb: number) => {
+            const off = document.createElement('canvas');
+            off.width = size * 4;
+            off.height = size * 4;
+            const octx = off.getContext('2d');
+            if (octx) {
+                octx.beginPath();
+                octx.arc(size * 2, size * 2, size, 0, Math.PI * 2);
+                octx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
+                octx.fill();
+            }
+            return off;
+        };
+
+        const whiteStar = createStarSprite(2, 255, 255, 255);
+        const blueStar = createStarSprite(2, 200, 220, 255);
+        const goldStar = createStarSprite(2, 255, 240, 220);
+
+        // Generate layered stars (optimized count for zero lag)
         const stars = [
-            ...Array.from({ length: 180 }, () => ({
+            ...Array.from({ length: 80 }, () => ({
                 x: Math.random() * w, y: Math.random() * h,
                 r: Math.random() * 0.8 + 0.3,
                 twinkleSpeed: Math.random() * 0.02 + 0.008,
                 twinkleOffset: Math.random() * Math.PI * 2,
                 driftX: (Math.random() - 0.5) * 0.03,
                 driftY: (Math.random() - 0.5) * 0.015,
-                color: [255, 255, 255] as number[],
+                sprite: whiteStar,
             })),
-            ...Array.from({ length: 60 }, () => ({
+            ...Array.from({ length: 30 }, () => ({
                 x: Math.random() * w, y: Math.random() * h,
                 r: Math.random() * 1.5 + 0.8,
                 twinkleSpeed: Math.random() * 0.025 + 0.01,
                 twinkleOffset: Math.random() * Math.PI * 2,
                 driftX: (Math.random() - 0.5) * 0.06,
                 driftY: (Math.random() - 0.5) * 0.03,
-                color: Math.random() > 0.5 ? [200, 220, 255] : [255, 240, 220] as number[],
+                sprite: Math.random() > 0.5 ? blueStar : goldStar,
             })),
-            ...Array.from({ length: 25 }, () => ({
+            ...Array.from({ length: 15 }, () => ({
                 x: Math.random() * w, y: Math.random() * h,
                 r: Math.random() * 2 + 1.5,
                 twinkleSpeed: Math.random() * 0.03 + 0.015,
                 twinkleOffset: Math.random() * Math.PI * 2,
                 driftX: (Math.random() - 0.5) * 0.08,
                 driftY: (Math.random() - 0.5) * 0.04,
-                color: Math.random() > 0.7 ? [180, 200, 255] : Math.random() > 0.4 ? [255, 220, 180] : [220, 200, 255] as number[],
+                sprite: blueStar,
             })),
         ];
 
@@ -90,58 +110,45 @@ const StarfieldCanvas: React.FC = () => {
         };
 
         let tick = 0;
-        const draw = () => {
+        let lastTime = 0;
+        const draw = (time: number = 0) => {
+            if (document.hidden || !isVisible) {
+                animRef.current = 0;
+                return;
+            }
+            if (time - lastTime < 20) {
+                animRef.current = requestAnimationFrame(draw);
+                return;
+            }
+            lastTime = time;
+
             ctx.clearRect(0, 0, w, h);
             tick++;
 
-            // Draw twinkling stars
-            stars.forEach(s => {
+            // Draw twinkling stars using high-speed hardware sprites
+            for (let i = 0; i < stars.length; i++) {
+                const s = stars[i];
                 const twinkle = Math.sin(tick * s.twinkleSpeed + s.twinkleOffset) * 0.5 + 0.5;
-                const alpha = 0.3 + twinkle * 0.7;
-                const [cr, cg, cb] = s.color;
+                ctx.globalAlpha = 0.3 + twinkle * 0.7;
+                ctx.drawImage(s.sprite, s.x - s.r * 2, s.y - s.r * 2, s.r * 4, s.r * 4);
 
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${alpha})`;
-                ctx.fill();
-
-                // Glow halo for medium & large stars
-                if (s.r > 0.8) {
-                    ctx.beginPath();
-                    ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${alpha * 0.2})`;
-                    ctx.fill();
-                }
-                if (s.r > 1.5) {
-                    // Cross-shaped twinkle for big stars
-                    ctx.save();
-                    ctx.globalAlpha = alpha * 0.3;
-                    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, 1)`;
-                    ctx.lineWidth = 0.5;
-                    const spike = s.r * 6;
-                    ctx.beginPath(); ctx.moveTo(s.x - spike, s.y); ctx.lineTo(s.x + spike, s.y); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(s.x, s.y - spike); ctx.lineTo(s.x, s.y + spike); ctx.stroke();
-                    ctx.restore();
-                }
-
-                // Drift
                 s.x += s.driftX;
                 s.y += s.driftY;
                 if (s.x < -5) s.x = w + 5;
                 if (s.x > w + 5) s.x = -5;
                 if (s.y < -5) s.y = h + 5;
                 if (s.y > h + 5) s.y = -5;
-            });
+            }
 
             // Spawn shooting stars more frequently
             if (tick % 90 === 0) spawnShootingStar();
             if (tick % 60 === 30 && Math.random() > 0.4) spawnShootingStar();
-            // Initial burst
             if (tick === 30) { spawnShootingStar(); spawnShootingStar(); }
 
             // Draw shooting stars
-            shootingStars.forEach(ss => {
-                if (!ss.active) return;
+            for (let i = 0; i < shootingStars.length; i++) {
+                const ss = shootingStars[i];
+                if (!ss.active) continue;
                 ss.life++;
                 const dx = Math.cos(ss.angle) * ss.speed;
                 const dy = Math.sin(ss.angle) * ss.speed;
@@ -153,10 +160,9 @@ const StarfieldCanvas: React.FC = () => {
 
                 if (ss.life >= ss.maxLife || ss.x > w + 200 || ss.y > h + 200) {
                     ss.active = false;
-                    return;
+                    continue;
                 }
 
-                // Drop sparkle trail particles
                 if (ss.life % 2 === 0 && ss.opacity > 0.3) {
                     ss.sparkles.push({
                         x: ss.x + (Math.random() - 0.5) * 4,
@@ -166,17 +172,16 @@ const StarfieldCanvas: React.FC = () => {
                     });
                 }
 
-                // Draw sparkle trail
-                ss.sparkles.forEach(sp => {
+                for (let j = ss.sparkles.length - 1; j >= 0; j--) {
+                    const sp = ss.sparkles[j];
                     sp.alpha *= 0.92;
                     if (sp.alpha > 0.02) {
-                        ctx.beginPath();
-                        ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(200, 220, 255, ${sp.alpha})`;
-                        ctx.fill();
+                        ctx.globalAlpha = sp.alpha;
+                        ctx.drawImage(blueStar, sp.x - sp.r * 2, sp.y - sp.r * 2, sp.r * 4, sp.r * 4);
+                    } else {
+                        ss.sparkles.splice(j, 1);
                     }
-                });
-                ss.sparkles = ss.sparkles.filter(sp => sp.alpha > 0.02);
+                }
 
                 // Main trail
                 const tailX = ss.x - Math.cos(ss.angle) * ss.len;
@@ -205,18 +210,43 @@ const StarfieldCanvas: React.FC = () => {
                 ctx.arc(ss.x, ss.y, 10, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(180, 210, 255, ${ss.opacity * 0.25})`;
                 ctx.fill();
-            });
+            }
 
-            // Cleanup
+            ctx.globalAlpha = 1.0;
+
+            // Cleanup inactive shooting stars
             for (let i = shootingStars.length - 1; i >= 0; i--) {
                 if (!shootingStars[i].active && shootingStars[i].sparkles.length === 0) shootingStars.splice(i, 1);
             }
 
-            animRef.current = requestAnimationFrame(draw);
+            if (!document.hidden && isVisible) {
+                animRef.current = requestAnimationFrame(draw);
+            } else {
+                animRef.current = 0;
+            }
         };
 
+        let isVisible = true;
+        let observer: IntersectionObserver | null = null;
+        if (typeof IntersectionObserver !== 'undefined' && canvas) {
+            observer = new IntersectionObserver(([entry]) => {
+                isVisible = entry.isIntersecting;
+                if (isVisible && !document.hidden && !animRef.current) {
+                    animRef.current = requestAnimationFrame(draw);
+                } else if (!isVisible && animRef.current) {
+                    cancelAnimationFrame(animRef.current);
+                    animRef.current = 0;
+                }
+            }, { threshold: 0.05 });
+            observer.observe(canvas);
+        }
+
         animRef.current = requestAnimationFrame(draw);
-        return () => { cancelAnimationFrame(animRef.current); window.removeEventListener('resize', resize); };
+        return () => {
+            if (animRef.current) cancelAnimationFrame(animRef.current);
+            if (observer) observer.disconnect();
+            window.removeEventListener('resize', resize);
+        };
     }, []);
 
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full z-0" />;
@@ -231,14 +261,11 @@ const LightModeAtmosphere: React.FC = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
         let w = 0, h = 0;
         const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
         resize();
-        window.addEventListener('resize', resize);
+        window.addEventListener('resize', resize, { passive: true });
 
-        // ── Birds (V-shaped silhouettes flying across) ──
         interface Bird {
             x: number; y: number; speedX: number; speedY: number;
             size: number; flapPhase: number; flapSpeed: number; opacity: number;
@@ -255,6 +282,7 @@ const LightModeAtmosphere: React.FC = () => {
         }));
 
         const drawBird = (b: Bird, tick: number) => {
+            if (!ctx) return;
             const flap = Math.sin(tick * b.flapSpeed + b.flapPhase);
             const wingAngle = flap * 0.5;
             ctx.save();
@@ -304,6 +332,7 @@ const LightModeAtmosphere: React.FC = () => {
         });
 
         const drawLeaf = (l: Leaf) => {
+            if (!ctx) return;
             ctx.save();
             ctx.translate(l.x, l.y);
             ctx.rotate(l.rotation);
@@ -337,8 +366,19 @@ const LightModeAtmosphere: React.FC = () => {
             pulse: Math.random() * Math.PI * 2,
         }));
 
+        let isVisible = true;
         let tick = 0;
-        const draw = () => {
+        let lastLightTime = 0;
+        const draw = (time: number = 0) => {
+            if (!ctx || document.hidden || !isVisible) {
+                animRef.current = 0;
+                return;
+            }
+            if (time - lastLightTime < 24) {
+                animRef.current = requestAnimationFrame(draw);
+                return;
+            }
+            lastLightTime = time;
             ctx.clearRect(0, 0, w, h);
             tick++;
 
@@ -389,8 +429,26 @@ const LightModeAtmosphere: React.FC = () => {
             animRef.current = requestAnimationFrame(draw);
         };
 
+        let observer: IntersectionObserver | null = null;
+        if (typeof IntersectionObserver !== 'undefined' && canvas) {
+            observer = new IntersectionObserver(([entry]) => {
+                isVisible = entry.isIntersecting;
+                if (isVisible && !document.hidden && !animRef.current) {
+                    animRef.current = requestAnimationFrame(draw);
+                } else if (!isVisible && animRef.current) {
+                    cancelAnimationFrame(animRef.current);
+                    animRef.current = 0;
+                }
+            }, { threshold: 0.05 });
+            observer.observe(canvas);
+        }
+
         animRef.current = requestAnimationFrame(draw);
-        return () => { cancelAnimationFrame(animRef.current); window.removeEventListener('resize', resize); };
+        return () => {
+            if (animRef.current) cancelAnimationFrame(animRef.current);
+            if (observer) observer.disconnect();
+            window.removeEventListener('resize', resize);
+        };
     }, []);
 
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full z-0" />;
@@ -404,25 +462,46 @@ export const HeroSection = () => {
         offset: ["start start", "end start"]
     });
 
-    const { theme, weather, setWeather, setWeatherLoaded } = useStore();
-    const { demoLoginAsync } = useAuthStore();
+    const { theme, weather, setWeather, setWeatherLoaded, weatherLoaded } = useStore();
+    const { demoLoginAsync, isLoggedIn } = useAuthStore();
     const navigate = useNavigate();
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const { t } = useTranslation();
 
     const [isDemoLoading, setIsDemoLoading] = useState(false);
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+    const springX = useSpring(mouseX, { damping: 30, stiffness: 200 });
+    const springY = useSpring(mouseY, { damping: 30, stiffness: 200 });
 
     useEffect(() => {
+        // Skip on coarse pointers/touch devices to conserve battery, CPU & avoid INP latency
+        if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+            return;
+        }
+
+        let rafId: number | null = null;
         const handleMouseMove = (e: MouseEvent) => {
-            setMousePos({ 
-                x: (e.clientX / window.innerWidth - 0.5) * 30, 
-                y: (e.clientY / window.innerHeight - 0.5) * 30 
+            if (rafId !== null) return;
+            rafId = requestAnimationFrame(() => {
+                mouseX.set((e.clientX / window.innerWidth - 0.5) * 30);
+                mouseY.set((e.clientY / window.innerHeight - 0.5) * 30);
+                rafId = null;
             });
         };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            if (rafId !== null) cancelAnimationFrame(rafId);
+        };
+    }, [mouseX, mouseY]);
+
+    const rotateX = useTransform(springY, (y: number) => y * 0.3);
+    const rotateY = useTransform(springX, (x: number) => -x * 0.3);
+
+    const radialBgX = useTransform(springX, (x: number) => `${((x / 30) + 0.5) * 100}%`);
+    const radialBgY = useTransform(springY, (y: number) => `${((y / 30) + 0.5) * 100}%`);
+    const radialBg = useMotionTemplate`radial-gradient(circle 800px at ${radialBgX} ${radialBgY}, rgba(255,255,255,0.6), transparent 70%)`;
 
     const handleDemoLogin = async () => {
         setIsDemoLoading(true);
@@ -439,14 +518,14 @@ export const HeroSection = () => {
         }
     };
 
-    // Parallax values — cinematic 3-layer depth
+    // Clean Natural Parallax Values
     const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '15%']);
-    const bgScale = useTransform(scrollYProgress, [0, 1], [1.05, 0.85]);
-    const bgBorderRadius = useTransform(scrollYProgress, [0, 0.6], ['0px', '60px']);
-    const textY = useTransform(scrollYProgress, [0, 1], ['0%', '180%']);
+    const bgScale = 1.0;
+    const bgBorderRadius = useTransform(scrollYProgress, [0, 0.6], ['0px', '48px']);
+    const textY = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
     const textOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
-    const textScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.85]);
-    const mountainForegroundY = useTransform(scrollYProgress, [0, 1], ['30%', '0%']);
+    const textScale = 1.0;
+    const mountainForegroundY = '0%';
     const vignetteOpacity = useTransform(scrollYProgress, [0, 0.5], [0.5, 0.8]);
 
     // Daily peak selection
@@ -460,8 +539,6 @@ export const HeroSection = () => {
     const [isPeakExpanded, setIsPeakExpanded] = useState(false);
     const [peakInfo, setPeakInfo] = useState('');
     const [isPeakLoading, setIsPeakLoading] = useState(false);
-    const [displayedPeakInfo, setDisplayedPeakInfo] = useState('');
-    const typewriterIndex = useRef(0);
 
     const handlePeakClick = async () => {
         if (!isPeakExpanded) {
@@ -488,22 +565,6 @@ export const HeroSection = () => {
         }
     };
 
-    useEffect(() => {
-        if (!peakInfo) { setDisplayedPeakInfo(''); return; }
-        typewriterIndex.current = 0;
-        setDisplayedPeakInfo('');
-        
-        const chunkSize = 4;
-        const interval = setInterval(() => {
-            typewriterIndex.current = Math.min(typewriterIndex.current + chunkSize, peakInfo.length);
-            setDisplayedPeakInfo(peakInfo.slice(0, typewriterIndex.current));
-            if (typewriterIndex.current >= peakInfo.length) {
-                clearInterval(interval);
-            }
-        }, 5);
-        return () => clearInterval(interval);
-    }, [peakInfo]);
-
     const formatMarkdown = (text: string): string => {
         if (!text) return '';
         return text
@@ -516,9 +577,13 @@ export const HeroSection = () => {
 
     useEffect(() => {
         const fetchWeather = async () => {
+            if (weatherLoaded) return;
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${peak.lat}&longitude=${peak.lon}&current=temperature_2m,weather_code`;
-                const response = await fetch(url);
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const data = await response.json();
                 const temp = data.current.temperature_2m;
                 const code = data.current.weather_code;
@@ -556,45 +621,35 @@ export const HeroSection = () => {
     const activeImage = getActiveImage();
 
     return (
-        <section ref={sectionRef} className="relative h-[150vh] w-full bg-alpine-snow dark:bg-black hero-section-cursor">
-            <div className="sticky top-0 left-0 w-full h-screen overflow-hidden">
+        <section ref={sectionRef} className="relative w-full min-h-screen bg-transparent dark:bg-transparent hero-section-cursor overflow-hidden">
+            <div className="relative w-full h-screen overflow-hidden">
 
                 {/* Layer 1: Background with Ken Burns slow pan (Stable Cinematic) */}
                 <motion.div
-                    className="absolute inset-0 w-[110%] h-[130%] -left-[5%] -top-[15%] z-0 bg-gradient-to-b from-blue-100 to-blue-50 dark:from-[#0B0C10] dark:to-[#040911] overflow-hidden transform-gpu"
+                    className="absolute inset-0 w-[110%] h-[120%] -left-[5%] -top-[10%] z-0 bg-transparent dark:bg-transparent overflow-hidden transform-gpu pointer-events-none select-none"
                 >
                     <motion.div 
-                        className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%] transform-gpu"
+                        className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%] transform-gpu pointer-events-none select-none"
                         style={{
-                            rotateX: mousePos.y * 0.3,
-                            rotateY: -mousePos.x * 0.3,
-                            transformStyle: 'preserve-3d'
+                            rotateX: rotateX,
+                            rotateY: rotateY,
                         }}
                     >
                         <motion.img
                             key={activeImage}
-                            initial={{ opacity: 0, scale: 1.12 }}
-                            animate={{ 
-                                opacity: 1, 
-                                scale: [1.05, 1.08, 1.05],
-                                x: [0, 15, -10, 5, 0],
-                                y: [0, -8, 5, -3, 0],
-                            }}
-                            transition={{ 
-                                opacity: { duration: 2, ease: [0.16, 1, 0.3, 1] },
-                                scale: { duration: 30, repeat: Infinity, ease: 'easeInOut' },
-                                x: { duration: 25, repeat: Infinity, ease: 'easeInOut' },
-                                y: { duration: 20, repeat: Infinity, ease: 'easeInOut' },
-                            }}
-                            src={activeImage.includes('unsplash') ? `${activeImage}&w=1920&q=80` : activeImage}
+                            initial={{ opacity: 0.95, scale: 1.02 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ opacity: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }}
+                            src={activeImage.includes('unsplash') ? `${activeImage}&auto=format,compress&fit=crop&w=1400&q=75&fm=webp` : activeImage}
                             alt={`Majestic ${peak.name}`}
-                            className="absolute inset-0 w-full h-full object-cover bg-alpine-snow/50 dark:bg-black/50"
+                            className="absolute inset-0 w-full h-full object-cover bg-transparent dark:bg-transparent transform-gpu pointer-events-none select-none"
                             loading="eager"
                             fetchPriority="high"
+                            decoding="sync"
                         />
                     </motion.div>
                     {/* Atmospheric color wash */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30 dark:from-[#0B0C10]/30 dark:via-transparent dark:to-[#0B0C10]/50 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-transparent dark:from-black/20 dark:via-transparent dark:to-transparent pointer-events-none" />
                 </motion.div>
 
                 {/* Layer 1.5: Film Grain + Vignette + LIVE WALLPAPER FX */}
@@ -622,7 +677,7 @@ export const HeroSection = () => {
                                         y: [0, -15, 10, -5, 0]
                                     }}
                                     transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute top-[-15%] right-[-10%] w-[65%] h-[65%] bg-purple-500/25 blur-[140px] rounded-full"
+                                    className="absolute top-[-15%] right-[-10%] w-[65%] h-[65%] bg-[radial-gradient(circle,rgba(168,85,247,0.25)_0%,transparent_70%)] pointer-events-none"
                                 />
                                 {/* Breathing Aurora Nebula 2 — Teal/Cyan  */}
                                 <motion.div
@@ -633,7 +688,7 @@ export const HeroSection = () => {
                                         y: [0, 10, -15, 5, 0]
                                     }}
                                     transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-                                    className="absolute bottom-[10%] left-[-15%] w-[55%] h-[55%] bg-cyan-400/15 blur-[130px] rounded-full"
+                                    className="absolute bottom-[10%] left-[-15%] w-[55%] h-[55%] bg-[radial-gradient(circle,rgba(34,211,238,0.2)_0%,transparent_70%)] pointer-events-none"
                                 />
                                 {/* Breathing Aurora Nebula 3 — Sunrise/Gold */}
                                 <motion.div
@@ -642,7 +697,7 @@ export const HeroSection = () => {
                                         scale: [1, 1.1, 1, 1.15, 1],
                                     }}
                                     transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-                                    className="absolute top-[30%] left-[20%] w-[40%] h-[40%] bg-amber-500/10 blur-[120px] rounded-full"
+                                    className="absolute top-[30%] left-[20%] w-[40%] h-[40%] bg-[radial-gradient(circle,rgba(245,158,11,0.15)_0%,transparent_70%)] pointer-events-none"
                                 />
 
                                 {/* ★ Hero Shooting Star — positioned over the photo's static streak */}
@@ -774,30 +829,23 @@ export const HeroSection = () => {
                     
                     {/* Cinematic God Rays */}
                     <motion.div 
-                        className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-30"
-                        animate={{ opacity: [0.1, 0.4, 0.1], rotate: [25, 30, 25] }}
+                        className="absolute inset-0 pointer-events-none opacity-20"
+                        animate={{ opacity: [0.1, 0.25, 0.1], rotate: [25, 30, 25] }}
                         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                         style={{
-                            background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,1) 45%, transparent 50%, rgba(255,255,255,0.6) 55%, transparent 60%)',
+                            background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.8) 45%, transparent 50%, rgba(255,255,255,0.4) 55%, transparent 60%)',
                             transformOrigin: 'top left',
                             scale: 1.5
                         }}
                     />
-
-                    {/* Subtle noise grain */}
-                    <div className="absolute inset-0 opacity-[0.03]" style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-                        animation: 'grain 8s steps(10) infinite',
-                    }} />
                 </motion.div>
 
                 {/* Interactive Dynamic Light Flare tracking cursor */}
                 <motion.div 
-                    className="absolute inset-0 pointer-events-none z-15 mix-blend-overlay opacity-80"
-                    animate={{
-                        background: `radial-gradient(circle 800px at ${(mousePos.x + 1) * 50}% ${(mousePos.y + 1) * 50}%, rgba(255,255,255,0.6), transparent 70%)`
+                    className="absolute inset-0 pointer-events-none z-15 opacity-25"
+                    style={{
+                        background: radialBg
                     }}
-                    transition={{ type: 'tween', ease: 'easeOut', duration: 0.1 }}
                 />
 
                 {/* Layer 2: Massive Typography with matching Iris Transition */}
@@ -806,36 +854,16 @@ export const HeroSection = () => {
                         y: textY, 
                         opacity: textOpacity, 
                         scale: textScale,
-                        marginTop: '-8vh',
                         z: 50
                     }}
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none transform-gpu"
+                    className="absolute inset-0 z-40 flex flex-col items-center justify-center pointer-events-none transform-gpu -mt-[20vh] sm:-mt-[8vh] pb-6 sm:pb-0"
                 >
-                    {/* SVG Filter for Wind Distortion */}
-                    <svg className="hidden">
-                        <filter id="wind-distortion">
-                            <feTurbulence
-                                type="fractalNoise"
-                                baseFrequency="0.015"
-                                numOctaves="3"
-                                result="noise"
-                            />
-                            <motion.feDisplacementMap
-                                in="SourceGraphic"
-                                in2="noise"
-                                scale={isHovered ? 20 : 0}
-                                xChannelSelector="R"
-                                yChannelSelector="G"
-                            />
-                        </filter>
-                    </svg>
-
                     {/* Subtitle above */}
                     <motion.p
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 1.2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                        className="text-white/40 text-[10px] md:text-xs tracking-[0.5em] uppercase font-light mb-6"
+                        className="text-white/40 text-[10px] md:text-xs tracking-[0.5em] uppercase font-light mb-4 sm:mb-6"
                     >
                         {t('hero.presents', 'Mountaineer Mallu Presents')}
                     </motion.p>
@@ -869,7 +897,7 @@ export const HeroSection = () => {
                         initial={{ scaleX: 0 }}
                         animate={{ scaleX: 1 }}
                         transition={{ duration: 1.5, delay: 1, ease: [0.16, 1, 0.3, 1] }}
-                        className="w-24 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent mt-8"
+                        className="w-20 sm:w-24 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent mt-4 sm:mt-8"
                     />
 
                     {/* Sub-subtitle */}
@@ -877,59 +905,104 @@ export const HeroSection = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 1.5, delay: 1.2 }}
-                        className="text-white/30 text-[10px] md:text-xs tracking-[0.3em] uppercase font-light mt-6"
+                        className="text-white/40 text-[9px] sm:text-[10px] md:text-xs tracking-[0.3em] uppercase font-light mt-4 sm:mt-6"
                     >
                         {t('hero.awaits', 'The European Alps Await')}
                     </motion.p>
 
-                    {/* Explore Demo Dashboard Button */}
+                    {/* Integrated Ultra-Premium Hero Action Dock */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 1.5, delay: 1.4 }}
-                        className="mt-8 pointer-events-auto"
+                        className="mt-6 sm:mt-8 flex flex-col items-center gap-3.5 w-full max-w-[340px] sm:max-w-md px-4 pointer-events-auto relative z-50"
                     >
+                        {!isLoggedIn && (
+                            <div className="flex items-center justify-center gap-2 sm:gap-3 w-full">
+                                {/* Join Community (Light Blue in Light Mode, Silver in Dark Mode with Circling Orbit Border) */}
+                                <div className="relative group/orbit flex-1 rounded-2xl p-[1.5px] overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 cursor-pointer shadow-[0_0_25px_rgba(56,189,248,0.45)] dark:shadow-[0_0_25px_rgba(203,213,225,0.45)] hover:shadow-[0_0_40px_rgba(56,189,248,0.8)] dark:hover:shadow-[0_0_40px_rgba(203,213,225,0.8)]">
+                                    {/* Circling Orbit Border Beam */}
+                                    <div 
+                                        className="absolute -inset-[200%] animate-[spin_3s_linear_infinite] pointer-events-none opacity-90"
+                                        style={{
+                                            background: 'conic-gradient(from 0deg, transparent 0deg, transparent 270deg, #38BDF8 320deg, #E2E8F0 360deg)'
+                                        }}
+                                    />
+                                    
+                                    <button
+                                        onClick={() => navigate('/signup')}
+                                        className="relative w-full h-full py-2.5 sm:py-3 px-3.5 sm:px-5 rounded-[14px] bg-gradient-to-r from-[#38BDF8] via-[#0284C7] to-[#0369A1] text-white dark:bg-gradient-to-r dark:from-slate-200 dark:via-slate-100 dark:to-slate-300 dark:text-slate-950 font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 overflow-hidden cursor-pointer"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-slate-400/30 to-transparent -translate-x-full group-hover/orbit:animate-[shimmer_1.5s_infinite]" />
+                                        <UserPlus size={15} className="text-white dark:text-slate-950 stroke-[2.5]" />
+                                        <span className="truncate">Join Community</span>
+                                    </button>
+                                </div>
+
+                                {/* Log In (Light Blue in Light Mode, Silver in Dark Mode with Circling Orbit Border) */}
+                                <div className="relative group/orbit shrink-0 rounded-2xl p-[1.5px] overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(56,189,248,0.35)] dark:shadow-[0_0_20px_rgba(203,213,225,0.35)] hover:shadow-[0_0_35px_rgba(56,189,248,0.7)] dark:hover:shadow-[0_0_35px_rgba(203,213,225,0.7)]">
+                                    {/* Circling Orbit Border Beam */}
+                                    <div 
+                                        className="absolute -inset-[200%] animate-[spin_3s_linear_infinite] pointer-events-none opacity-90"
+                                        style={{
+                                            background: 'conic-gradient(from 0deg, transparent 0deg, transparent 270deg, #38BDF8 320deg, #E2E8F0 360deg)'
+                                        }}
+                                    />
+
+                                    <button
+                                        onClick={() => navigate('/login')}
+                                        className="relative w-full h-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-[14px] bg-gradient-to-r from-[#38BDF8] via-[#0284C7] to-[#0369A1] text-white dark:bg-gradient-to-r dark:from-slate-200 dark:via-slate-100 dark:to-slate-300 dark:text-slate-950 font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 overflow-hidden cursor-pointer"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-slate-400/30 to-transparent -translate-x-full group-hover/orbit:animate-[shimmer_1.5s_infinite]" />
+                                        <LogIn size={15} className="text-white dark:text-slate-950 stroke-[2.5]" />
+                                        <span>Log In</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Explore Demo Dashboard Button */}
                         <button
                             onClick={handleDemoLogin}
                             disabled={isDemoLoading}
-                            className="group relative px-8 py-3 rounded-full bg-white/5 border border-white/20 backdrop-blur-md overflow-hidden transition-all hover:bg-white/10 hover:border-alpine-glacier/50 flex items-center gap-3"
+                            className="group relative px-5 py-2 sm:px-6 sm:py-2.5 rounded-full bg-white/5 hover:bg-white/12 border border-white/20 hover:border-[#64BEFF]/50 backdrop-blur-md transition-all duration-300 flex items-center gap-2 shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-alpine-glacier/0 via-alpine-glacier/20 to-alpine-glacier/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#64BEFF]/0 via-[#64BEFF]/20 to-[#64BEFF]/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                             {isDemoLoading ? (
-                                <Loader2 size={16} className="text-white animate-spin" />
+                                <Loader2 size={14} className="text-white animate-spin" />
                             ) : (
-                                <Sparkles size={16} className="text-alpine-glacier group-hover:animate-pulse" />
+                                <Sparkles size={14} className="text-[#64BEFF] group-hover:animate-pulse" />
                             )}
-                            <span className="text-white text-sm font-medium tracking-wide uppercase">
+                            <span className="text-white/80 group-hover:text-white text-[11px] sm:text-xs font-medium tracking-widest uppercase">
                                 Explore Demo Dashboard
                             </span>
                         </button>
                     </motion.div>
                 </motion.div>
 
-                {/* Layer 2.5: Massive Dynamic Aurora Behind Mountains */}
+                {/* Layer 2.5: Dynamic Aurora */}
                 <motion.div 
-                    className="absolute inset-0 z-15 pointer-events-none mix-blend-screen opacity-60"
+                    className="absolute inset-0 z-15 pointer-events-none opacity-40"
                     animate={{ 
                         background: [
-                            'radial-gradient(circle at 20% 50%, rgba(67,176,241,0.15) 0%, transparent 60%)',
-                            'radial-gradient(circle at 80% 50%, rgba(226,160,113,0.15) 0%, transparent 60%)',
-                            'radial-gradient(circle at 50% 50%, rgba(67,176,241,0.15) 0%, transparent 60%)'
+                            'radial-gradient(circle at 30% 60%, rgba(0,242,254,0.3) 0%, transparent 60%)',
+                            'radial-gradient(circle at 70% 40%, rgba(106,17,203,0.3) 0%, transparent 60%)',
+                            'radial-gradient(circle at 50% 80%, rgba(56,189,248,0.2) 0%, transparent 60%)'
                         ]
                     }}
-                    transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+                    transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
                 />
 
-                {/* Layer 3: Mountain Foreground (Deep Parallax Translation instead of Tilt) */}
+                {/* Layer 3: Mountain Foreground with Soft Aurora Fluid Glow */}
                 
                 {/* Back Mountain Layer */}
                 <motion.div
                     style={{ 
                         y: useTransform(scrollYProgress, [0, 1], ['50%', '-20%'])
                     }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[50vh] z-20 origin-bottom pointer-events-none opacity-60 mix-blend-multiply dark:mix-blend-screen transform-gpu"
+                    className="absolute inset-x-0 bottom-0 top-auto h-[35vh] sm:h-[50vh] z-20 origin-bottom pointer-events-none opacity-80 transform-gpu"
                 >
-                    <svg className="w-[120%] -ml-[10%] h-full text-alpine-blue/40 dark:text-black/60 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 300" style={{ filter: 'blur(8px)' }}>
+                    <svg className="w-[120%] -ml-[10%] h-full text-alpine-blue/40 dark:text-[#09152B]/70 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 300" style={{ filter: 'blur(8px)' }}>
                         <path d="M0,300 L0,150 C300,50 500,200 800,100 C1100,0 1300,150 1440,50 L1440,300 Z" />
                     </svg>
                 </motion.div>
@@ -939,53 +1012,64 @@ export const HeroSection = () => {
                     style={{ 
                         y: useTransform(scrollYProgress, [0, 1], ['40%', '-10%'])
                     }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[45vh] z-25 origin-bottom pointer-events-none opacity-80 transform-gpu"
+                    className="absolute inset-x-0 bottom-0 top-auto h-[28vh] sm:h-[45vh] z-25 origin-bottom pointer-events-none opacity-90 transform-gpu"
                 >
-                    <svg className="w-[110%] -ml-[5%] h-full text-alpine-navy/40 dark:text-black/80 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 250" style={{ filter: 'drop-shadow(0 -10px 20px rgba(0,0,0,0.4)) backdrop-blur-sm' }}>
+                    <svg className="w-[110%] -ml-[5%] h-full text-alpine-navy/40 dark:text-[#050D1A]/80 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 250" style={{ filter: 'drop-shadow(0 -10px 20px rgba(0,0,0,0.3))' }}>
                         <path d="M0,250 L0,120 C250,190 450,60 750,160 C1050,260 1250,80 1440,140 L1440,250 Z" />
                     </svg>
                 </motion.div>
 
+                {/* Dynamic Soft Aurora Ribbon Flow across lower section */}
+                <motion.div 
+                    className="absolute inset-x-0 bottom-0 h-[30vh] sm:h-[45vh] z-28 pointer-events-none opacity-60 overflow-hidden"
+                    animate={{ opacity: [0.5, 0.7, 0.5] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                    <div 
+                        className="w-[140%] -left-[20%] h-full bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-[#00F2FE]/30 via-[#38BDF8]/20 via-[#6A11CB]/20 to-transparent blur-2xl animate-aurora-pulse"
+                    />
+                </motion.div>
+
                 {/* Cinematic Drifting Fog */}
                 <motion.div 
-                    className="absolute inset-x-0 bottom-0 h-[40vh] z-25 pointer-events-none opacity-40 overflow-visible"
+                    className="absolute inset-x-0 bottom-0 h-[25vh] sm:h-[40vh] z-28 pointer-events-none opacity-40 overflow-visible"
                     animate={{ x: ['-5%', '5%', '-5%'] }}
                     transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                    <div className="absolute bottom-0 w-[120%] -left-[10%] h-full bg-gradient-to-t from-white/40 via-white/10 to-transparent blur-3xl rounded-[100%]" />
+                    <div className="absolute bottom-0 w-[120%] -left-[10%] h-full bg-gradient-to-t from-[#00F2FE]/20 via-white/10 to-transparent blur-3xl rounded-[100%]" />
                 </motion.div>
 
                 {/* Glowing Mist */}
                 <motion.div 
-                    className="absolute inset-x-0 bottom-0 h-[30vh] z-25 pointer-events-none bg-gradient-to-t from-white/30 to-transparent dark:from-alpine-blue/10 dark:to-transparent blur-[20px]"
-                    animate={{ opacity: [0.2, 0.5, 0.2] }}
-                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-x-0 bottom-0 h-[20vh] sm:h-[30vh] z-28 pointer-events-none bg-gradient-to-t from-white/30 to-transparent dark:from-[#38BDF8]/20 dark:to-transparent blur-[20px]"
+                    animate={{ opacity: [0.3, 0.7, 0.3] }}
+                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                 />
 
-                {/* Front Mountain Layer (Smooth Glass) */}
+                {/* Front Mountain Layer (Smooth Translucent Glass Tint) */}
                 <motion.div
                     style={{ 
                         y: mountainForegroundY
                     }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[40vh] z-30 origin-bottom pointer-events-none transform-gpu"
+                    className="absolute inset-x-0 bottom-0 top-auto h-[25vh] sm:h-[40vh] z-30 origin-bottom pointer-events-none transform-gpu"
                 >
-                    <svg className="w-full h-full text-alpine-snow dark:text-black fill-current" preserveAspectRatio="none" viewBox="0 0 1440 200" style={{ filter: 'drop-shadow(0 -30px 60px rgba(0,0,0,0.5)) backdrop-blur-md' }}>
+                    <svg className="w-full h-full text-alpine-snow dark:text-[#030712]/85 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 200" style={{ filter: 'drop-shadow(0 -15px 30px rgba(0,242,254,0.15))' }}>
                         <path d="M0,200 L0,80 C200,150 400,30 700,120 C1000,210 1200,40 1440,90 L1440,200 Z" />
                     </svg>
                 </motion.div>
 
-                {/* Layer 4: Weather & Peak Info — Refined Glassmorphic Panel */}
+
+                {/* Layer 4: Weather & Peak Info — Refined Glassmorphic Panel (Desktop & Mobile) */}
                 <motion.div
-                    layout
-                    initial={{ opacity: 0, x: -40, filter: 'blur(10px)' }}
-                    animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                    transition={{ opacity: { delay: 1.5, duration: 1.2 }, x: { delay: 1.5, duration: 1.2, type: "spring", damping: 20 }, layout: { type: "spring", damping: 25, stiffness: 200 } }}
+                    initial={{ opacity: 1, x: 0 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
                     style={{ opacity: textOpacity }}
                     onClick={handlePeakClick}
-                    className={`absolute z-40 glass-premium p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl cursor-pointer hover:border-alpine-glacier/30 transition-colors duration-300 group/peak ${
+                    className={`absolute glass-premium cursor-pointer hover:border-alpine-glacier/30 transition-all duration-300 group/peak ${
                         isPeakExpanded 
-                            ? 'bottom-[2vh] md:bottom-12 left-4 sm:left-6 md:left-16 right-4 sm:right-auto max-w-[500px] shadow-[0_10px_60px_rgba(0,0,0,0.8)] border-alpine-glacier/30' 
-                            : 'bottom-28 sm:bottom-36 left-4 sm:left-6 md:left-16 max-w-[260px] sm:max-w-sm'
+                            ? 'z-50 shadow-[0_10px_60px_rgba(0,0,0,0.8)] border-alpine-glacier/30 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl bottom-4 sm:bottom-6 left-3 sm:left-6 md:left-12 w-[calc(100%-1.5rem)] sm:w-[360px] max-w-sm flex flex-col' 
+                            : 'z-30 sm:z-40 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bottom-4 sm:bottom-6 md:bottom-8 left-3 sm:left-6 md:left-12 w-[240px] sm:w-[270px] md:w-[300px] max-w-xs flex flex-col'
                     }`}
                 >
                     {/* Subtle inner shimmer */}
@@ -993,28 +1077,28 @@ export const HeroSection = () => {
                         <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" style={{ animation: 'shimmer 5s infinite' }} />
                     </div>
 
-                    <motion.p layout="position" className="text-white/50 text-[9px] sm:text-[10px] tracking-[0.25em] font-medium uppercase mb-2 sm:mb-3 flex items-center gap-2">
+                    <p className="text-white/50 text-[8px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.25em] font-medium uppercase mb-1 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-alpine-glacier/60" />
                         {t('hero.featured_peak', 'Featured Peak')}
-                    </motion.p>
-                    <motion.h3 layout="position" className="text-white font-serif text-lg sm:text-2xl md:text-3xl font-bold mb-0.5 sm:mb-1 tracking-wide">{peak.name}</motion.h3>
-                    <motion.p layout="position" className="text-white/60 text-xs sm:text-sm mb-3 sm:mb-5 font-light">{peak.location} — {peak.elevation}</motion.p>
+                    </p>
+                    <h3 className="text-white font-serif text-sm sm:text-2xl md:text-3xl font-bold mb-0.5 sm:mb-1 tracking-wide">{peak.name}</h3>
+                    <p className="text-white/60 text-[10px] sm:text-sm mb-2 sm:mb-5 font-light">{peak.location} — {peak.elevation}</p>
 
-                    <motion.div layout="position" className="h-[1px] w-full bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-3 sm:mb-5" />
+                    <div className="h-[1px] w-full bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-2 sm:mb-5" />
 
-                    <motion.div layout="position" className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <div className="relative">
                             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-alpine-glacier animate-pulse" />
                             <div className="absolute inset-0 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-alpine-glacier/50 animate-ping" />
                         </div>
                         <div>
-                            <p className="text-white/40 text-[8px] sm:text-[9px] tracking-[0.2em] uppercase mb-0.5 font-medium">{t('hero.live_conditions', 'Live Conditions')}</p>
-                            <p className="text-white/90 font-medium text-xs sm:text-sm">
+                            <p className="text-white/40 text-[7px] sm:text-[9px] tracking-[0.15em] sm:tracking-[0.2em] uppercase mb-0.5 font-medium">{t('hero.live_conditions', 'Live Conditions')}</p>
+                            <p className="text-white/90 font-medium text-[10px] sm:text-sm">
                                 {isDark ? `${t('hero.nighttime', 'Nighttime')}, ` : `${t('weather.' + weather.condition, weather.condition)}, `}
                                 {weather.temp !== null ? `${weather.temp}°C` : '--'}
                             </p>
                         </div>
-                    </motion.div>
+                    </div>
 
                     <AnimatePresence>
                         {isPeakExpanded && (
@@ -1026,17 +1110,14 @@ export const HeroSection = () => {
                             >
                                 {isPeakLoading ? (
                                     <div className="flex items-center gap-3 text-white/50 text-xs font-medium uppercase tracking-wider">
-                                        <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-alpine-glacier animate-spin" />
+                                        <LoadingSpinner className="scale-75 origin-left" />
                                         Connecting to Summit Guide...
                                     </div>
                                 ) : (
                                     <div className="text-[13px] sm:text-sm text-white/90 leading-relaxed font-normal">
                                         <div className="whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{
-                                            __html: formatMarkdown(displayedPeakInfo)
+                                            __html: formatMarkdown(peakInfo)
                                         }} />
-                                        {displayedPeakInfo !== peakInfo && peakInfo && (
-                                            <span className="inline-block w-1.5 h-4 bg-[#64BEFF] ml-0.5 animate-pulse rounded-sm align-middle" />
-                                        )}
                                     </div>
                                 )}
                             </motion.div>

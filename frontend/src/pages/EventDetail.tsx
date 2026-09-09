@@ -7,11 +7,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
 import { ReadingProgressBar } from '../components/ui/ReadingProgressBar';
+import { EventDetailSkeleton } from '../components/ui/Skeleton';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const EventDetail = () => {
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [registering, setRegistering] = useState(false);
     const { user, isLoggedIn } = useAuthStore();
     const { showToast, ToastComponent } = useToast();
@@ -22,8 +25,9 @@ export const EventDetail = () => {
             try {
                 const data = await eventsApi.get(id);
                 setEvent(data.event);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to load event:', err);
+                setError(err.message || 'Expedition briefing could not be retrieved.');
             } finally {
                 setLoading(false);
             }
@@ -51,18 +55,21 @@ export const EventDetail = () => {
     const isRegistered = event?.participants?.some((p: any) => (typeof p === 'string' ? p : p._id) === user?.id);
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <Loader2 className="text-alpine-sunrise animate-spin" size={48} />
-            </div>
-        );
+        return <EventDetailSkeleton />;
     }
 
-    if (!event) {
+    if (error || !event) {
         return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
-                <h1 className="text-4xl font-serif text-white mb-4">Briefing Unavailable</h1>
-                <Link to="/events" className="px-8 py-3 bg-alpine-sunrise text-white font-bold rounded-xl">Back to Roster</Link>
+            <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white pt-24">
+                <div className="max-w-md w-full">
+                    <ErrorState
+                        statusCode={error ? 500 : 404}
+                        title={error ? "Briefing Signal Lost" : "Expedition Not Found"}
+                        message={error || 'This alpine expedition has concluded or is not listed in active rosters.'}
+                        backLink="/events"
+                        backText="Back to Roster"
+                    />
+                </div>
             </div>
         );
     }

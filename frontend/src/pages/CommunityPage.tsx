@@ -6,6 +6,7 @@ import { communityApi, aiApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
+import { CommunitySkeleton } from '../components/ui/Skeleton';
 
 const TABS = [
     { id: 'groups', label: 'Factions & Groups', icon: Users },
@@ -174,9 +175,12 @@ export const CommunityPage = () => {
 
                 {/* Content Area */}
                 <div className="min-h-[50vh]">
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'groups' && (
-                            <motion.div
+                    {loading && groups.length === 0 ? (
+                        <CommunitySkeleton />
+                    ) : (
+                        <AnimatePresence mode="wait">
+                            {activeTab === 'groups' && (
+                                <motion.div
                                 key="groups"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -404,6 +408,7 @@ export const CommunityPage = () => {
                             </motion.div>
                         )}
                     </AnimatePresence>
+                    )}
                 </div>
 
             </div>

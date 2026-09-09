@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import { MapPin, Calendar, User, BookOpen, Loader2 } from 'lucide-react';
 import { storiesApi } from '../lib/api';
 import { BackButton } from '../components/ui/BackButton';
+import { DetailSkeleton } from '../components/ui/Skeleton';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const StoryDetail = () => {
     const { id } = useParams<{ id: string }>();
@@ -15,8 +17,8 @@ export const StoryDetail = () => {
 
     useEffect(() => {
         const fetchStory = async () => {
-            if (!id) return;
             try {
+                if (!id) return;
                 const data = await storiesApi.get(id);
                 setStory(data.story);
             } catch (err: any) {
@@ -29,19 +31,21 @@ export const StoryDetail = () => {
     }, [id]);
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <Loader2 className="text-alpine-glacier animate-spin" size={48} />
-            </div>
-        );
+        return <DetailSkeleton />;
     }
 
     if (error || !story) {
         return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
-                <h1 className="text-4xl font-serif text-white mb-4">Transmission Lost</h1>
-                <p className="text-white/50 mb-8">{error || 'Chronicle not found in the archives.'}</p>
-                <Link to="/stories" className="px-8 py-3 bg-alpine-glacier text-alpine-navy font-bold rounded-xl">Back to Chronicles</Link>
+            <div className="min-h-screen bg-alpine-snow dark:bg-[#0B0C10] flex items-center justify-center p-6 text-alpine-navy dark:text-alpine-snow pt-24">
+                <div className="max-w-md w-full">
+                    <ErrorState
+                        statusCode={error ? 500 : 404}
+                        title={error ? "Chronicle Signal Lost" : "Chronicle Not Found"}
+                        message={error || 'This expedition log could not be located in the alpine archives. It may have been archived or moved.'}
+                        backLink="/stories"
+                        backText="Back to Chronicles"
+                    />
+                </div>
             </div>
         );
     }

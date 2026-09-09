@@ -62,7 +62,7 @@ const InteractiveBackground = () => {
     }, []);
 
     return (
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-alpine-snow dark:bg-[#020408]">
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-transparent dark:bg-transparent">
             <motion.div 
                 className="absolute inset-0 transition-opacity duration-300"
                 style={{
@@ -98,7 +98,8 @@ export const UserDashboard = () => {
     const navItems = useMemo(() => {
         return allNavItems.filter(item => {
             if (!item.sectionKey) return true; // Always show tabs without a section key (Profile, Upload, etc.)
-            return settings.sections[item.sectionKey] === 'visible';
+            const config = settings.sections[item.sectionKey];
+            return config && config.status === 'visible';
         });
     }, [settings]);
 

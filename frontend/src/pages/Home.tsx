@@ -11,8 +11,7 @@ import { Merch } from '../components/sections/Merch';
 import { CommunityPreview } from '../components/sections/CommunityPreview';
 import { AltitudeNetwork } from '../components/sections/AltitudeNetwork';
 import { ComingSoon } from '../components/ui/ComingSoon';
-import { AltitudeTracker } from '../components/ui/AltitudeTracker';
-import { AmbientFrost } from '../components/ui/AmbientFrost';
+import { DirectionalScrollReveal } from '../components/ui/DirectionalScrollReveal';
 import { useSiteSettings } from '../store/useSiteSettings';
 
 const SectionDivider = () => (
@@ -25,21 +24,25 @@ const SectionDivider = () => (
 const Section = ({ sectionKey, label, children }: { sectionKey: string; label: string; children: React.ReactNode }) => {
     const { settings } = useSiteSettings();
     const config = settings.sections[sectionKey];
-    if (!config) return <>{children}</>; // Fallback if not loaded
+    if (!config) return <DirectionalScrollReveal id={sectionKey}>{children}</DirectionalScrollReveal>; // Fallback if not loaded
     const status = config.status || 'visible';
     
     if (status === 'hidden') return null;
     if (status === 'coming_soon') return <ComingSoon sectionName={label} sectionId={sectionKey} />;
-    return <>{children}</>;
+    return <DirectionalScrollReveal id={sectionKey}>{children}</DirectionalScrollReveal>;
 };
 
 export const Home = () => {
     return (
         <main className="relative w-full overflow-hidden">
-            <AmbientFrost />
-            <HeroSection />
-            <AltitudeTracker />
-            <MissionVision />
+            <div id="hero">
+                <HeroSection />
+            </div>
+
+            <DirectionalScrollReveal id="mission">
+                <MissionVision />
+            </DirectionalScrollReveal>
+
             <SectionDivider />
 
             <Section sectionKey="stories" label="Stories">

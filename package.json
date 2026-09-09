@@ -8,7 +8,10 @@
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "build": "npm run build --prefix frontend"
+    "build": "npm run build --prefix frontend",
+    "start": "node backend/server.js",
+    "start:backend": "node backend/server.js",
+    "test:health": "node -e \"fetch('http://localhost:5000/healthz').then(r=>r.json()).then(console.log).catch(console.error)\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

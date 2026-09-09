@@ -1,16 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Star, Quote, Plus, X, Send, Loader2 } from 'lucide-react';
 import { reviewsApi } from '../../lib/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToast } from '../ui/Toast';
 import { LanguageInput } from '../ui/LanguageInput';
 
+const FALLBACK_REVIEWS = [
+    {
+        _id: 'fb-1',
+        author: { name: 'Rahul Nair' },
+        content: 'Ascending Mont Blanc with Mountaineer Mallu was a life-changing experience. The camaraderie and mountain guidance were top notch!',
+        rating: 5
+    },
+    {
+        _id: 'fb-2',
+        author: { name: 'Ananya V.' },
+        content: 'An incredible community of passionate hikers. The organizing team ensured safety and amazing mountain views every step of the way.',
+        rating: 5
+    }
+];
+
 export const Reviews = () => {
-    const [reviews, setReviews] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [reviews, setReviews] = useState<any[]>(FALLBACK_REVIEWS);
+    const [loading, setLoading] = useState(false);
     const [index, setIndex] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const sectionRef = useRef<HTMLElement>(null);
+    const isInView = useInView(sectionRef, { margin: "-10%" });
     
     // Form state
     const [rating, setRating] = useState(0);
@@ -28,21 +45,21 @@ export const Reviews = () => {
     const fetchReviews = async () => {
         try {
             const data = await reviewsApi.getApproved();
-            setReviews(data);
+            if (data && data.length > 0) {
+                setReviews(data);
+            }
         } catch (err) {
             console.error('Failed to fetch reviews', err);
-        } finally {
-            setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (reviews.length <= 1) return;
+        if (!isInView || reviews.length <= 1) return;
         const timer = setInterval(() => {
             setIndex((prev) => (prev + 1) % reviews.length);
         }, 6000);
         return () => clearInterval(timer);
-    }, [reviews.length]);
+    }, [isInView, reviews.length]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,20 +67,15 @@ export const Reviews = () => {
             showToast('You must be logged in to submit a review', 'error');
             return;
         }
-        if (rating === 0) {
-            showToast('Please provide a rating', 'error');
-            return;
-        }
-        const wordCount = content.trim().split(/\s+/).length;
-        if (wordCount > 50) {
-            showToast(`Review is too long (${wordCount}/50 words)`, 'error');
+        if (!rating || !content.trim()) {
+            showToast('Please provide a rating and review text', 'error');
             return;
         }
 
         setSubmitting(true);
         try {
             await reviewsApi.submit({ content, rating });
-            showToast('Review submitted for moderation!', 'success');
+            showToast('Review submitted successfully! Pending approval.', 'success');
             setIsModalOpen(false);
             setContent('');
             setRating(0);
@@ -77,7 +89,7 @@ export const Reviews = () => {
     const current = reviews[index];
 
     return (
-        <section className="py-24 md:py-36 px-6 md:px-12 bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow overflow-hidden relative">
+        <section ref={sectionRef} className="py-24 md:py-36 px-6 md:px-12 bg-transparent dark:bg-transparent text-alpine-navy dark:text-alpine-snow overflow-hidden relative min-h-[500px] contain-layout">
             {ToastComponent}
 
             {/* Background massive typography */}
@@ -89,12 +101,7 @@ export const Reviews = () => {
             <div className="absolute top-1/3 left-1/4 w-[30vw] h-[30vw] rounded-full opacity-[0.03] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(163,201,226,0.8) 0%, transparent 60%)' }} />
 
             <div className="w-full max-w-5xl mx-auto relative z-10 text-center">
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.8 }}
-                    className="mb-12 md:mb-16"
-                >
+                <div className="mb-12 md:mb-16">
                     <p className="text-alpine-blue dark:text-alpine-glacier text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3 md:mb-4">Testimonials</p>
                     <h2 className="text-4xl md:text-6xl lg:text-[5rem] font-serif font-black tracking-tight mb-4 md:mb-6 text-[#0B0C10] dark:text-alpine-snow drop-shadow-sm leading-none m-0">Words from the Summit</h2>
                     <div className="w-16 md:w-24 h-[2px] bg-gradient-to-r from-alpine-blue to-alpine-glacier dark:from-alpine-sunrise dark:to-alpine-gold mx-auto mb-6 md:mb-8" />
@@ -111,7 +118,7 @@ export const Reviews = () => {
                         <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                         Write a Review
                     </button>
-                </motion.div>
+                </div>
 
                 <div className="relative h-72 md:h-80 flex items-center justify-center">
                     {loading ? (

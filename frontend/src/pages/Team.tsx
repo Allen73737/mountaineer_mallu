@@ -55,7 +55,13 @@ export const TeamPage = () => {
                         >
                             {/* Image Card */}
                             <div className="aspect-[3/4] w-full rounded-[2.5rem] overflow-hidden mb-8 relative glass-dark border border-black/5 dark:border-white/10 shadow-2xl">
-                                <img src={member.image} className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-[1500ms]" />
+                                <img
+                                    src={member.image}
+                                    alt={member.name}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-[1500ms]"
+                                />
 
                                 <div className="absolute inset-0 bg-alpine-navy/80 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 

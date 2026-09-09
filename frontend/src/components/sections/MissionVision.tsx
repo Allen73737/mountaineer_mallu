@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform, Variants } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 // Helper component for premium staggered text animation
@@ -7,7 +7,7 @@ const AnimatedText = ({ text, className, delayOffset = 0 }: { text: string; clas
     // Split text into words
     const words = text.split(" ");
 
-    const container = {
+    const container: Variants = {
         hidden: { opacity: 0 },
         visible: (i = 1) => ({
             opacity: 1,
@@ -15,7 +15,7 @@ const AnimatedText = ({ text, className, delayOffset = 0 }: { text: string; clas
         }),
     };
 
-    const child = {
+    const child: Variants = {
         visible: {
             opacity: 1,
             y: 0,
@@ -36,18 +36,17 @@ const AnimatedText = ({ text, className, delayOffset = 0 }: { text: string; clas
             variants={container}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: true, margin: "0px 0px -40px 0px" }}
             className={`flex flex-wrap ${className}`}
         >
             {words.map((word, index) => (
-                <motion.span variants={child} key={index} className="mr-2 md:mr-5 mb-2 overflow-hidden flex">
-                    {/* Add a subtle rotation or scale to the word block for a 'crazy good' feel */}
+                <motion.span variants={child} key={index} className="mr-2 md:mr-4 mb-2 flex">
                     <motion.span
                         variants={{
-                            hidden: { rotateY: 90, scale: 0.8 },
-                            visible: { rotateY: 0, scale: 1, transition: { type: "spring", damping: 15 } }
+                            hidden: { opacity: 0, y: 15 },
+                            visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
                         }}
-                        style={{ display: "inline-block", transformOrigin: "bottom center" }}
+                        style={{ display: "inline-block" }}
                     >
                         {word}
                     </motion.span>
@@ -71,15 +70,15 @@ export const MissionVision = () => {
     const fogY = useTransform(scrollYProgress, [0, 1], [100, 0]);
 
     return (
-        <section ref={sectionRef} id="mission" className="pt-24 md:pt-32 pb-32 md:pb-40 px-6 md:px-12 bg-alpine-snow dark:bg-black text-[#0B0C10] dark:text-alpine-snow relative overflow-hidden z-20">
+        <section ref={sectionRef} id="mission" className="pt-24 md:pt-32 pb-32 md:pb-40 px-6 md:px-12 bg-transparent dark:bg-transparent text-[#0B0C10] dark:text-alpine-snow relative overflow-hidden z-20">
             {/* Scrollytelling Fog Overlay */}
             <motion.div 
                 style={{ opacity: fogOpacity, y: fogY }}
-                className="absolute inset-0 z-30 pointer-events-none mix-blend-screen opacity-50"
+                className="absolute inset-0 z-30 pointer-events-none opacity-40"
             >
-                {/* We use multiple blurry gradients to simulate moving fog */}
-                <div className="absolute top-0 left-[-20%] w-[140%] h-[100%] bg-gradient-to-b from-white via-white/80 to-transparent dark:from-black dark:via-black/80 dark:to-transparent blur-[80px]" />
-                <div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-white dark:bg-black blur-[120px] rounded-full" />
+                {/* Smooth radial fog gradients */}
+                <div className="absolute top-0 left-[-10%] w-[120%] h-[100%] bg-gradient-to-b from-white/15 via-white/5 to-transparent dark:from-black/25 dark:via-black/10 dark:to-transparent blur-3xl" />
+                <div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-white/10 dark:bg-black/20 blur-3xl rounded-full" />
             </motion.div>
 
             {/* Subtle ambient gradient orbs */}

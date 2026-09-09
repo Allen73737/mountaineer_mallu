@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Phone, MessageCircle, UploadCloud, CheckCircle2, ChevronRight, Loader2, User } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -70,7 +70,7 @@ export const ProfileCompletion = () => {
         }
     };
 
-    const stepVariants = {
+    const stepVariants: Variants = {
         hidden: { opacity: 0, x: 50 },
         visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
         exit: { opacity: 0, x: -50, transition: { duration: 0.2 } }

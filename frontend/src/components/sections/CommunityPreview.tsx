@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useInView, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useAnimation, Variants } from 'framer-motion';
 import { Users, MapPin, ArrowRight, ShieldCheck, Compass, Mountain, Map, Snowflake } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +59,7 @@ export const CommunityPreview = () => {
 
     const total = GROUPS.length;
     const sectionRef = useRef(null);
-    const isInView = useInView(sectionRef, { once: true, margin: "-10%" });
+    const isInView = useInView(sectionRef, { margin: "-10%" });
     const controls = useAnimation();
 
     useEffect(() => {
@@ -85,17 +85,17 @@ export const CommunityPreview = () => {
     const ActiveIcon = activeGroup.icon;
 
     // Animation Variants
-    const fadeUp = {
+    const fadeUp: Variants = {
         hidden: { opacity: 0, y: 30, transition: { duration: 0.5 } },
         visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
     };
     
-    const fadeUpDelayed = {
+    const fadeUpDelayed: Variants = {
         hidden: { opacity: 0, y: 30, transition: { duration: 0.5 } },
         visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.2, ease: "easeOut" } }
     };
 
-    const scaleIn = {
+    const scaleIn: Variants = {
         hidden: { opacity: 0, scale: 0.95, transition: { duration: 0.5 } },
         visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: "easeOut" } }
     };
@@ -104,7 +104,7 @@ export const CommunityPreview = () => {
         <section 
             id="community" 
             ref={sectionRef}
-            className="min-h-[100dvh] flex flex-col justify-center py-16 md:py-24 px-6 md:px-12 relative z-10 bg-alpine-navy dark:bg-black overflow-hidden"
+            className="min-h-[100dvh] flex flex-col justify-center py-16 md:py-24 px-6 md:px-12 relative z-10 bg-alpine-navy/85 bg-gradient-to-b from-alpine-navy/90 via-[#0b2d54]/85 to-alpine-navy/90 backdrop-blur-md dark:bg-black/35 dark:bg-gradient-to-b dark:from-black/40 dark:via-black/20 dark:to-black/50 dark:backdrop-blur-md text-white overflow-hidden"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onTouchStart={() => setIsHovered(true)}
@@ -187,7 +187,8 @@ export const CommunityPreview = () => {
                                             zIndex: 50 - Math.abs(diff) // Ensure center item is always on top for clicking
                                         }}
                                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                                        className={`absolute w-full flex items-center left-0 ${isVisible ? 'cursor-pointer pointer-events-auto' : 'pointer-events-none'}`}
+                                        style={{ transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
+                                        className={`absolute w-full flex items-center left-0 transform-gpu ${isVisible ? 'cursor-pointer pointer-events-auto' : 'pointer-events-none'}`}
                                         onClick={() => setActiveIndex(index)}
                                     >
                                         <div className="flex items-center gap-6">

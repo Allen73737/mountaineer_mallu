@@ -3,6 +3,7 @@ import { motion, useInView } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Instagram, Youtube, Heart, MessageCircle, Play, ArrowUpRight } from 'lucide-react';
 import { API_URL } from '../../lib/constants';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface InstagramPost {
     id: string;
@@ -25,51 +26,124 @@ interface YouTubeVideo {
     publishedAt: string;
 }
 
+const DEFAULT_IG_POSTS: InstagramPost[] = [
+    {
+        id: 'ig-1',
+        type: 'IMAGE',
+        url: 'https://instagram.com',
+        imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
+        caption: 'First light over Mont Blanc. Another dawn, another peak conquered with the community.',
+        likes: 342,
+        comments: 28,
+        timestamp: new Date().toISOString(),
+    },
+    {
+        id: 'ig-2',
+        type: 'IMAGE',
+        url: 'https://instagram.com',
+        imageUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop',
+        caption: 'Camp 3 night sky in the Swiss Alps. Silence at 3,800m altitude.',
+        likes: 512,
+        comments: 44,
+        timestamp: new Date().toISOString(),
+    },
+    {
+        id: 'ig-3',
+        type: 'IMAGE',
+        url: 'https://instagram.com',
+        imageUrl: 'https://images.unsplash.com/photo-1549880181-56a44cf4a9a1?q=80&w=800&auto=format&fit=crop',
+        caption: 'Traversing the Gran Paradiso ridgeline under crystal blue skies.',
+        likes: 421,
+        comments: 31,
+        timestamp: new Date().toISOString(),
+    },
+];
+
+const DEFAULT_YT_VIDEOS: YouTubeVideo[] = [
+    {
+        id: 'yt-1',
+        title: 'Alpine Summit Ascent: Eiger Nordwand Winter Expedition',
+        url: 'https://youtube.com',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?q=80&w=800&auto=format&fit=crop',
+        views: '14.2K',
+        duration: '18:42',
+        publishedAt: '2 days ago',
+    },
+    {
+        id: 'yt-2',
+        title: 'Essential High-Altitude Gear: Surviving Alpine Conditions',
+        url: 'https://youtube.com',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=800&auto=format&fit=crop',
+        views: '8.7K',
+        duration: '12:15',
+        publishedAt: '1 week ago',
+    },
+    {
+        id: 'yt-3',
+        title: 'Dolomites Via Ferrata: Guide for Malayalee Mountaineers',
+        url: 'https://youtube.com',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=800&auto=format&fit=crop',
+        views: '22.1K',
+        duration: '24:08',
+        publishedAt: '2 weeks ago',
+    },
+];
+
 export const AltitudeNetwork = () => {
     const { t } = useTranslation();
-    const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
-    const [ytVideos, setYtVideos] = useState<YouTubeVideo[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [igPosts, setIgPosts] = useState<InstagramPost[]>(DEFAULT_IG_POSTS);
+    const [ytVideos, setYtVideos] = useState<YouTubeVideo[]>(DEFAULT_YT_VIDEOS);
+    const [loading, setLoading] = useState(false);
     const [activeVideoIndex, setActiveVideoIndex] = useState(0);
     const [igHoveredIdx, setIgHoveredIdx] = useState<number | null>(null);
     const [autoIgIndex, setAutoIgIndex] = useState(0);
     const [isHoveringList, setIsHoveringList] = useState(false);
 
     const sectionRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(sectionRef, { margin: "-10%" });
 
     useEffect(() => {
         const fetchFeeds = async () => {
             try {
-                const [igRes, ytRes] = await Promise.all([
-                    fetch(`${API_URL}/api/social/instagram`),
-                    fetch(`${API_URL}/api/social/youtube`)
-                ]);
-                
-                const igData = await igRes.json();
-                const ytData = await ytRes.json();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-                if (igData.success && Array.isArray(igData.data)) setIgPosts(igData.data.slice(0, 3));
-                if (ytData.success && Array.isArray(ytData.data)) setYtVideos(ytData.data.slice(0, 3));
+                const [igRes, ytRes] = await Promise.all([
+                    fetch(`${API_URL}/api/social/instagram`, { signal: controller.signal }).catch(() => null),
+                    fetch(`${API_URL}/api/social/youtube`, { signal: controller.signal }).catch(() => null)
+                ]);
+                clearTimeout(timeoutId);
+
+                if (igRes && igRes.ok) {
+                    const igData = await igRes.json().catch(() => null);
+                    if (igData?.success && Array.isArray(igData.data) && igData.data.length > 0) {
+                        setIgPosts(igData.data.slice(0, 3));
+                    }
+                }
+                if (ytRes && ytRes.ok) {
+                    const ytData = await ytRes.json().catch(() => null);
+                    if (ytData?.success && Array.isArray(ytData.data) && ytData.data.length > 0) {
+                        setYtVideos(ytData.data.slice(0, 3));
+                    }
+                }
             } catch (error) {
-                console.error("Error fetching social feeds:", error);
-            } finally {
-                setLoading(false);
+                // Silently fallback to curated items without disruption
             }
         };
 
         fetchFeeds();
     }, []);
 
-    // ── DYNAMIC AUTO-CYCLE INTERACTION FOR INSTAGRAM ──
+    // ── DYNAMIC AUTO-CYCLE INTERACTION FOR INSTAGRAM (Viewport paused) ──
     useEffect(() => {
-        if (isHoveringList || igPosts.length === 0) return;
+        if (!isInView || isHoveringList || igPosts.length === 0) return;
         
         const interval = setInterval(() => {
             setAutoIgIndex((prev) => (prev + 1) % igPosts.length);
         }, 4000); // Crossfade every 4 seconds
         
         return () => clearInterval(interval);
-    }, [isHoveringList, igPosts.length]);
+    }, [isInView, isHoveringList, igPosts.length]);
 
     const formatDate = (dateString: string | undefined) => {
         if (!dateString) return 'Recent';
@@ -78,20 +152,13 @@ export const AltitudeNetwork = () => {
         return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
     };
 
-    if (loading) {
-        return (
-            <div className="w-full h-screen bg-alpine-snow dark:bg-black flex flex-col items-center justify-center gap-6">
-                <div className="w-16 h-16 border-t-2 border-alpine-navy dark:border-white rounded-full animate-spin" />
-                <p className="text-xs tracking-[0.3em] uppercase text-alpine-navy/50 dark:text-white/50">Establishing Connection...</p>
-            </div>
-        );
-    }
+
 
     return (
         <section 
             id="altitude-network"
             ref={sectionRef} 
-            className="relative w-full min-h-[120vh] bg-alpine-snow dark:bg-black overflow-hidden transition-colors duration-500 py-20 flex flex-col"
+            className="relative w-full min-h-[120vh] bg-transparent dark:bg-transparent overflow-hidden transition-colors duration-500 py-20 flex flex-col"
         >
             {/* Ambient Background Blur */}
             <div className="absolute inset-0 z-0 pointer-events-none">
@@ -167,6 +234,8 @@ export const AltitudeNetwork = () => {
                                             <img 
                                                 src={post.imageUrl} 
                                                 alt="Instagram Dispatch"
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="w-full h-full object-cover transition-transform duration-[2s] ease-out scale-100 group-hover:scale-105"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
@@ -278,6 +347,8 @@ export const AltitudeNetwork = () => {
                                         <img 
                                             src={video.thumbnailUrl} 
                                             alt={video.title} 
+                                            loading="lazy"
+                                            decoding="async"
                                             className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />

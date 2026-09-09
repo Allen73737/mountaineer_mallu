@@ -8,11 +8,12 @@ import {
     deleteReview 
 } from '../controllers/reviewController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
+import { cacheMiddleware } from '../middleware/cache.js';
 
 const router = Router();
 
 // Public route
-router.get('/', getApprovedReviews);
+router.get('/', cacheMiddleware(300), getApprovedReviews);
 
 // Protected routes for users
 router.post('/', authenticate, submitReview);

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, MapPin, Users, ArrowRight, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { communityApi } from '../../lib/api';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const UserCommunitiesTab = () => {
     const [groups, setGroups] = useState<any[]>([]);
@@ -11,10 +12,10 @@ export const UserCommunitiesTab = () => {
     useEffect(() => {
         const fetchGroups = async () => {
             try {
-                const data = await communityApi.getMyGroups();
-                setGroups(data.groups);
+                const data = await communityApi.listGroups();
+                setGroups(data.groups || []);
             } catch (error) {
-                console.error('Failed to fetch communities:', error);
+                console.error('Failed to fetch groups:', error);
             } finally {
                 setLoading(false);
             }
@@ -25,7 +26,7 @@ export const UserCommunitiesTab = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="w-8 h-8 border-4 border-alpine-glacier border-t-transparent rounded-full animate-spin" />
+                <LoadingSpinner />
             </div>
         );
     }

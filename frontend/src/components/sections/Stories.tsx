@@ -85,7 +85,7 @@ export const Stories = () => {
     };
 
     return (
-        <section id="stories" className="relative w-full min-h-screen bg-white dark:bg-black transition-colors duration-500 flex flex-col py-16 md:py-24 px-4 md:px-12">
+        <section id="stories" className="relative w-full min-h-screen bg-transparent dark:bg-transparent transition-colors duration-500 flex flex-col py-16 md:py-24 px-4 md:px-12">
             
             {/* Header (Outside the accordion) */}
             <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 relative z-20">
@@ -157,10 +157,11 @@ export const Stories = () => {
                                     flex: isActive ? 5 : 1,
                                 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.5, layout: { type: "spring", stiffness: 200, damping: 25, mass: 0.8 } }}
+                                transition={{ duration: 0.5, layout: { type: "spring", stiffness: 280, damping: 26, mass: 0.7 } }}
+                                style={{ transform: 'translateZ(0)', willChange: 'flex, transform' }}
                                 onMouseEnter={() => window.innerWidth >= 768 && setActiveIndex(index)}
                                 onClick={() => window.innerWidth < 768 && setActiveIndex(index)}
-                                className={`relative overflow-hidden cursor-pointer group ${
+                                className={`relative overflow-hidden cursor-pointer group transform-gpu ${
                                     isActive ? 'cursor-default' : 'hover:brightness-110'
                                 }`}
                             >
@@ -168,6 +169,8 @@ export const Stories = () => {
                                 <motion.img
                                     src={story.image}
                                     alt={displayTitle}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="absolute inset-0 w-full h-full object-cover"
                                     animate={{ 
                                         scale: isActive ? 1.05 : 1.2,

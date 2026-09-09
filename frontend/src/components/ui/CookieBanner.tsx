@@ -5,23 +5,17 @@ import { useCookieConsent } from '../../store/useCookieConsent';
 
 export const CookieBanner = () => {
     const { hasConsented, acknowledge } = useCookieConsent();
-    const [isMounted, setIsMounted] = useState(false);
 
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    // Don't render anything if SSR or if already consented
-    if (!isMounted || hasConsented) return null;
+    if (hasConsented) return null;
 
     return (
         <AnimatePresence>
             {!hasConsented && (
                 <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center">
                     <motion.div
-                        initial={{ y: 100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 100, opacity: 0, transition: { duration: 0.3 } }}
+                        initial={{ opacity: 1, y: 0 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, transition: { duration: 0.2 } }}
                         className="w-full max-w-4xl pointer-events-auto"
                     >
                         <div className="glass-dark border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">

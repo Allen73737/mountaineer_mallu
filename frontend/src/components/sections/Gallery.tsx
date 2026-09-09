@@ -30,8 +30,8 @@ export const Gallery = () => {
     ];
 
     return (
-        // Changed Light mode background to alpine-navy to perfectly match Community Pulse
-        <section ref={sectionRef} id="gallery" className="pt-24 pb-32 px-4 md:px-12 bg-alpine-navy dark:bg-black text-white">
+        // Translucent liquid glass gradient that lets the background drifting clouds shine through and prevents a flat grey look
+        <section ref={sectionRef} id="gallery" className="pt-24 pb-32 px-4 md:px-12 bg-alpine-navy/85 bg-gradient-to-b from-alpine-navy/90 via-[#0b2d54]/85 to-alpine-navy/90 backdrop-blur-md dark:bg-black/35 dark:bg-gradient-to-b dark:from-black/40 dark:via-black/20 dark:to-black/50 dark:backdrop-blur-md text-white relative z-10">
             <div className="w-full max-w-[1600px] mx-auto">
                 
                 {/* Header Area */}
@@ -81,37 +81,39 @@ export const Gallery = () => {
                         return (
                             <motion.div 
                                 key={col.id}
-                                layout
-                                initial={{ opacity: 0, y: 50 }}
-                                animate={isInView ? { opacity: 1, y: 0, width: colWidth } : { width: colWidth }}
-                                transition={{ 
-                                    opacity: { duration: 0.8, delay: colIndex * 0.1 },
-                                    width: { type: "spring", stiffness: 200, damping: 25 },
-                                    y: { duration: 0.8 }
-                                }}
-                                className="flex flex-col gap-2 md:gap-4 h-full"
-                            >
-                                {col.items.map((item, itemIndex) => {
-                                    const isItemHovered = hoveredId === item.id;
-                                    
-                                    // Vertical Expansion (Row Height) ONLY within the hovered column
-                                    let itemHeight = '50%';
-                                    if (isColHovered) {
-                                        itemHeight = isItemHovered ? '70%' : '30%';
-                                    }
+                                        layout
+                                        initial={{ opacity: 0, y: 50 }}
+                                        animate={isInView ? { opacity: 1, y: 0, width: colWidth } : { width: colWidth }}
+                                        transition={{ 
+                                            opacity: { duration: 0.8, delay: colIndex * 0.1 },
+                                            width: { type: "spring", stiffness: 280, damping: 26 },
+                                            y: { duration: 0.8 }
+                                        }}
+                                        style={{ transform: 'translateZ(0)', willChange: 'width, transform' }}
+                                        className="flex flex-col gap-2 md:gap-4 h-full transform-gpu"
+                                    >
+                                        {col.items.map((item, itemIndex) => {
+                                            const isItemHovered = hoveredId === item.id;
+                                            
+                                            // Vertical Expansion (Row Height) ONLY within the hovered column
+                                            let itemHeight = '50%';
+                                            if (isColHovered) {
+                                                itemHeight = isItemHovered ? '70%' : '30%';
+                                            }
 
-                                    return (
-                                        <motion.div
-                                            key={item.id}
-                                            layout
-                                            onMouseEnter={() => setHoveredId(item.id)}
-                                            onMouseLeave={() => setHoveredId(null)}
-                                            animate={{ height: itemHeight }}
-                                            transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                                            className="gallery-item relative w-full group overflow-hidden bg-black rounded-2xl md:rounded-3xl"
-                                        >
-                                            {/* Media */}
-                                            <div className="absolute inset-0 w-full h-full transform-gpu transition-transform duration-[1.5s] scale-[1.05] group-hover:scale-100">
+                                            return (
+                                                <motion.div
+                                                    key={item.id}
+                                                    layout
+                                                    onMouseEnter={() => setHoveredId(item.id)}
+                                                    onMouseLeave={() => setHoveredId(null)}
+                                                    animate={{ height: itemHeight }}
+                                                    transition={{ type: "spring", stiffness: 280, damping: 26 }}
+                                                    style={{ transform: 'translateZ(0)', willChange: 'height, transform' }}
+                                                    className="gallery-item relative w-full group overflow-hidden bg-black rounded-2xl md:rounded-3xl transform-gpu"
+                                                >
+                                                    {/* Media */}
+                                                    <div className="absolute inset-0 w-full h-full transform-gpu transition-transform duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] scale-[1.05] group-hover:scale-100 will-change-transform">
                                                 {item.type === 'video' ? (
                                                     <PremiumVideoPlayer
                                                         src={item.url}
@@ -125,6 +127,7 @@ export const Gallery = () => {
                                                         alt={item.title}
                                                         className="w-full h-full object-cover"
                                                         loading="lazy"
+                                                        decoding="async"
                                                     />
                                                 )}
                                             </div>

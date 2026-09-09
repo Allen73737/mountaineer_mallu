@@ -2,14 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Preloader = () => {
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('hasSeenPreloader');
+        }
+        return true;
+    });
     const [elevation, setElevation] = useState(0);
 
     useEffect(() => {
         // Only show once per session
         const hasSeen = sessionStorage.getItem('hasSeenPreloader');
         if (hasSeen) {
-            setIsVisible(false);
             return;
         }
 

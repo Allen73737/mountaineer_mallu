@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useInView, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useAnimation, Variants } from 'framer-motion';
 import { Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ const EVENTS = [
         time: '07:30 AM', 
         location: 'Feldberg', 
         type: 'Upcoming', 
-        img: 'https://images.unsplash.com/photo-1513227443834-45fb3011fbac?q=80&w=1920&auto=format&fit=crop',
+        img: 'https://images.unsplash.com/photo-1483728083836-33002303b60d?q=80&w=1920&auto=format&fit=crop',
         desc: 'High-endurance trail running operation. Expect brutal ascents and rapid descents through dense winter forest cover.'
     },
     { 
@@ -53,7 +53,7 @@ export const Events = () => {
     const [isHovered, setIsHovered] = useState(false);
 
     const sectionRef = useRef(null);
-    const isInView = useInView(sectionRef, { once: true, margin: "-10%" });
+    const isInView = useInView(sectionRef, { margin: "-10%" });
     const controls = useAnimation();
 
     useEffect(() => {
@@ -78,17 +78,17 @@ export const Events = () => {
     const activeEvent = EVENTS[activeIndex];
 
     // Animation Variants
-    const fadeUp = {
+    const fadeUp: Variants = {
         hidden: { opacity: 0, y: 30, transition: { duration: 0.5 } },
         visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
     };
 
-    const fadeLeft = {
+    const fadeLeft: Variants = {
         hidden: { opacity: 0, x: 50, transition: { duration: 0.5 } },
         visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 0.2 } }
     };
 
-    const scaleIn = {
+    const scaleIn: Variants = {
         hidden: { opacity: 0, scale: 1.1, transition: { duration: 0.8 } },
         visible: { opacity: 1, scale: 1, transition: { duration: 1.2, ease: "easeInOut" } }
     };
@@ -97,7 +97,7 @@ export const Events = () => {
         <section 
             id="events" 
             ref={sectionRef}
-            className="relative w-full min-h-screen bg-white dark:bg-black flex items-center overflow-hidden py-24 md:py-32 transition-colors duration-500"
+            className="relative w-full min-h-screen bg-transparent dark:bg-transparent flex items-center overflow-hidden py-24 md:py-32 transition-colors duration-500"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onTouchStart={() => setIsHovered(true)}
@@ -125,6 +125,8 @@ export const Events = () => {
                         <img 
                             src={activeEvent.img} 
                             alt={activeEvent.title}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover object-center"
                         />
                     </motion.div>
@@ -193,10 +195,9 @@ export const Events = () => {
                             {/* Action Buttons */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                                 <Link to={`/events/${activeEvent.id}`}>
-                                    <button className="group relative px-8 py-4 bg-black dark:bg-white text-white dark:text-black font-bold uppercase tracking-[0.2em] text-sm hover:bg-alpine-glacier transition-colors duration-300 flex items-center gap-3 overflow-hidden">
+                                    <button className="group relative px-8 py-4 bg-black dark:bg-white text-white dark:text-black font-bold uppercase tracking-[0.2em] text-sm hover:bg-alpine-glacier transition-colors duration-300 flex items-center gap-3 overflow-hidden active:scale-95">
                                         <span className="relative z-10">Inspect Route</span>
                                         <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
-                                        <div className="absolute inset-0 bg-white opacity-20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500" />
                                     </button>
                                 </Link>
                                 

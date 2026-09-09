@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usersApi } from '../../lib/api';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const UserWishlistTab = () => {
     const [wishlist, setWishlist] = useState<any[]>([]);
@@ -12,9 +13,9 @@ export const UserWishlistTab = () => {
         const fetchWishlist = async () => {
             try {
                 const data = await usersApi.getWishlist();
-                setWishlist(data.wishlist);
+                setWishlist(data.wishlist || []);
             } catch (error) {
-                console.error('Failed to fetch wishlist:', error);
+                console.error('Failed to load wishlist:', error);
             } finally {
                 setLoading(false);
             }
@@ -38,7 +39,7 @@ export const UserWishlistTab = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="w-8 h-8 border-4 border-alpine-glacier border-t-transparent rounded-full animate-spin" />
+                <LoadingSpinner />
             </div>
         );
     }

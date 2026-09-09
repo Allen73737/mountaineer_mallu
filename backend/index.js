@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
+import compression from 'compression';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import mongoose from 'mongoose';
@@ -18,6 +22,13 @@ import RedisStore from 'rate-limit-redis';
 import logger from './utils/logger.js';
 import { verifyCsrf } from './middleware/csrf.js';
 import { sanitizeInputs } from './middleware/sanitize.js';
+import { validateEnv } from './config/envValidator.js';
+
+// Validate critical production configurations
+validateEnv();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
@@ -37,6 +48,10 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { startCronJobs } from './services/cron.js';
 
 const app = express();
+
+// Enable reverse proxy trust for Kubernetes, NGINX, Cloudflare, AWS ALB, Render, Railway
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL 
@@ -78,13 +93,27 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms', 
     stream: { write: (message) => logger.info(message.trim()) }
 }));
 
-// Set up Redis Client for Rate Limiting
+// Set up Redis Client for Rate Limiting (Graceful Fallback if Redis is offline)
+let isRedisConnected = false;
 const redisClient = createClient({
     url: process.env.REDIS_URL || 'redis://localhost:6379'
 });
 
-redisClient.on('error', (err) => logger.warn(`Redis Client Error: ${err.message}`));
-redisClient.connect().catch(console.error);
+redisClient.on('ready', () => { isRedisConnected = true; logger.info('✅ Redis connected successfully'); });
+redisClient.on('error', (err) => {
+    if (isRedisConnected) {
+        logger.warn(`Redis Client Error: ${err.message}`);
+    }
+    isRedisConnected = false;
+});
+redisClient.connect().catch(() => { isRedisConnected = false; });
+
+const createRateLimiter = (options) => {
+    const store = (isRedisConnected && redisClient.isReady) 
+        ? new RedisStore({ sendCommand: (...args) => redisClient.sendCommand(args) }) 
+        : undefined;
+    return rateLimit({ ...options, store });
+};
 
 // Helmet with strict CSP (removing unsafe-inline for scripts where possible)
 app.use(helmet({
@@ -109,50 +138,38 @@ app.use(helmet({
 }));
 
 // General rate limiting
-const limiter = rateLimit({
+const limiter = createRateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 200,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later.' },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    })
 });
 app.use('/api/', limiter);
 
 // Stricter rate limit for auth routes (10 per 15 min)
-const authLimiter = rateLimit({
+const authLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
     max: 10,
     message: { error: 'Too many authentication attempts, please try again later.' },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    })
 });
 app.use('/api/auth/', authLimiter);
 
 // Extra strict rate limit for OTP/password reset (5 per 15 min)
-const otpLimiter = rateLimit({
+const otpLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
     max: 5,
     message: { error: 'Too many reset attempts. Please wait and try again.' },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    })
 });
 app.use('/api/auth/forgot-password', otpLimiter);
 app.use('/api/auth/verify-otp', otpLimiter);
 app.use('/api/auth/reset-password', otpLimiter);
 
 // AI chat rate limit (30 per 15 min)
-const aiLimiter = rateLimit({
+const aiLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
     max: 30,
     message: { error: 'AI usage limit reached. Please wait a moment.' },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    })
 });
 app.use('/api/ai/', aiLimiter);
 
@@ -173,6 +190,28 @@ app.use(hpp());
 // CSRF Protection (Origin Header Verification)
 app.use(verifyCsrf);
 
+// Enable Gzip/Brotli HTTP compression for ultra-fast payload delivery
+app.use(compression());
+
+// Cache Control for public GET endpoints (Instant response optimization)
+app.use((req, res, next) => {
+    if (req.method === 'GET') {
+        const path = req.path;
+        if (
+            path.startsWith('/api/stories') ||
+            path.startsWith('/api/events') ||
+            path.startsWith('/api/gallery') ||
+            path.startsWith('/api/settings') ||
+            path.startsWith('/api/pillars') ||
+            path.startsWith('/api/reviews') ||
+            path.startsWith('/api/merchandise')
+        ) {
+            res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        }
+    }
+    next();
+});
+
 app.use(cors({
     origin: CLIENT_URL,
     credentials: true,
@@ -181,14 +220,42 @@ app.use(cors({
     exposedHeaders: ['X-Request-ID']
 }));
 
-// ─── Health Check ──────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'online',
-        timestamp: new Date().toISOString(),
-        sockets: io.engine.clientsCount
-    });
+// ─── Health Checks (Kubernetes, AWS ALB, Docker, Cloud Run Probes) ─────
+// Lightweight Liveness Probe
+app.get('/livez', (req, res) => {
+    res.status(200).send('OK');
 });
+
+// Comprehensive Readiness & Diagnostic Health Probe
+const handleHealthCheck = (req, res) => {
+    const isDbConnected = mongoose.connection.readyState === 1;
+    const mem = process.memoryUsage();
+    
+    const healthStatus = {
+        status: isDbConnected ? 'healthy' : 'degraded',
+        timestamp: new Date().toISOString(),
+        uptime: `${Math.floor(process.uptime())}s`,
+        environment: process.env.NODE_ENV || 'development',
+        database: {
+            connected: isDbConnected,
+            state: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown'
+        },
+        redis: {
+            connected: isRedisConnected && redisClient.isOpen
+        },
+        system: {
+            memoryRssMB: (mem.rss / 1024 / 1024).toFixed(1),
+            heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(1)
+        },
+        sockets: io ? io.engine.clientsCount : 0
+    };
+
+    const httpCode = isDbConnected ? 200 : 503;
+    res.status(httpCode).json(healthStatus);
+};
+
+app.get('/healthz', handleHealthCheck);
+app.get('/api/health', handleHealthCheck);
 
 // ─── API Routes ────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
@@ -206,27 +273,53 @@ app.use('/api/merchandise', merchandiseRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/social', socialRoutes);
 
+// ─── Production Static Serving (Single-Container & Monolith Deployments) ─
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath, {
+        maxAge: '1h',
+        setHeaders: (res, filePath) => {
+            if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+        }
+    }));
+
+    // Client-side SPA routing fallback for all non-API GET requests
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api') || req.path.startsWith('/healthz') || req.path.startsWith('/livez')) {
+            return next();
+        }
+        res.sendFile(path.join(frontendDistPath, 'index.html'));
+    });
+}
+
 // ─── Error Handling ────────────────────────────────────────────────────
 app.use(errorHandler);
 
 // ─── Database Connection & Server Start ────────────────────────────────
 export const startServer = async () => {
     try {
+        const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE || '50', 10);
+        const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE || '5', 10);
+
         await mongoose.connect(process.env.MONGODB_URI, {
             dbName: 'mountaineer-mallu',
             serverSelectionTimeoutMS: 10000,
             socketTimeoutMS: 45000,
-            maxPoolSize: 10,
+            maxPoolSize,
+            minPoolSize,
             w: 'majority',
             retryWrites: true
         });
-        console.log(`✅ MongoDB connected successfully in Worker ${process.pid}`);
+        console.log(`✅ MongoDB connected successfully [Pool: ${minPoolSize}-${maxPoolSize}] in Worker ${process.pid}`);
+
+        mongoose.connection.on('error', (err) => logger.error(`[MongoDB] Connection error: ${err.message}`));
+        mongoose.connection.on('disconnected', () => logger.warn('[MongoDB] Disconnected from server.'));
+        mongoose.connection.on('reconnected', () => logger.info('[MongoDB] Reconnected successfully.'));
 
         httpServer.listen(PORT, () => {
-            console.log(`🏔️  Worker ${process.pid} running API on port ${PORT}`);
-            
-            // Only start scheduled background jobs on the primary worker if possible, 
-            // but for simplicity, we start it here. Ideally cron should run on a dedicated instance.
+            console.log(`🏔️  Worker ${process.pid} running API on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
             startCronJobs();
         });
     } catch (error) {
@@ -234,6 +327,41 @@ export const startServer = async () => {
         process.exit(1);
     }
 };
+
+// ─── Graceful Shutdown Handler (Docker, K8s, Render, Railway, AWS) ────
+const gracefulShutdown = async (signal) => {
+    console.log(`\n🛑 [Worker ${process.pid}] Received ${signal}. Initiating graceful shutdown...`);
+    
+    httpServer.close(async () => {
+        console.log(`  ✓ HTTP server stopped accepting connections.`);
+        try {
+            if (io) {
+                io.close();
+                console.log(`  ✓ Socket.io connections terminated.`);
+            }
+            if (isRedisConnected && redisClient.isOpen) {
+                await redisClient.quit();
+                console.log(`  ✓ Redis connection closed.`);
+            }
+            await mongoose.connection.close(false);
+            console.log(`  ✓ MongoDB connection closed.`);
+            console.log(`✨ Graceful shutdown finished cleanly.`);
+            process.exit(0);
+        } catch (err) {
+            console.error('Error during shutdown:', err);
+            process.exit(1);
+        }
+    });
+
+    // Enforce maximum 10s grace timeout before hard kill
+    setTimeout(() => {
+        console.error('⚠️ Forcefully terminating after 10s grace period timeout.');
+        process.exit(1);
+    }, 10000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // If this file is run directly (not via server.js), start it directly.
 if (process.argv[1] && process.argv[1].endsWith('index.js')) {

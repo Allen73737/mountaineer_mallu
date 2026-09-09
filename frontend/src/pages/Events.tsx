@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Clock, ArrowRight, Mountain, AlertTriangle, Loader2, CheckCircle, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,27 +7,34 @@ import { useAuthStore } from '../store/useAuthStore';
 import { EventSkeleton } from '../components/ui/Skeleton';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const EventsPage = () => {
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const { user, isLoggedIn } = useAuthStore();
     const { showToast, ToastComponent } = useToast();
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const data = await eventsApi.list(1, 20);
-                setEvents(data.events);
-            } catch (err) {
-                console.error('Failed to load events:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchEvents();
+    const fetchEvents = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await eventsApi.list(1, 20);
+            setEvents(data.events || []);
+        } catch (err: any) {
+            console.error('Failed to load events:', err);
+            setError(err.message || 'Failed to retrieve upcoming expedition rosters.');
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchEvents();
+    }, [fetchEvents]);
 
     const handleRegister = async (eventId: string) => {
         if (!isLoggedIn) {
@@ -99,10 +106,20 @@ export const EventsPage = () => {
                     <div className="space-y-24 pl-8 md:pl-16">
                         {[1, 2, 3].map(i => <EventSkeleton key={i} />)}
                     </div>
+                ) : error ? (
+                    <ErrorState
+                        title="Expedition Telemetry Offline"
+                        message={error}
+                        onRetry={fetchEvents}
+                    />
                 ) : events.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[40vh] text-center">
-                        <p className="text-alpine-navy/40 dark:text-white/30 text-xl font-serif">No expeditions scheduled yet. Stay alert.</p>
-                    </div>
+                    <EmptyState
+                        icon={Mountain}
+                        title="No Expeditions Scheduled Yet"
+                        description="All current summit tracks are resting between seasons. New alpine ascents, gear training sessions, and gatherings are scheduled regularly."
+                        actionText="Return to Basecamp"
+                        actionLink="/"
+                    />
                 ) : (
                     /* Timeline Layout */
                     <div className="relative border-l border-alpine-navy/10 dark:border-alpine-snow/10 pl-8 md:pl-16 space-y-24">

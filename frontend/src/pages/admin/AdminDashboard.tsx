@@ -183,8 +183,8 @@ export const AdminDashboard = () => {
                         )}
                     </AnimatePresence>
                     <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="text-alpine-navy/50 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white transition-colors"
+                        onClick={() => requestAnimationFrame(() => setIsSidebarOpen(!isSidebarOpen))}
+                        className="text-alpine-navy/50 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white transition-colors cursor-pointer"
                     >
                         {isMobile ? <X size={24} /> : (isSidebarOpen ? <X size={24} /> : <Menu size={24} />)}
                     </button>
@@ -218,9 +218,9 @@ export const AdminDashboard = () => {
                                     {(isSidebarOpen || isMobile) && (
                                         <>
                                             <motion.span
-                                                initial={{ opacity: 0, w: 0 }}
-                                                animate={{ opacity: 1, w: 'auto' }}
-                                                exit={{ opacity: 0, w: 0 }}
+                                                initial={{ opacity: 0, width: 0 }}
+                                                animate={{ opacity: 1, width: 'auto' }}
+                                                exit={{ opacity: 0, width: 0 }}
                                                 className="font-medium text-[13px] md:text-sm tracking-wide whitespace-nowrap flex-1"
                                             >
                                                 {item.name}

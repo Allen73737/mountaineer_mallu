@@ -5,6 +5,7 @@ import { usersApi, aiApi, eventsApi } from '../../lib/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useAdaptiveTheme } from '../../store/useAdaptiveTheme';
 import { Link } from 'react-router-dom';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 // Simple Custom Calendar Component
 const CustomCalendar = ({ expeditions }: { expeditions: any[] }) => {
@@ -190,7 +191,7 @@ export const UserExpeditionsTab = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="w-8 h-8 border-4 border-alpine-glacier border-t-transparent rounded-full animate-spin" />
+                <LoadingSpinner />
             </div>
         );
     }

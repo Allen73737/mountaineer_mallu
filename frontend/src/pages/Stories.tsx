@@ -1,32 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, ArrowRight, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { storiesApi } from '../lib/api';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import { BackButton } from '../components/ui/BackButton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const StoriesPage = () => {
     const [stories, setStories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState<any>(null);
 
-    useEffect(() => {
-        const fetchStories = async () => {
-            setLoading(true);
-            try {
-                const data = await storiesApi.list(page, 12);
-                setStories(data.stories);
-                setPagination(data.pagination);
-            } catch (err) {
-                console.error('Failed to load stories:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStories();
+    const fetchStories = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await storiesApi.list(page, 12);
+            setStories(data.stories || []);
+            setPagination(data.pagination);
+        } catch (err: any) {
+            console.error('Failed to load stories:', err);
+            setError(err.message || 'Failed to establish connection to the chronicle archives.');
+        } finally {
+            setLoading(false);
+        }
     }, [page]);
+
+    useEffect(() => {
+        fetchStories();
+    }, [fetchStories]);
 
     return (
         <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
@@ -54,10 +60,20 @@ export const StoriesPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[1, 2, 3, 4, 5, 6].map(i => <CardSkeleton key={i} />)}
                     </div>
+                ) : error ? (
+                    <ErrorState
+                        title="Chronicles Downlink Disrupted"
+                        message={error}
+                        onRetry={fetchStories}
+                    />
                 ) : stories.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[40vh] text-center">
-                        <p className="text-alpine-navy/40 dark:text-white/30 text-xl font-serif">No chronicles yet. The journey begins soon.</p>
-                    </div>
+                    <EmptyState
+                        icon={BookOpen}
+                        title="No Chronicles Recorded Yet"
+                        description="The archives currently have no published expedition logs. New stories from peak ascents will appear here once submitted."
+                        actionText="Return to Basecamp"
+                        actionLink="/"
+                    />
                 ) : (
                     <>
                         {/* Masonry Grid */}
@@ -73,6 +89,9 @@ export const StoriesPage = () => {
                                 >
                                     <img
                                         src={story.image}
+                                        alt={story.title}
+                                        loading="lazy"
+                                        decoding="async"
                                         className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 group-hover:scale-105 transition-all duration-1000"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-700" />

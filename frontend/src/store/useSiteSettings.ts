@@ -17,6 +17,7 @@ export interface SiteSettings {
         enabled: boolean;
         message: string;
         allowAdminAccess: boolean;
+        theme?: string;
     };
 }
 
@@ -82,8 +83,9 @@ export const useSiteSettings = create<SiteSettingsStore>((set, get) => ({
         const socket = io(API_URL, {
             transports: ['websocket', 'polling'],
             withCredentials: true,
-            reconnectionDelay: 2000,
-            reconnectionAttempts: 10,
+            reconnectionDelay: 3000,
+            reconnectionAttempts: 3,
+            timeout: 3000,
         });
 
         socket.on('settings:updated', (newSettings: Partial<SiteSettings>) => {

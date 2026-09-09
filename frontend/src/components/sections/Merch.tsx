@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useInView } from 'framer-motion';
 import { ShoppingBag, ArrowRight, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -41,7 +41,7 @@ const TiltCard = ({ children, className = '', style = {} }: { children: React.Re
             {children}
             {isHovered && (
                 <div 
-                    className="absolute inset-0 z-50 pointer-events-none mix-blend-overlay transition-opacity duration-300"
+                    className="absolute inset-0 z-50 pointer-events-none opacity-40 transition-opacity duration-300"
                     style={{
                         background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,255,255,0.4) 0%, transparent 60%)`,
                     }}
@@ -52,10 +52,12 @@ const TiltCard = ({ children, className = '', style = {} }: { children: React.Re
 };
 
 export const Merch = () => {
-    const [rotation, setRotation] = useState(0);
+    const sectionRef = useRef<HTMLElement>(null);
+    const isInView = useInView(sectionRef, { amount: 0.1 });
+    const rotateY = useMotionValue(0);
     const [isHovered, setIsHovered] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { isLoggedIn, user } = useAuthStore();
+    const { isLoggedIn } = useAuthStore();
     const [wishlist, setWishlist] = useState<string[]>([]);
 
     // Load wishlist on mount
@@ -71,34 +73,41 @@ export const Merch = () => {
         e.preventDefault();
         e.stopPropagation();
         if (!isLoggedIn) return;
-        // Optimistic update
         setWishlist(prev =>
             prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
         );
         try {
             await usersApi.toggleWishlist(productId);
         } catch {
-            // Revert
             setWishlist(prev =>
                 prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
             );
         }
     };
 
-    // Auto-rotate the Ferris wheel cylinder (desktop only)
+    // Auto-rotate with hardware RAF loop (0 React re-renders!)
     useEffect(() => {
-        if (isHovered) return;
-        const interval = setInterval(() => {
-            setRotation(prev => prev - 0.3);
-        }, 30);
-        return () => clearInterval(interval);
-    }, [isHovered]);
+        if (!isInView || isHovered) return;
+        let animId: number;
+        let lastT = 0;
+        const step = (t: number) => {
+            if (t - lastT >= 32) {
+                if (typeof document === 'undefined' || !document.body.classList.contains('is-scrolling')) {
+                    rotateY.set(rotateY.get() - 0.25);
+                }
+                lastT = t;
+            }
+            animId = requestAnimationFrame(step);
+        };
+        animId = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(animId);
+    }, [isInView, isHovered, rotateY]);
 
     const angleSlice = 360 / PRODUCTS.length;
     const zRadius = 400;
 
     return (
-        <section id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-alpine-snow dark:bg-[#000000] relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-screen">
+        <section ref={sectionRef} id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-transparent dark:bg-transparent relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-screen">
 
             {/* Background massive typography */}
             <motion.div
@@ -194,11 +203,10 @@ export const Merch = () => {
                 <motion.div
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    animate={{ rotateY: rotation }}
-                    transition={{ ease: "linear", duration: 0 }}
+                    style={{ rotateY }}
                     className="relative w-72 h-96 transform-style-3d cursor-grab active:cursor-grabbing"
                     drag="x"
-                    onDrag={(e: any, info: any) => setRotation(rotation + info.delta.x * 0.5)}
+                    onDrag={(_: any, info: any) => rotateY.set(rotateY.get() + info.delta.x * 0.5)}
                 >
                     {PRODUCTS.map((product, i) => {
                         const currentAngle = angleSlice * i;

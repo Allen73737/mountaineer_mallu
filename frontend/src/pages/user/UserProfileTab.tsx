@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usersApi, communityApi } from '../../lib/api';
 import { Mail, MapPin, Phone, Shield, Loader, Layers, Edit2, X, Save, Mountain, Users, Heart, Calendar, ArrowRight, CheckCircle2, CloudSnow } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const UserProfileTab = () => {
     const { user } = useAuthStore();
@@ -82,8 +83,8 @@ export const UserProfileTab = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full">
-                <Loader className="w-8 h-8 text-alpine-glacier animate-spin" />
+            <div className="flex items-center justify-center h-64">
+                <LoadingSpinner />
             </div>
         );
     }

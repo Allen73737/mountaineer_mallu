@@ -58,7 +58,13 @@ export const ShopPage = () => {
                             className="group cursor-pointer"
                         >
                             <div className="aspect-[3/4] w-full rounded-[2rem] overflow-hidden mb-6 relative bg-white/50 dark:bg-black/50 border border-black/5 dark:border-white/10 shadow-lg group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] transition-all duration-500">
-                                <img src={product.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                                <img
+                                    src={product.img}
+                                    alt={product.title}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                />
 
                                 {/* Hover Overlay */}
                                 <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">

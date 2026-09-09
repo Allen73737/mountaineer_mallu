@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { usersApi } from '../../lib/api';
 import { Folder, Download, Loader, Image as ImageIcon, Video } from 'lucide-react';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const UserCollectionsTab = () => {
     const [profile, setProfile] = useState<any>(null);
@@ -22,7 +23,7 @@ export const UserCollectionsTab = () => {
     }, []);
 
     if (loading) {
-        return <div className="flex items-center justify-center h-full"><Loader className="w-8 h-8 text-alpine-glacier animate-spin" /></div>;
+        return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
     }
 
     const renderMediaCard = (item: any) => (
