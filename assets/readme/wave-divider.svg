@@ -1,24 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 60" width="100%" height="60" preserveAspectRatio="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 70" width="100%" height="70" preserveAspectRatio="none">
   <defs>
-    <linearGradient id="waveGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00F2FE" stop-opacity="0.6">
-        <animate attributeName="stop-color" values="#00F2FE;#64BEFF;#7F00FF;#00F2FE" dur="10s" repeatCount="indefinite" />
-      </stop>
-      <stop offset="50%" stop-color="#64BEFF" stop-opacity="0.4">
-        <animate attributeName="stop-color" values="#64BEFF;#A3C9E2;#00F2FE;#64BEFF" dur="10s" repeatCount="indefinite" />
-      </stop>
-      <stop offset="100%" stop-color="#E2A071" stop-opacity="0.5">
-        <animate attributeName="stop-color" values="#E2A071;#C9A96E;#64BEFF;#E2A071" dur="10s" repeatCount="indefinite" />
-      </stop>
+    <!-- Section Divider Gradient Matching index.css .section-divider -->
+    <linearGradient id="dividerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#08284C" stop-opacity="0" />
+      <stop offset="20%" stop-color="#A3C9E2" stop-opacity="0.4" />
+      <stop offset="50%" stop-color="#E2A071" stop-opacity="0.6" />
+      <stop offset="80%" stop-color="#C9A96E" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#08284C" stop-opacity="0" />
     </linearGradient>
 
-    <linearGradient id="waveGrad2" x1="100%" y1="0%" x2="0%" y2="0%">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.3" />
-      <stop offset="50%" stop-color="#818CF8" stop-opacity="0.4" />
-      <stop offset="100%" stop-color="#08284C" stop-opacity="0.1" />
+    <!-- Flowing Wave Gradient -->
+    <linearGradient id="flowWave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#08284C" stop-opacity="0.2" />
+      <stop offset="30%" stop-color="#A3C9E2" stop-opacity="0.5">
+        <animate attributeName="stop-color" values="#A3C9E2;#E2A071;#C9A96E;#A3C9E2" dur="8s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="70%" stop-color="#E2A071" stop-opacity="0.4">
+        <animate attributeName="stop-color" values="#E2A071;#C9A96E;#A3C9E2;#E2A071" dur="8s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%" stop-color="#08284C" stop-opacity="0.2" />
     </linearGradient>
 
-    <filter id="waveGlow">
+    <filter id="dividerGlow">
       <feGaussianBlur stdDeviation="3" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
@@ -28,46 +31,54 @@
   </defs>
 
   <style>
-    @keyframes waveMove1 {
+    @keyframes waveGlide1 {
       0% { transform: translateX(0); }
-      50% { transform: translateX(-50px); }
+      50% { transform: translateX(-40px); }
       100% { transform: translateX(0); }
     }
-    @keyframes waveMove2 {
+    @keyframes waveGlide2 {
       0% { transform: translateX(0); }
-      50% { transform: translateX(50px); }
+      50% { transform: translateX(40px); }
       100% { transform: translateX(0); }
     }
-    .wave-back {
-      animation: waveMove2 8s ease-in-out infinite;
-      filter: url(#waveGlow);
+    @keyframes centerBeaconPulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.6); opacity: 1; }
     }
-    .wave-front {
-      animation: waveMove1 6s ease-in-out infinite;
-      filter: url(#waveGlow);
+    .wave-l1 {
+      animation: waveGlide1 9s ease-in-out infinite;
+      filter: url(#dividerGlow);
     }
-    .glimmer-dot {
-      animation: dotPulse 3s ease-in-out infinite;
+    .wave-l2 {
+      animation: waveGlide2 12s ease-in-out infinite;
+      opacity: 0.6;
     }
-    @keyframes dotPulse {
-      0%, 100% { opacity: 0.2; transform: scale(0.8); }
-      50% { opacity: 0.9; transform: scale(1.4); }
+    .center-gem {
+      transform-origin: 600px 35px;
+      animation: centerBeaconPulse 3s ease-in-out infinite;
     }
   </style>
 
-  <!-- Background Subtle Flow -->
-  <path class="wave-back" fill="url(#waveGrad2)" d="M0,35 C150,15 350,55 500,30 C650,5 850,45 1000,25 C1100,10 1200,35 1300,30 L1300,60 L0,60 Z" />
+  <!-- Flowing Glacier Under-Wave (Layer 2) -->
+  <path class="wave-l2" fill="url(#flowWave)" d="M0,45 C200,25 380,55 580,35 C780,15 980,45 1200,30 L1200,70 L0,70 Z" />
 
-  <!-- Front Dynamic Glowing Wave -->
-  <path class="wave-front" fill="url(#waveGrad1)" d="M-100,25 C100,45 250,10 450,35 C650,55 800,15 1000,35 C1150,50 1250,20 1350,30 L1350,60 L-100,60 Z" />
+  <!-- Flowing Alpenglow Ridge Wave (Layer 1) -->
+  <path class="wave-l1" fill="url(#flowWave)" d="M-50,38 C150,55 350,20 550,42 C750,58 950,25 1150,40 L1250,40 L1250,70 L-50,70 Z" />
 
-  <!-- Glowing Crest Peak Line -->
-  <path d="M0,28 C200,42 400,18 600,32 C800,46 1000,22 1200,34" fill="none" stroke="#A3C9E2" stroke-width="1.2" stroke-opacity="0.7" stroke-dasharray="4,4">
-    <animate attributeName="stroke-dashoffset" values="0;40" dur="4s" repeatCount="indefinite" />
-  </path>
+  <!-- Alpine Hairline Divider (Matching index.css .section-divider) -->
+  <line x1="50" y1="35" x2="1150" y2="35" stroke="url(#dividerGrad)" stroke-width="1.2" />
 
-  <!-- Ambient Light Center Glint -->
-  <circle cx="600" cy="30" r="3" fill="#FFFFFF" class="glimmer-dot" />
-  <circle cx="280" cy="22" r="2" fill="#64BEFF" class="glimmer-dot" style="animation-delay: 1s;" />
-  <circle cx="920" cy="28" r="2" fill="#E2A071" class="glimmer-dot" style="animation-delay: 2s;" />
+  <!-- Center Glowing Summit Diamond (Directly from index.css .section-divider::after) -->
+  <g class="center-gem">
+    <polygon points="600,28 607,35 600,42 593,35" fill="#E2A071" filter="url(#dividerGlow)" />
+    <circle cx="600" cy="35" r="2.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- Floating Glacial Starlight Motifs -->
+  <circle cx="380" cy="32" r="1.5" fill="#A3C9E2" opacity="0.6">
+    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="3s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="820" cy="38" r="1.5" fill="#C9A96E" opacity="0.6">
+    <animate attributeName="opacity" values="0.8;0.2;0.8" dur="3.5s" repeatCount="indefinite" />
+  </circle>
 </svg>

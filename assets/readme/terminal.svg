@@ -1,118 +1,176 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 360" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 480" width="100%" height="100%">
   <defs>
-    <linearGradient id="termBg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#0A0E17" />
-      <stop offset="100%" stop-color="#030712" />
+    <!-- Dark Obsidian & Navy Body Gradient -->
+    <linearGradient id="termBgDark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#061220" />
+      <stop offset="100%" stop-color="#02050A" />
     </linearGradient>
-    <linearGradient id="termBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#64BEFF" stop-opacity="0.4" />
-      <stop offset="50%" stop-color="#A3C9E2" stop-opacity="0.1" />
-      <stop offset="100%" stop-color="#E2A071" stop-opacity="0.3" />
+
+    <!-- Title Bar Gradient -->
+    <linearGradient id="termHeaderBg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#08284C" />
+      <stop offset="100%" stop-color="#0A1828" />
     </linearGradient>
+
+    <!-- Cursor Glow Filter -->
+    <filter id="cursorGlow">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
   </defs>
 
   <style>
-    @keyframes blink {
+    @keyframes termBlink {
       0%, 49% { opacity: 1; }
       50%, 100% { opacity: 0; }
     }
-    @keyframes lineFade1 {
-      0%, 15% { opacity: 0; transform: translateY(4px); }
-      20%, 100% { opacity: 1; transform: translateY(0); }
+    @keyframes lineAppear1 { 0% { opacity: 0; } 5% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear2 { 0%, 8% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear3 { 0%, 18% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear4 { 0%, 28% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear5 { 0%, 38% { opacity: 0; } 45% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear6 { 0%, 48% { opacity: 0; } 55% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear7 { 0%, 58% { opacity: 0; } 65% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear8 { 0%, 68% { opacity: 0; } 75% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear9 { 0%, 78% { opacity: 0; } 85% { opacity: 1; } 100% { opacity: 1; } }
+    @keyframes lineAppear10 { 0%, 88% { opacity: 0; } 95% { opacity: 1; } 100% { opacity: 1; } }
+
+    .term-line-1 { animation: lineAppear1 12s infinite; }
+    .term-line-2 { animation: lineAppear2 12s infinite; }
+    .term-line-3 { animation: lineAppear3 12s infinite; }
+    .term-line-4 { animation: lineAppear4 12s infinite; }
+    .term-line-5 { animation: lineAppear5 12s infinite; }
+    .term-line-6 { animation: lineAppear6 12s infinite; }
+    .term-line-7 { animation: lineAppear7 12s infinite; }
+    .term-line-8 { animation: lineAppear8 12s infinite; }
+    .term-line-9 { animation: lineAppear9 12s infinite; }
+    .term-line-10 { animation: lineAppear10 12s infinite; }
+
+    .cursor-active {
+      animation: termBlink 0.9s infinite;
     }
-    @keyframes lineFade2 {
-      0%, 35% { opacity: 0; transform: translateY(4px); }
-      40%, 100% { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes lineFade3 {
-      0%, 55% { opacity: 0; transform: translateY(4px); }
-      60%, 100% { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes lineFade4 {
-      0%, 75% { opacity: 0; transform: translateY(4px); }
-      80%, 100% { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes lineFade5 {
-      0%, 88% { opacity: 0; transform: translateY(4px); }
-      92%, 100% { opacity: 1; transform: translateY(0); }
-    }
-    .term-text {
-      font-family: 'SF Mono', Monaco, 'Fira Code', 'Roboto Mono', Consolas, monospace;
-      font-size: 13.5px;
-      letter-spacing: 0.04em;
-    }
-    .cursor { animation: blink 1s step-end infinite; }
-    .line-1 { animation: lineFade1 8s ease forwards infinite; }
-    .line-2 { animation: lineFade2 8s ease forwards infinite; }
-    .line-3 { animation: lineFade3 8s ease forwards infinite; }
-    .line-4 { animation: lineFade4 8s ease forwards infinite; }
-    .line-5 { animation: lineFade5 8s ease forwards infinite; }
   </style>
 
-  <!-- Terminal Window Background -->
-  <rect x="2" y="2" width="846" height="356" rx="16" fill="url(#termBg)" stroke="url(#termBorder)" stroke-width="1.5" />
+  <!-- Outer Shadow & Window Frame -->
+  <rect x="5" y="5" width="990" height="470" rx="14" fill="url(#termBgDark)" stroke="rgba(163, 201, 226, 0.25)" stroke-width="1.2" />
+  
+  <!-- Title Bar Header (Alpine Navy) -->
+  <rect x="5" y="5" width="990" height="38" rx="14" fill="url(#termHeaderBg)" />
+  <rect x="5" y="25" width="990" height="18" fill="url(#termHeaderBg)" />
+  <line x1="5" y1="43" x2="995" y2="43" stroke="rgba(163, 201, 226, 0.15)" stroke-width="1" />
 
-  <!-- Terminal Title Bar -->
-  <path d="M2,18 Q2,2 18,2 L832,2 Q848,2 848,18 L848,42 L2,42 Z" fill="#0D1524" />
-  <line x1="2" y1="42" x2="848" y2="42" stroke="#1E2D4A" stroke-width="1" />
+  <!-- macOS Window Dots -->
+  <circle cx="28" cy="24" r="6" fill="#EF4444" />
+  <circle cx="48" cy="24" r="6" fill="#F59E0B" />
+  <circle cx="68" cy="24" r="6" fill="#10B981" />
 
-  <!-- Window Control Buttons (macOS style) -->
-  <circle cx="24" cy="22" r="6" fill="#FF5F56" />
-  <circle cx="44" cy="22" r="6" fill="#FFBD2E" />
-  <circle cx="64" cy="22" r="6" fill="#27C93F" />
-
-  <!-- Title Text -->
-  <text x="425" y="26" text-anchor="middle" fill="#64BEFF" font-family="'Inter', sans-serif" font-size="12" font-weight="600" letter-spacing="0.1em">
-    🏔️ mountaineer-mallu — bash — 80x24
+  <!-- Window Title -->
+  <text x="500" y="28" text-anchor="middle" fill="#A3C9E2" font-family="'Space Grotesk', -apple-system, sans-serif" font-size="11.5" font-weight="600" letter-spacing="2">
+    zsh  —  mountaineer_mallu@alpine-basecamp: ~/deploy  (120 FPS Cluster)
   </text>
 
-  <!-- Terminal Content Lines -->
-  <!-- Line 1: Command Entry -->
-  <g transform="translate(30, 80)" class="term-text">
-    <text x="0" y="0" fill="#E2A071" font-weight="bold">summit@alpine-node</text>
-    <text x="165" y="0" fill="#A3C9E2">:</text>
-    <text x="180" y="0" fill="#64BEFF">~/mountaineer_mallu</text>
-    <text x="345" y="0" fill="#FFFFFF">$</text>
-    <text x="365" y="0" fill="#F8FAF9" font-weight="600">docker compose up -d --build</text>
-  </g>
+  <!-- ==================== TERMINAL BODY OUTPUT ==================== -->
+  <g transform="translate(30, 75)" font-family="'Fira Code', 'Courier New', monospace" font-size="12.5" xml:space="preserve">
+    
+    <!-- Line 1: Command Invocation -->
+    <g class="term-line-1">
+      <text y="0">
+        <tspan fill="#A3C9E2" font-weight="bold">basecamp@alps</tspan><tspan fill="#E2A071">:</tspan><tspan fill="#38BDF8">~/mountaineer_mallu</tspan><tspan fill="#F8FAF9">$ </tspan>
+        <tspan fill="#E2A071" font-weight="bold">docker compose up -d --build</tspan>
+      </text>
+    </g>
 
-  <!-- Line 2: Build Stage -->
-  <g transform="translate(30, 120)" class="term-text line-1">
-    <text x="0" y="0" fill="#4FACFE">⠿</text>
-    <text x="18" y="0" fill="#94A3B8">[1/3] Building client environment (Vite + React 19 + Tailwind v4)...</text>
-    <text x="690" y="0" fill="#43E97B" font-weight="bold">[DONE 14.4s]</text>
-  </g>
+    <!-- Line 2: Build Context -->
+    <g class="term-line-2">
+      <text y="28">
+        <tspan fill="#A3C9E2">[+] Building 4.8s (18/18) FINISHED</tspan>
+        <tspan fill="#C9A96E">                          [docker:alpine-cluster]</tspan>
+      </text>
+    </g>
 
-  <!-- Line 3: Multi-Stage Runner -->
-  <g transform="translate(30, 160)" class="term-text line-2">
-    <text x="0" y="0" fill="#4FACFE">⠿</text>
-    <text x="18" y="0" fill="#94A3B8">[2/3] Initializing Node 20 Alpine runner &amp; connection pools...</text>
-    <text x="690" y="0" fill="#43E97B" font-weight="bold">[DONE 4.1s]</text>
-  </g>
+    <!-- Line 3: Container spin up -->
+    <g class="term-line-3">
+      <text y="56">
+        <tspan fill="#10B981">✔</tspan> <tspan fill="#F8FAF9">Network mountaineer_mesh       </tspan> <tspan fill="#10B981">Created</tspan>
+      </text>
+      <text y="78">
+        <tspan fill="#10B981">✔</tspan> <tspan fill="#F8FAF9">Container mm-redis-cache       </tspan> <tspan fill="#10B981">Healthy (port 6379)</tspan>
+      </text>
+      <text y="100">
+        <tspan fill="#10B981">✔</tspan> <tspan fill="#F8FAF9">Container mm-mongo-primary     </tspan> <tspan fill="#10B981">Healthy (replica set ready)</tspan>
+      </text>
+      <text y="122">
+        <tspan fill="#10B981">✔</tspan> <tspan fill="#F8FAF9">Container mm-backend-cluster   </tspan> <tspan fill="#10B981">Started (workers: 8)</tspan>
+      </text>
+    </g>
 
-  <!-- Line 4: Services Started -->
-  <g transform="translate(30, 200)" class="term-text line-3">
-    <text x="0" y="0" fill="#22C55E">✔</text>
-    <text x="18" y="0" fill="#F8FAF9">Container <tspan fill="#64BEFF">mountaineer-mallu-mongo</tspan> Healthy (27017)</text>
-    <text x="540" y="0" fill="#E2A071">[Pool: 5-50]</text>
-  </g>
+    <!-- Line 4: Express Startup Banner -->
+    <g class="term-line-4">
+      <text y="156" fill="#A3C9E2">
+        ────────────────────────────────────────────────────────────────────────────
+      </text>
+      <text y="176">
+        <tspan fill="#E2A071" font-weight="bold">▲ MOUNTAINEER MALLU</tspan> <tspan fill="#F8FAF9">// ENTERPRISE CLUSTER INITIALIZED</tspan>
+      </text>
+      <text y="196">
+        <tspan fill="#A3C9E2">  [Environment] : </tspan><tspan fill="#10B981">production</tspan>
+        <tspan fill="#A3C9E2">  [Trust Proxy] : </tspan><tspan fill="#10B981">enabled (1 hop)</tspan>
+      </text>
+    </g>
 
-  <g transform="translate(30, 235)" class="term-text line-4">
-    <text x="0" y="0" fill="#22C55E">✔</text>
-    <text x="18" y="0" fill="#F8FAF9">Container <tspan fill="#64BEFF">mountaineer-mallu-redis</tspan> Healthy (6379)</text>
-    <text x="540" y="0" fill="#E2A071">[AOF: Active]</text>
-  </g>
+    <!-- Line 5: Database & Cache status -->
+    <g class="term-line-5">
+      <text y="222">
+        <tspan fill="#38BDF8">  [MongoDB 7]   : </tspan><tspan fill="#F8FAF9">Connected to cluster pool (poolSize: 10, ping: 1.8ms)</tspan>
+      </text>
+      <text y="242">
+        <tspan fill="#C9A96E">  [Redis 7.4]   : </tspan><tspan fill="#F8FAF9">Connected in-memory bus (pub/sub channels ready)</tspan>
+      </text>
+    </g>
 
-  <!-- Line 5: Online Status & Telemetry Link -->
-  <g transform="translate(30, 275)" class="term-text line-5">
-    <text x="0" y="0" fill="#22C55E">✔</text>
-    <text x="18" y="0" fill="#F8FAF9">Container <tspan fill="#64BEFF">mountaineer-mallu-app</tspan> Live on <tspan fill="#43E97B" font-weight="bold">http://localhost:5000</tspan></text>
-  </g>
+    <!-- Line 6: WebSockets & Spatial Audio -->
+    <g class="term-line-6">
+      <text y="268">
+        <tspan fill="#A3C9E2">  [Socket.io]   : </tspan><tspan fill="#10B981">WebSocket telemetry server listening on port 5000</tspan>
+      </text>
+      <text y="288">
+        <tspan fill="#E2A071">  [Weather API] : </tspan><tspan fill="#F8FAF9">Open-Meteo European Alps feed synced (4,809m Mont Blanc)</tspan>
+      </text>
+    </g>
 
-  <!-- Line 6: Ready Prompt with blinking cursor -->
-  <g transform="translate(30, 315)" class="term-text">
-    <text x="0" y="0" fill="#43E97B">●</text>
-    <text x="18" y="0" fill="#A3C9E2">Telemetry: 60/120 FPS WebGL soft aurora online &amp; gzip enabled</text>
-    <rect x="580" y="-12" width="8.5" height="16" fill="#64BEFF" class="cursor" />
+    <!-- Line 7: Health Check Probes -->
+    <g class="term-line-7">
+      <text y="318">
+        <tspan fill="#A3C9E2">basecamp@alps</tspan><tspan fill="#E2A071">:</tspan><tspan fill="#38BDF8">~/mountaineer_mallu</tspan><tspan fill="#F8FAF9">$ </tspan>
+        <tspan fill="#E2A071" font-weight="bold">curl -s http://localhost:5000/healthz | jq .status</tspan>
+      </text>
+    </g>
+
+    <!-- Line 8: Health Check Result -->
+    <g class="term-line-8">
+      <text y="342" fill="#10B981" font-weight="bold">
+        "healthy"  [uptime: 84320s, sockets: 48, memoryHeapMB: 32.1, lag: 0ms]
+      </text>
+    </g>
+
+    <!-- Line 9: Ready Prompt -->
+    <g class="term-line-9">
+      <text y="374">
+        <tspan fill="#10B981">● READY</tspan> <tspan fill="#F8FAF9">Alpine Gateway listening at </tspan><tspan fill="#38BDF8" text-decoration="underline">https://mountaineermallu.com</tspan>
+      </text>
+    </g>
+
+    <!-- Line 10: Interactive blinking prompt -->
+    <g class="term-line-10">
+      <text y="404">
+        <tspan fill="#A3C9E2">basecamp@alps</tspan><tspan fill="#E2A071">:</tspan><tspan fill="#38BDF8">~/mountaineer_mallu</tspan><tspan fill="#F8FAF9">$ </tspan>
+        <!-- Blinking Rectangular Cursor -->
+        <rect x="252" y="392" width="9" height="15" fill="#E2A071" class="cursor-active" filter="url(#cursorGlow)" />
+      </text>
+    </g>
+
   </g>
 </svg>
