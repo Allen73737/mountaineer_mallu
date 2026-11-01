@@ -23,54 +23,56 @@ interface SectionConfig {
 }
 
 const THEME_PALETTES: Record<string, SectionConfig> = {
+    // One brand palette for the whole site: sections alternate between a cool glacier mood and a warm
+    // alpenglow mood (navy / glacier / sunrise / pearl only), so nothing glows pink, green or neon behind them.
     hero: {
-        dark: { color1: '#00F2FE', color2: '#6A11CB', speed: 0.5, scale: 1.6, brightness: 1.1 }, // Radiant Glacier Sapphire & Aurora Violet
-        light: { color1: '#38bdf8', color2: '#818cf8', speed: 0.4, scale: 1.5, brightness: 1.0, isBlueLight: true }
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#cfe0ee', color2: '#dfe7ef', speed: 0.3, scale: 1.4, brightness: 0.75 }
     },
     mission: {
-        dark: { color1: '#FF007F', color2: '#7F00FF', speed: 0.5, scale: 1.4, brightness: 1.05 }, // Rose & Deep Violet
-        light: { color1: '#ffc3a0', color2: '#ffafbd', speed: 0.4, scale: 1.3, brightness: 0.85 }  // Rose Gold & Peach Sunrise
+        dark: { color1: '#4A6A9C', color2: '#C9805A', speed: 0.38, scale: 1.4, brightness: 1.1 },
+        light: { color1: '#f1dccb', color2: '#e6e9ee', speed: 0.3, scale: 1.3, brightness: 0.75 }
     },
     stories: {
-        dark: { color1: '#00F2FE', color2: '#4FACFE', speed: 0.6, scale: 1.6, brightness: 1.1 }, // Glacier Sky & Sapphire
-        light: { color1: '#a1c4fd', color2: '#c2e9fb', speed: 0.45, scale: 1.4, brightness: 0.9 }  // Crisp Ice Blue
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#cfe0ee', color2: '#dfe7ef', speed: 0.3, scale: 1.4, brightness: 0.75 }
     },
     events: {
-        dark: { color1: '#43E97B', color2: '#38F9D7', speed: 0.55, scale: 1.5, brightness: 1.0 }, // Aurora Green & Teal
-        light: { color1: '#d4fc79', color2: '#96e6a1', speed: 0.4, scale: 1.3, brightness: 0.85 }  // Fresh Alpine Dew
+        dark: { color1: '#4A6A9C', color2: '#C9805A', speed: 0.38, scale: 1.4, brightness: 1.1 },
+        light: { color1: '#f1dccb', color2: '#e6e9ee', speed: 0.3, scale: 1.3, brightness: 0.75 }
     },
     gallery: {
-        dark: { color1: '#FA709A', color2: '#FEE140', speed: 0.45, scale: 1.3, brightness: 1.0 }, // Alpenglow Pink & Sunset Gold
-        light: { color1: '#38bdf8', color2: '#818cf8', speed: 0.5, scale: 1.5, brightness: 1.15, isBlueLight: true } // Cyan & Sapphire over Navy
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#A3C9E2', color2: '#4A6A8C', speed: 0.35, scale: 1.5, brightness: 0.9, isBlueLight: true }
     },
     community: {
-        dark: { color1: '#6A11CB', color2: '#2575FC', speed: 0.6, scale: 1.5, brightness: 1.1 }, // Deep Space Violet & Blue
-        light: { color1: '#00f2fe', color2: '#4facfe', speed: 0.5, scale: 1.5, brightness: 1.15, isBlueLight: true } // Glacier Blue over Navy
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#A3C9E2', color2: '#4A6A8C', speed: 0.35, scale: 1.5, brightness: 0.9, isBlueLight: true }
     },
     team: {
-        dark: { color1: '#1a2a6c', color2: '#fdbb2d', speed: 0.5, scale: 1.4, brightness: 1.0 }, // Deep Alpine Blue & Sunrise Gold
-        light: { color1: '#fddb92', color2: '#d1fdff', speed: 0.35, scale: 1.2, brightness: 0.8 }  // Morning Mist Gold
+        dark: { color1: '#4A6A9C', color2: '#C9805A', speed: 0.38, scale: 1.4, brightness: 1.1 },
+        light: { color1: '#f1dccb', color2: '#e6e9ee', speed: 0.3, scale: 1.3, brightness: 0.75 }
     },
     reviews: {
-        dark: { color1: '#4b6cb7', color2: '#f857a6', speed: 0.6, scale: 1.5, brightness: 1.0 }, // Cosmic Indigo & Pink
-        light: { color1: '#ffc3a0', color2: '#ffafbd', speed: 0.4, scale: 1.3, brightness: 0.85 }  // Soft Peach & Rose Amber
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#cfe0ee', color2: '#dfe7ef', speed: 0.3, scale: 1.4, brightness: 0.75 }
     },
     merch: {
-        dark: { color1: '#ff0844', color2: '#43e97b', speed: 0.65, scale: 1.6, brightness: 1.05 }, // Neon Coral & Sea Green
-        light: { color1: '#ff9a9e', color2: '#ffecd2', speed: 0.45, scale: 1.4, brightness: 0.85 }  // Champagne Bloom & Sunrise Pink
+        dark: { color1: '#4A6A9C', color2: '#C9805A', speed: 0.38, scale: 1.4, brightness: 1.1 },
+        light: { color1: '#f1dccb', color2: '#e6e9ee', speed: 0.3, scale: 1.3, brightness: 0.75 }
     },
     contact: {
-        dark: { color1: '#00c6ff', color2: '#7f00ff', speed: 0.6, scale: 1.5, brightness: 1.1 }, // Electric Teal & Deep Violet
-        light: { color1: '#38bdf8', color2: '#c084fc', speed: 0.5, scale: 1.5, brightness: 1.15, isBlueLight: true } // Glacier Starburst & Cyan over Navy
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#A3C9E2', color2: '#4A6A8C', speed: 0.35, scale: 1.5, brightness: 0.9, isBlueLight: true }
     },
     dashboard: {
-        dark: { color1: '#00F2FE', color2: '#4FACFE', speed: 0.55, scale: 1.4, brightness: 1.15 }, // Tactical Sapphire & Electric Ice
-        light: { color1: '#e0f2fe', color2: '#c4b5fd', speed: 0.4, scale: 1.3, brightness: 0.9 }
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#cfe0ee', color2: '#dfe7ef', speed: 0.3, scale: 1.4, brightness: 0.75 }
     },
     default: {
-        dark: { color1: '#3A29FF', color2: '#FF94B4', speed: 0.6, scale: 1.5, brightness: 1.0 }, // React Bits Default Aurora
-        light: { color1: '#ffe259', color2: '#ffa751', speed: 0.4, scale: 1.3, brightness: 0.85 }
-    }
+        dark: { color1: '#4F86BC', color2: '#7E74B0', speed: 0.38, scale: 1.5, brightness: 1.15 },
+        light: { color1: '#cfe0ee', color2: '#dfe7ef', speed: 0.3, scale: 1.4, brightness: 0.75 }
+    },
 };
 
 export const AtmosphericBackground: React.FC = () => {
@@ -225,7 +227,7 @@ export const AtmosphericBackground: React.FC = () => {
             <div 
                 className={`w-full h-full transition-opacity duration-1000 ${
                     isDark 
-                        ? 'opacity-80' 
+                        ? 'opacity-100' 
                         : isBlueBackground 
                             ? 'opacity-85' 
                             : 'opacity-55'
@@ -235,8 +237,8 @@ export const AtmosphericBackground: React.FC = () => {
                     speed={config.speed || 0.5}
                     scale={config.scale || 1.5}
                     brightness={config.brightness || 1.0}
-                    color1={isDark ? (config.color1 || '#00c6ff') : (config.color1 || '#38bdf8')}
-                    color2={isDark ? (config.color2 || '#7f00ff') : (config.color2 || '#818cf8')}
+                    color1={isDark ? (config.color1 || '#00c6ff') : (config.color1 || '#7EAACB')}
+                    color2={isDark ? (config.color2 || '#7f00ff') : (config.color2 || '#9C93B5')}
                     noiseFrequency={2.5}
                     noiseAmplitude={1.0}
                     bandHeight={0.5}

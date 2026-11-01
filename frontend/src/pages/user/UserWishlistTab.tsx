@@ -4,24 +4,32 @@ import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usersApi } from '../../lib/api';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { WishlistSkeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 export const UserWishlistTab = () => {
     const [wishlist, setWishlist] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    // A failed load shows an error with retry, not the empty state (which would wrongly say there's nothing)
+    const [loadError, setLoadError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         const fetchWishlist = async () => {
+            setLoading(true);
+            setLoadError(false);
             try {
                 const data = await usersApi.getWishlist();
                 setWishlist(data.wishlist || []);
             } catch (error) {
+                setLoadError(true);
                 console.error('Failed to load wishlist:', error);
             } finally {
                 setLoading(false);
             }
         };
         fetchWishlist();
-    }, []);
+    }, [reloadKey]);
 
     const handleRemove = async (itemId: string) => {
         try {
@@ -37,10 +45,16 @@ export const UserWishlistTab = () => {
     };
 
     if (loading) {
+        return <WishlistSkeleton />;
+    }
+
+    if (loadError) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <LoadingSpinner />
-            </div>
+            <ErrorState
+                title="Your wishlist didn't load"
+                message="We couldn't reach the server to fetch your saved gear. Nothing has been lost — try again in a moment."
+                onRetry={() => setReloadKey(k => k + 1)}
+            />
         );
     }
 

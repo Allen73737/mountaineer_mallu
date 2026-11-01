@@ -5,6 +5,7 @@ import { API_URL } from './constants';
 interface ApiOptions extends RequestInit {
     params?: Record<string, string | number>;
     retries?: number;
+    timeoutMs?: number;
 }
 
 // Global auth invalidation callback
@@ -16,7 +17,7 @@ let isDemoMode = false;
 export const setDemoMode = (demo: boolean) => { isDemoMode = demo; };
 
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-    const { params, retries = 0, ...fetchOptions } = options;
+    const { params, retries = 0, timeoutMs, ...fetchOptions } = options;
 
     let url = `${API_URL}/api${endpoint}`;
     if (params) {
@@ -27,9 +28,18 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         url += `?${searchParams.toString()}`;
     }
 
+    // Adaptive timeout based on workload
+    const isAiRequest = endpoint.startsWith('/ai');
+    const isUploadRequest = fetchOptions.body instanceof FormData || endpoint.includes('upload');
+    const effectiveTimeout = timeoutMs ?? (isUploadRequest ? 60000 : (isAiRequest ? 45000 : 10000));
+
+    const timeoutSignal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+        ? AbortSignal.timeout(effectiveTimeout)
+        : undefined;
+
     const config: RequestInit = {
         credentials: 'include',
-        signal: fetchOptions.signal || (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(3000) : undefined),
+        signal: fetchOptions.signal || timeoutSignal,
         headers: {
             ...(!(fetchOptions.body instanceof FormData) && { 'Content-Type': 'application/json' }),
             ...fetchOptions.headers,
@@ -65,8 +75,12 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         return response.json();
     } catch (error: any) {
         // Fast-fail on auth check or initial settings to avoid blocking initial render
-        if (!error.status && retries < 1 && endpoint !== '/auth/me' && endpoint !== '/settings') {
-            await new Promise(resolve => setTimeout(resolve, 300));
+        const isTransientNetworkError = !error.status || error.status === 503 || error.status === 504;
+        const maxRetries = isUploadRequest ? 0 : 2;
+
+        if (isTransientNetworkError && retries < maxRetries && endpoint !== '/auth/me' && endpoint !== '/settings') {
+            const backoff = Math.min(300 * Math.pow(2, retries), 1500);
+            await new Promise(resolve => setTimeout(resolve, backoff));
             return request<T>(endpoint, { ...options, retries: retries + 1 });
         }
         throw error;

@@ -1,229 +1,263 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { switchTheme } from '../../lib/themeSwitch';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { X, LogIn, UserPlus, Settings, LogOut, Moon, Sun, Monitor, ShieldAlert, Mountain, BookOpen, Calendar, Image, Users, CloudSnow } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { X, LogIn, UserPlus, Settings, LogOut, Moon, Sun, Monitor, ShieldAlert, CloudSnow, ArrowUpRight, Instagram, Mail } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DynamicLogo } from '../ui/DynamicLogo';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useLenis } from '../ui/SmoothScrollProvider';
+import { daySlides, nightSlides, sceneImages } from '../../data/peaks';
+
+// Menu previews only need to fill half the screen
+const preview = (src: string) => src.replace('w=2560', 'w=1400');
 
 const sideNavLinks = [
-    { name: 'Mission', href: '#mission', icon: Mountain },
-    { name: 'Stories', href: '/stories', icon: BookOpen },
-    { name: 'Events', href: '/events', icon: Calendar },
-    { name: 'Gallery', href: '/gallery', icon: Image },
-    { name: 'Community', href: '/community', icon: Users },
+    { name: 'Mission', href: '/#mission', note: 'Why we climb', image: preview(sceneImages.missionDay.src) },
+    { name: 'Stories', href: '/stories', note: 'Field notes', image: preview(daySlides[1].src) },
+    { name: 'Events', href: '/events', note: 'Expeditions', image: preview(daySlides[2].src) },
+    { name: 'Gallery', href: '/gallery', note: 'The reel', image: preview(daySlides[3].src) },
+    { name: 'Community', href: '/community', note: 'Ropemates', image: preview(nightSlides[3].src) },
+    { name: 'Provisions', href: '/shop', note: 'Gear', image: preview(daySlides[4].src) },
+    { name: 'Core Team', href: '/team', note: 'The crew', image: preview(sceneImages.finaleDay.src) },
+    { name: 'Legacy Reviews', href: '/reviews', note: 'Debriefs', image: preview(sceneImages.posterDay.src) },
+    { name: 'Mission Control', href: '/contact', note: 'Base camp', image: preview(sceneImages.posterNight.src) },
 ];
 
+const EASE_CURTAIN = [0.76, 0, 0.24, 1] as const;
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Full-screen menu. A curtain wipes down over the page; the destinations rise line by line in large
+ * serif type, and hovering one brings up its photograph on the right. Account and appearance
+ * controls sit in the side column (below the links on phones). Closes with Escape, the close button
+ * or any navigation; page scroll is paused while it is open.
+ */
 export const SidePanel = () => {
     const { isSidebarOpen, setSidebarOpen, theme, setTheme, isSnowEffectEnabled, toggleSnowEffect } = useStore();
     const { isLoggedIn, user, logoutAsync } = useAuthStore();
+    const { lenis } = useLenis();
     const navigate = useNavigate();
+    const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [hovered, setHovered] = useState<number | null>(null);
+    const close = () => requestAnimationFrame(() => setSidebarOpen(false));
 
-    const containerVars: Variants = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.05, delayChildren: 0.1 }
-        }
+    // Close on Escape
+    useEffect(() => {
+        if (!isSidebarOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSidebarOpen(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isSidebarOpen, setSidebarOpen]);
+
+    // Freeze the page underneath while the curtain is down
+    useEffect(() => {
+        if (!isSidebarOpen) return;
+        lenis?.stop();
+        const prevOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+        return () => {
+            lenis?.start();
+            document.documentElement.style.overflow = prevOverflow;
+        };
+    }, [isSidebarOpen, lenis]);
+
+    useEffect(() => { if (!isSidebarOpen) setHovered(null); }, [isSidebarOpen]);
+
+    const listVars: Variants = { show: { transition: { staggerChildren: 0.055, delayChildren: 0.38 } } };
+    const lineVars: Variants = {
+        hidden: { y: '115%' },
+        show: { y: '0%', transition: { duration: 0.9, ease: EASE_OUT } },
+    };
+    const fadeVars: Variants = {
+        hidden: { opacity: 0, y: 16 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: EASE_OUT, delay: 0.75 } },
     };
 
-    const itemVars: Variants = {
-        hidden: { opacity: 0, x: 20 },
-        show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 250, damping: 25 } }
-    };
-
-    const ThemeButton = ({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) => (
+    const ThemeButton = ({ active, onClick, icon, label }: { active: boolean; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; icon: React.ReactNode; label: string }) => (
         <button
             onClick={onClick}
-            className={`flex items-center justify-center gap-1.5 p-2 rounded-xl transition-all duration-300 ${active ? 'bg-white/80 dark:bg-white/20 shadow-md text-alpine-navy dark:text-white' : 'text-alpine-navy/50 dark:text-white/40 hover:bg-black/5 dark:hover:bg-white/10'}`}
+            className={`relative flex items-center justify-center gap-1.5 p-2.5 rounded-xl transition-colors duration-300 cursor-pointer ${active ? 'text-alpine-navy' : 'text-white/50 hover:text-white/85'}`}
             title={label}
+            aria-label={label}
+            aria-pressed={active}
         >
-            {icon}
+            {active && <motion.span layoutId="theme-pill" transition={{ type: 'spring', stiffness: 420, damping: 34 }} className="absolute inset-0 rounded-xl bg-white shadow-md" />}
+            <span className="relative">{icon}</span>
         </button>
+    );
+
+    const currentIndex = sideNavLinks.findIndex(l => l.href === location.pathname);
+    const shown = hovered ?? (currentIndex >= 0 ? currentIndex : 0);
+
+    const sideColumn = (
+        <motion.div variants={fadeVars} className="flex flex-col gap-4 w-full">
+            {isLoggedIn && user ? (
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        {user.avatar ? (
+                            <img src={user.avatar} alt="" className="w-11 h-11 rounded-full border border-white/25 object-cover" />
+                        ) : (
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-alpine-blue to-alpine-glacier grid place-items-center font-bold text-alpine-navy">{user.name.charAt(0)}</div>
+                        )}
+                        <div className="min-w-0">
+                            <p className="font-semibold text-white truncate">{user.name}</p>
+                            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-alpine-sunrise">{user.role}</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Link to="/portal" onClick={close} className={`${(user.role === 'Admin' || user.role === 'SuperAdmin') ? '' : 'col-span-2'} flex items-center justify-center gap-2 py-2.5 rounded-full border border-white/20 hover:bg-white hover:text-alpine-navy text-white text-sm font-semibold transition-colors`}>
+                            <Settings size={14} /> Portal
+                        </Link>
+                        {(user.role === 'Admin' || user.role === 'SuperAdmin') && (
+                            <Link to="/summit-control-panel" onClick={close} className="flex items-center justify-center gap-2 py-2.5 rounded-full border border-red-400/40 text-red-300 hover:bg-red-500/20 text-sm font-semibold transition-colors">
+                                <ShieldAlert size={14} /> Admin
+                            </Link>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowLogoutConfirm(true)}
+                        className="self-start inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/50 hover:text-red-300 transition-colors cursor-pointer"
+                    >
+                        <LogOut size={13} /> Sign out
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-2">
+                    <Link to="/login" onClick={close} className="flex items-center justify-center gap-2 py-3 rounded-full bg-white text-alpine-navy text-sm font-semibold hover:bg-alpine-sunrise transition-colors">
+                        <LogIn size={15} /> Log in
+                    </Link>
+                    <Link to="/signup" onClick={close} className="flex items-center justify-center gap-2 py-3 rounded-full border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors">
+                        <UserPlus size={15} /> Join
+                    </Link>
+                </div>
+            )}
+
+            <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/10">
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/45">Appearance</span>
+                <div className="grid grid-cols-4 gap-1 bg-white/[0.06] border border-white/10 p-1 rounded-2xl">
+                    <ThemeButton active={theme === 'light'} onClick={e => switchTheme('light', setTheme, { x: e.clientX, y: e.clientY })} icon={<Sun size={15} />} label="Light" />
+                    <ThemeButton active={theme === 'dark'} onClick={e => switchTheme('dark', setTheme, { x: e.clientX, y: e.clientY })} icon={<Moon size={15} />} label="Dark" />
+                    <ThemeButton active={theme === 'system'} onClick={e => switchTheme('system', setTheme, { x: e.clientX, y: e.clientY })} icon={<Monitor size={15} />} label="System" />
+                    <ThemeButton active={isSnowEffectEnabled} onClick={() => toggleSnowEffect()} icon={<CloudSnow size={15} />} label="Snow" />
+                </div>
+            </div>
+        </motion.div>
     );
 
     return (
         <>
         <AnimatePresence>
             {isSidebarOpen && (
-                <>
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4 }}
-                        onClick={() => requestAnimationFrame(() => setSidebarOpen(false))}
-                        className="fixed inset-0 z-50 bg-black/30 dark:bg-black/60 backdrop-blur-md transition-all duration-500"
-                    />
+                <motion.div
+                    key="menu"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Main menu"
+                    data-lenis-prevent
+                    initial={{ clipPath: 'inset(0% 0% 100% 0%)' }}
+                    animate={{ clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 0.85, ease: EASE_CURTAIN } }}
+                    exit={{ clipPath: 'inset(100% 0% 0% 0%)', transition: { duration: 0.7, ease: EASE_CURTAIN } }}
+                    className="fixed inset-0 z-50 bg-[#061A31] dark:bg-[#05070C] text-white overflow-y-auto overscroll-contain"
+                >
+                    {/* Preview photographs (desktop): the hovered destination fills the right half */}
+                    <div aria-hidden="true" className="hidden lg:block absolute inset-y-0 right-0 w-[42%] overflow-hidden">
+                        <motion.div
+                            className="absolute inset-0"
+                            initial={{ clipPath: 'inset(100% 0% 0% 0%)' }}
+                            animate={{ clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 1.1, ease: EASE_CURTAIN, delay: 0.25 } }}
+                        >
+                            {sideNavLinks.map((link, i) => (
+                                <motion.img
+                                    key={link.name}
+                                    src={link.image}
+                                    alt=""
+                                    decoding="async"
+                                    initial={false}
+                                    animate={{ opacity: i === shown ? 1 : 0, scale: i === shown ? 1 : 1.12 }}
+                                    transition={{ opacity: { duration: 0.6 }, scale: { duration: 1.4, ease: EASE_OUT } }}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                />
+                            ))}
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#061A31] dark:from-[#05070C] via-[#061A31]/30 dark:via-[#05070C]/30 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+                            <AnimatePresence mode="wait">
+                                <motion.p
+                                    key={shown}
+                                    initial={{ opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -12 }}
+                                    transition={{ duration: 0.45, ease: EASE_OUT }}
+                                    className="absolute right-10 bottom-10 font-mono text-[11px] uppercase tracking-[0.35em] text-white/80"
+                                >
+                                    {String(shown + 1).padStart(2, '0')} · {sideNavLinks[shown].note}
+                                </motion.p>
+                            </AnimatePresence>
+                        </motion.div>
+                    </div>
 
-                    {/* Ultra Liquid Glass Floating Panel (Colorless crystal that refracts the background color!) */}
-                    <motion.div
-                        initial={{ x: '105%', opacity: 0, scale: 0.95 }}
-                        animate={{ x: 0, opacity: 1, scale: 1 }}
-                        exit={{ x: '105%', opacity: 0, scale: 0.95 }}
-                        transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-                        className="fixed top-2 sm:top-4 right-2 sm:right-4 bottom-2 sm:bottom-4 z-50 w-[50vw] min-w-[240px] sm:w-[380px] sm:min-w-0 rounded-3xl sm:rounded-[40px] bg-white/40 dark:bg-white/[0.08] backdrop-blur-[50px] backdrop-saturate-[250%] border border-white/60 dark:border-white/20 p-3 sm:p-7 pb-3 sm:pb-7 flex flex-col shadow-[0_30px_80px_-15px_rgba(0,0,0,0.25),inset_0_1px_3px_rgba(255,255,255,0.8),inset_0_-1px_2px_rgba(255,255,255,0.3)] dark:shadow-[0_30px_80px_-15px_rgba(0,0,0,0.6),inset_0_1px_3px_rgba(255,255,255,0.4),inset_0_-1px_2px_rgba(255,255,255,0.1)] overflow-hidden transition-all duration-500"
-                    >
-                        {/* Ultra Liquid Glass Top Arc Specular Reflection */}
-                        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/40 dark:from-white/20 via-white/10 to-transparent pointer-events-none rounded-t-[40px]" />
-                        <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-white/90 to-transparent shadow-[0_0_20px_rgba(255,255,255,0.9)]" />
-                        {/* Liquid Caustic Sheen sweep */}
-                        <div className="absolute -top-48 -right-48 w-96 h-96 bg-gradient-to-br from-white/30 dark:from-alpine-glacier/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-
+                    <motion.div initial="hidden" animate="show" className="relative min-h-full flex flex-col px-5 sm:px-8 md:px-12 pt-5 md:pt-7 pb-8">
                         {/* Header */}
-                        <motion.div variants={itemVars} initial="hidden" animate="show" className="flex items-center justify-between mb-3 sm:mb-8 shrink-0 relative z-10">
-                            <div className="p-1.5 sm:p-2 rounded-2xl inline-flex bg-white/20 dark:bg-white/10 border border-white/40 dark:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] backdrop-blur-xl">
-                                <DynamicLogo className="h-5 sm:h-7" showText={true} forceWhiteText={false} />
-                            </div>
+                        <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { delay: 0.45, duration: 0.6 } } }} className="flex items-center justify-between shrink-0">
+                            <Link to="/" onClick={close} aria-label="Home" className="inline-flex">
+                                <DynamicLogo className="h-7 md:h-8" showText={true} forceWhiteText={true} />
+                            </Link>
                             <button
-                                onClick={() => requestAnimationFrame(() => setSidebarOpen(false))}
-                                className="p-2 sm:p-2.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/25 border border-black/10 dark:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] text-alpine-navy dark:text-white hover:scale-110 hover:rotate-90 transition-all duration-300 cursor-pointer"
+                                onClick={close}
+                                aria-label="Close menu"
+                                className="group inline-flex items-center gap-3 pl-5 pr-1.5 py-1.5 rounded-full border border-white/20 hover:border-white/50 text-xs font-bold uppercase tracking-[0.2em] bg-[#061A31]/40 dark:bg-black/40 backdrop-blur-md transition-colors cursor-pointer"
                             >
-                                <X size={18} />
+                                Close
+                                <span className="grid place-items-center w-9 h-9 rounded-full bg-white text-alpine-navy transition-transform duration-500 group-hover:rotate-90"><X size={16} /></span>
                             </button>
                         </motion.div>
 
-                        {/* Navigation Links */}
-                        <motion.nav variants={containerVars} initial="hidden" animate="show" className="mb-3 sm:mb-8 shrink-0 relative z-10">
-                            <h4 className="text-[9px] sm:text-[10px] font-bold text-alpine-navy/60 dark:text-white/50 uppercase tracking-[0.25em] mb-1.5 sm:mb-2 px-2 flex items-center gap-2">
-                                <span>Navigate</span>
-                                <div className="h-[1px] flex-1 bg-alpine-navy/15 dark:bg-white/15" />
-                            </h4>
-                            <div className="space-y-1">
-                                {sideNavLinks.map((link) => {
-                                    const Icon = link.icon;
-                                    const isRoute = link.href.startsWith('/');
-                                    
-                                    const LinkContent = (
-                                        <motion.div
-                                            variants={itemVars}
-                                            whileHover={{ x: 6 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className="flex items-center gap-2.5 sm:gap-3 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-alpine-navy/80 dark:text-white/70 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/15 transition-all duration-300 group cursor-pointer border border-transparent hover:border-black/10 dark:hover:border-white/20 hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
-                                        >
-                                            <div className="p-1.5 sm:p-2 rounded-xl bg-black/5 dark:bg-white/5 group-hover:bg-black/10 dark:group-hover:bg-white/20 border border-black/5 dark:border-white/5 group-hover:border-black/15 dark:group-hover:border-white/20 transition-all duration-300 shadow-sm">
-                                                <Icon size={15} className="text-alpine-navy/70 dark:text-white/60 group-hover:text-alpine-navy dark:group-hover:text-white group-hover:scale-110 transition-transform duration-300" />
-                                            </div>
-                                            <span className="font-semibold text-[13px] sm:text-sm tracking-wide">{link.name}</span>
-                                            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-alpine-navy dark:text-white">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                </svg>
-                                            </div>
-                                        </motion.div>
+                        <div className="flex-1 flex flex-col lg:flex-row lg:items-end gap-10 lg:gap-16 mt-8 md:mt-10 lg:w-[58%]">
+                            {/* Destinations */}
+                            <motion.nav variants={listVars} aria-label="Main" className="flex-1 flex flex-col justify-center" onMouseLeave={() => setHovered(null)}>
+                                {sideNavLinks.map((link, i) => {
+                                    const isRoute = !link.href.includes('#');
+                                    const dim = hovered !== null && hovered !== i;
+                                    const content = (
+                                        <span className="flex items-baseline gap-3 md:gap-5 py-[0.12em]">
+                                            <span className="font-mono text-[10px] md:text-xs text-alpine-sunrise/80 tabular-nums w-6 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                                            <span className="block overflow-hidden pb-[0.08em] -mb-[0.08em]">
+                                                <motion.span variants={lineVars} className="block font-serif leading-[1.02] tracking-[-0.02em] text-[clamp(2rem,min(6.4vh,7vw),5rem)] transition-[transform,font-style] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/link:translate-x-3 group-hover/link:italic">
+                                                    {link.name}
+                                                </motion.span>
+                                            </span>
+                                            <ArrowUpRight className="w-5 h-5 md:w-7 md:h-7 self-center opacity-0 -translate-x-2 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all duration-500 text-alpine-sunrise" />
+                                        </span>
                                     );
-
+                                    const cls = `group/link block w-fit transition-opacity duration-500 ${dim ? 'opacity-30' : 'opacity-100'} ${i === currentIndex ? 'text-alpine-sunrise' : ''}`;
+                                    const hover = { onMouseEnter: () => setHovered(i), onFocus: () => setHovered(i) };
                                     return isRoute ? (
-                                        <Link key={link.name} to={link.href} onClick={() => requestAnimationFrame(() => setSidebarOpen(false))}>
-                                            {LinkContent}
-                                        </Link>
+                                        <Link key={link.name} to={link.href} onClick={close} className={cls} {...hover}>{content}</Link>
                                     ) : (
-                                        <a key={link.name} href={link.href} onClick={() => requestAnimationFrame(() => setSidebarOpen(false))}>
-                                            {LinkContent}
-                                        </a>
+                                        <a key={link.name} href={link.href} onClick={close} className={cls} {...hover}>{content}</a>
                                     );
                                 })}
-                            </div>
-                        </motion.nav>
+                            </motion.nav>
 
-                        <div className="border-t border-white/[0.06] mb-3 sm:mb-8 shrink-0 relative z-10" />
+                            {/* Account + appearance: under the links on phones, beside them on desktop */}
+                            <div className="w-full lg:w-[300px] shrink-0">{sideColumn}</div>
+                        </div>
 
-                        {/* Profile Content */}
-                        <motion.div
-                            variants={containerVars}
-                            initial="hidden"
-                            animate="show"
-                            className="flex-1 flex flex-col min-h-0 relative z-10"
-                        >
-                            {isLoggedIn && user ? (
-                                <motion.div variants={itemVars} className="space-y-2 sm:space-y-5">
-                                    <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2 p-2.5 sm:p-3.5 rounded-2xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.5)] backdrop-blur-xl hover:bg-black/10 dark:hover:bg-white/15 transition-all duration-300">
-                                        {user.avatar ? (
-                                            <img src={user.avatar} alt="Profile" className="w-9 h-9 sm:w-12 sm:h-12 rounded-full border-2 border-black/10 dark:border-white/30 object-cover shadow-[0_0_15px_rgba(0,0,0,0.1)] dark:shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
-                                        ) : (
-                                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-alpine-navy to-alpine-blue flex items-center justify-center text-sm sm:text-lg font-bold text-white shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white/20">
-                                                {user.name.charAt(0)}
-                                            </div>
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-[13px] sm:text-base text-alpine-navy dark:text-white tracking-wide leading-tight truncate">{user.name}</h3>
-                                            <p className="text-[10px] sm:text-xs text-alpine-navy/60 dark:text-white/60 truncate mt-0.5">{user.email}</p>
-                                            <div className="inline-flex mt-0.5 sm:mt-1.5 px-1.5 sm:px-2.5 py-0.5 rounded-full bg-alpine-navy/10 dark:bg-white/15 border border-alpine-navy/20 dark:border-white/30 text-[8px] sm:text-[10px] font-bold tracking-wider text-alpine-navy dark:text-white shadow-sm uppercase">
-                                                {user.role}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1 sm:space-y-2">
-                                        <Link
-                                            to="/portal"
-                                            onClick={() => setSidebarOpen(false)}
-                                            className="w-full relative overflow-hidden group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-2xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border border-black/10 dark:border-white/15 hover:border-black/20 dark:hover:border-white/30 text-alpine-navy dark:text-white transition-all duration-300 text-left shadow-[0_4px_15px_rgba(0,0,0,0.05),inset_0_1px_1px_rgba(255,255,255,0.4)]"
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                                            <Settings size={15} className="group-hover:rotate-90 transition-transform duration-500 relative z-10 text-alpine-navy dark:text-alpine-glacier" />
-                                            <span className="font-semibold text-[13px] sm:text-sm relative z-10 tracking-wide">Go to Portal</span>
-                                        </Link>
-                                        {(user.role === 'Admin' || user.role === 'SuperAdmin') && (
-                                            <Link
-                                                to="/summit-control-panel"
-                                                onClick={() => setSidebarOpen(false)}
-                                                className="w-full relative overflow-hidden group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 hover:border-red-500/50 text-red-600 dark:text-red-300 transition-all duration-300 text-left shadow-[0_4px_15px_rgba(239,68,68,0.15),inset_0_1px_1px_rgba(255,255,255,0.3)]"
-                                            >
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                                                <ShieldAlert size={15} className="group-hover:scale-110 transition-transform duration-300 relative z-10 text-red-600 dark:text-red-400" />
-                                                <span className="font-semibold text-[13px] sm:text-sm relative z-10 tracking-wide">Mission Control</span>
-                                            </Link>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            ) : (
-                                <motion.div variants={itemVars} className="space-y-2 sm:space-y-4">
-                                    <p className="text-alpine-navy/80 dark:text-white/70 text-[12px] sm:text-sm mb-3 sm:mb-6 leading-relaxed font-medium">
-                                        Join the premier Malayalee hiking community in Europe. Connect, explore, and conquer.
-                                    </p>
-                                    <Link to="/login" onClick={() => setSidebarOpen(false)} className="w-full py-2.5 sm:py-3.5 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-alpine-navy via-blue-600 to-blue-500 dark:from-alpine-blue dark:via-blue-500 dark:to-blue-600 hover:opacity-95 text-white font-bold text-[13px] sm:text-sm flex items-center justify-center gap-2 transition-all shadow-[0_8px_25px_rgba(59,130,246,0.3),inset_0_1px_1px_rgba(255,255,255,0.5)] hover:-translate-y-0.5 duration-300">
-                                        <LogIn size={16} /> Login to Access
-                                    </Link>
-                                    <Link to="/signup" onClick={() => setSidebarOpen(false)} className="w-full py-2.5 sm:py-3.5 px-4 sm:px-5 rounded-2xl border border-black/20 dark:border-white/30 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-alpine-navy dark:text-white font-bold text-[13px] sm:text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                                        <UserPlus size={16} /> Create Account
-                                    </Link>
-                                </motion.div>
-                            )}
-
-                            <div className="flex-1" />
-
-                            {/* Theme Settings */}
-                            <motion.div variants={itemVars} className="pt-3 sm:pt-6 border-t border-black/10 dark:border-white/15 shrink-0 mt-2">
-                                <h4 className="text-[10px] sm:text-[11px] font-bold text-alpine-navy/50 dark:text-white/50 uppercase tracking-[0.2em] mb-2 sm:mb-3.5 px-1">Appearance</h4>
-                                <div className="grid grid-cols-2 gap-2 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 p-1.5 sm:p-2.5 rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.08),0_4px_10px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_4px_10px_rgba(0,0,0,0.1)] backdrop-blur-xl">
-                                    <ThemeButton active={theme === 'light'} onClick={() => setTheme('light')} icon={<Sun size={16} />} label="Light" />
-                                    <ThemeButton active={theme === 'dark'} onClick={() => setTheme('dark')} icon={<Moon size={16} />} label="Dark" />
-                                    <ThemeButton active={theme === 'system'} onClick={() => setTheme('system')} icon={<Monitor size={16} />} label="System" />
-                                    <ThemeButton active={isSnowEffectEnabled} onClick={() => toggleSnowEffect()} icon={<CloudSnow size={16} />} label="Snow" />
-                                </div>
-                            </motion.div>
+                        {/* Footer strip */}
+                        <motion.div variants={fadeVars} className="mt-10 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 lg:w-[58%] font-mono text-[10px] uppercase tracking-[0.3em] text-white/45">
+                            <span>47.42°N 10.98°E · Garmisch base camp</span>
+                            <span className="flex items-center gap-4">
+                                <a href="https://www.instagram.com/mountaineermallu/" target="_blank" rel="noreferrer" aria-label="Instagram" className="hover:text-white transition-colors"><Instagram size={16} /></a>
+                                <a href="mailto:info@mountaineermallu.com" aria-label="Email" className="hover:text-white transition-colors"><Mail size={16} /></a>
+                            </span>
                         </motion.div>
-
-                        {/* Footer — Logout */}
-                        {isLoggedIn && (
-                            <motion.div variants={itemVars} initial="hidden" animate="show" className="pt-2 sm:pt-4 border-t border-black/10 dark:border-white/15 shrink-0 mt-2 sm:mt-4 relative z-10">
-                                <button
-                                    onClick={() => setShowLogoutConfirm(true)}
-                                    className="w-full py-2 sm:py-3 px-3 sm:px-4 rounded-2xl text-red-500 dark:text-red-300 hover:text-white bg-red-500/10 hover:bg-red-500/25 font-bold tracking-wide text-[13px] sm:text-sm flex items-center justify-center gap-2 transition-all duration-300 group border border-red-500/20 hover:border-red-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
-                                >
-                                    <LogOut size={15} className="group-hover:-translate-x-1 transition-transform" /> Sign Out
-                                </button>
-                            </motion.div>
-                        )}
                     </motion.div>
-                </>
+                </motion.div>
             )}
         </AnimatePresence>
-        <ConfirmDialog 
+        <ConfirmDialog
             isOpen={showLogoutConfirm}
             title="Secure Sign Out"
             description="Are you sure you want to end your current session?"
@@ -241,18 +275,3 @@ export const SidePanel = () => {
         </>
     );
 };
-
-// Sub-components
-const ThemeButton = ({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) => (
-    <button
-        onClick={onClick}
-        className={`w-full flex flex-col items-center justify-center py-2.5 sm:py-3.5 px-2 rounded-xl transition-all duration-300 relative ${
-            active 
-                ? 'bg-alpine-navy dark:bg-gradient-to-br dark:from-white dark:via-white/90 dark:to-white/70 text-white dark:text-alpine-navy shadow-[0_4px_15px_rgba(0,0,0,0.2)] dark:shadow-[0_4px_15px_rgba(255,255,255,0.4),inset_0_1px_1px_rgba(255,255,255,0.9)] scale-[1.03] border border-transparent dark:border-white font-bold' 
-                : 'text-alpine-navy/70 dark:text-white/70 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/15 border border-transparent hover:border-black/10 dark:hover:border-white/20'
-            }`}
-    >
-        <div className={`mb-1 sm:mb-1.5 transition-transform duration-300 ${active ? 'scale-110' : ''}`}>{icon}</div>
-        <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.15em] uppercase">{label}</span>
-    </button>
-);

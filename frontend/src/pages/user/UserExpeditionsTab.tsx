@@ -6,6 +6,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useAdaptiveTheme } from '../../store/useAdaptiveTheme';
 import { Link } from 'react-router-dom';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { ExpeditionTabSkeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 // Simple Custom Calendar Component
 const CustomCalendar = ({ expeditions }: { expeditions: any[] }) => {
@@ -125,12 +127,16 @@ export const UserExpeditionsTab = () => {
         }
     };
 
+    // A failed load shows an error with retry, not "no expeditions" (which would wrongly say there are none)
+    const [loadError, setLoadError] = useState(false);
     const fetchExpeditions = async () => {
+        setLoadError(false);
         try {
             const data = await usersApi.getMyExpeditions();
             setExpeditions(data.expeditions);
         } catch (error) {
             console.error('Failed to fetch expeditions:', error);
+            setLoadError(true);
         } finally {
             setLoading(false);
         }
@@ -188,12 +194,18 @@ export const UserExpeditionsTab = () => {
         }
     }, [upcomingExpeditions.length]);
 
-    if (loading) {
+    if (loadError && !loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <LoadingSpinner />
-            </div>
+            <ErrorState
+                title="Your expeditions didn't load"
+                message="We couldn't reach the server to fetch your expeditions. Nothing has been lost — try again in a moment."
+                onRetry={() => { setLoading(true); fetchExpeditions(); }}
+            />
         );
+    }
+
+    if (loading) {
+        return <ExpeditionTabSkeleton />;
     }
 
     return (
@@ -443,7 +455,7 @@ export const UserExpeditionsTab = () => {
                                 <motion.div 
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
                                     key={exp.eventId._id} 
-                                    className="p-4 sm:p-6 rounded-[2rem] bg-white/80 dark:bg-[#11141A]/90 border border-black/5 dark:border-white/5 shadow-xl hover:shadow-2xl backdrop-blur-xl flex flex-col md:flex-row gap-6 items-center group transition-all duration-500 hover:-translate-y-1 relative overflow-hidden"
+                                    className="p-4 sm:p-6 rounded-[2rem] bg-white/80 dark:bg-[#11141A]/90 border border-black/5 dark:border-white/5 shadow-xl hover:shadow-2xl backdrop-blur-xl flex flex-col md:flex-row gap-6 items-center group transition-[color,background-color,border-color,box-shadow] duration-500 hover:-translate-y-1 relative overflow-hidden"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-alpine-glacier/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                                     

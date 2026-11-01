@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { UploadCloud, Image as ImageIcon, Video, Loader2, CheckCircle, Wand2, X } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, Video, CheckCircle, Wand2, X } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { galleryApi, aiApi } from '../../lib/api';
 import { AnimatePresence } from 'framer-motion';
 import { UnsplashSearchPicker } from '../../components/ui/UnsplashSearchPicker';
@@ -179,7 +180,7 @@ export const UserMediaUploadTab = () => {
                             whileTap={{ scale: 0.98 }}
                             onClick={handleUpload}
                             disabled={uploading || !uploadFile || !uploadTitle}
-                            className="w-full py-3 sm:py-4 rounded-xl bg-alpine-glacier text-[#0A0D14] font-bold tracking-wide shadow-[0_0_30px_rgba(163,201,226,0.3)] hover:shadow-[0_0_40px_rgba(163,201,226,0.5)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-3 sm:py-4 rounded-xl bg-alpine-glacier text-[#0A0D14] font-bold tracking-wide shadow-[0_0_30px_rgba(163,201,226,0.3)] hover:shadow-[0_0_40px_rgba(163,201,226,0.5)] transition-[color,background-color,border-color,box-shadow] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {uploading ? <Loader2 className="animate-spin" size={20} /> : <UploadCloud size={20} />}
                             {uploading ? 'Uploading...' : 'Submit to Editors'}
@@ -228,7 +229,7 @@ export const UserMediaUploadTab = () => {
                                         <motion.div 
                                             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}
                                             key={img.id} 
-                                            className="group relative aspect-square rounded-3xl overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_20px_50px_rgba(163,201,226,0.3)] transition-all duration-500 border border-white/10 hover:border-alpine-glacier/50"
+                                            className="group relative aspect-square rounded-3xl overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_20px_50px_rgba(163,201,226,0.3)] transition-[color,background-color,border-color,box-shadow] duration-500 border border-white/10 hover:border-alpine-glacier/50"
                                             onClick={() => {
                                                 setUnsplashUrl(img.url);
                                                 setUploadFile(null); // Clear file upload if they choose unsplash

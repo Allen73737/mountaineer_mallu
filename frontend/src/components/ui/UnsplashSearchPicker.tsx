@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, Image as ImageIcon, X, ExternalLink, CheckCircle } from 'lucide-react';
+import { Search, Image as ImageIcon, X, ExternalLink, CheckCircle } from 'lucide-react';
+import { Loader2 } from './BrandLoader';
 import { aiApi } from '../../lib/api';
 
 interface UnsplashImage {

@@ -1,159 +1,133 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 import { useDeviceOptimization } from '../../lib/deviceOptimization';
 
-type CursorState = 'default' | 'button' | 'gallery' | 'text' | 'hero' | 'hidden';
+type CursorState = 'default' | 'link' | 'text' | 'view' | 'read' | 'play' | 'explore' | 'scroll';
 
+// Elements can ask for a labelled cursor with data-cursor="view|read|play|explore"
+const LABELS: Record<string, string> = { view: 'View', read: 'Read', play: 'Play', explore: 'Explore', scroll: 'Scroll' };
+
+/**
+ * "Summit compass" cursor (fine pointers only). A copper summit dot tracks the pointer exactly; a fine
+ * compass ring follows with a soft lag and inverts against whatever is underneath, so it reads on
+ * both day and night pages. Hovering links opens the ring; cards, photos and video turn it into a
+ * labelled disc; text fields hand back the native caret. Position is written straight to transforms
+ * from a rAF loop that only runs while the ring is catching up; states are CSS via data attributes,
+ * so moving the mouse never re-renders React.
+ */
 export const CustomCursor = () => {
     const { enableCustomCursor } = useDeviceOptimization();
-
     if (!enableCustomCursor) return null;
-
-    return <ActiveCustomCursor />;
+    return <SummitCursor />;
 };
 
-const ActiveCustomCursor = () => {
-    const [cursorState, setCursorState] = useState<CursorState>('default');
-    const [isVisible, setIsVisible] = useState(false);
-    const lastTargetRef = useRef<EventTarget | null>(null);
-
-    // Direct mouse coordinates
-    const mouseX = useMotionValue(-100);
-    const mouseY = useMotionValue(-100);
-
-    // Optimized snappy spring
-    const dotX = useSpring(mouseX, { damping: 32, stiffness: 450, mass: 0.1 });
-    const dotY = useSpring(mouseY, { damping: 32, stiffness: 450, mass: 0.1 });
+const SummitCursor = () => {
+    const rootRef = useRef<HTMLDivElement>(null);
+    const dotRef = useRef<HTMLDivElement>(null);
+    const ringRef = useRef<HTMLDivElement>(null);
+    const labelRef = useRef<HTMLSpanElement>(null);
 
     useEffect(() => {
-        // Disable on touch devices
-        if (typeof window === 'undefined' || window.innerWidth < 768) return;
+        if (!window.matchMedia('(pointer: fine)').matches || window.innerWidth < 768) return;
+        const root = rootRef.current, dot = dotRef.current, ring = ringRef.current, label = labelRef.current;
+        if (!root || !dot || !ring || !label) return;
 
-        let scheduled = false;
-        let lastEvent: MouseEvent | null = null;
+        const html = document.documentElement;
+        html.classList.add('has-mm-cursor');
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        const updatePosition = () => {
-            if (lastEvent) {
-                mouseX.set(lastEvent.clientX);
-                mouseY.set(lastEvent.clientY);
-            }
-            scheduled = false;
+        const target = { x: -100, y: -100 };
+        const ringPos = { x: -100, y: -100 };
+        let frame = 0;
+        let state: CursorState = 'default';
+        let lastEl: Element | null = null;
+
+        const render = () => {
+            frame = 0;
+            const ease = reduce ? 1 : 0.2;
+            ringPos.x += (target.x - ringPos.x) * ease;
+            ringPos.y += (target.y - ringPos.y) * ease;
+            dot.style.transform = `translate3d(${target.x}px, ${target.y}px, 0)`;
+            ring.style.transform = `translate3d(${ringPos.x}px, ${ringPos.y}px, 0)`;
+            if (Math.abs(target.x - ringPos.x) > 0.1 || Math.abs(target.y - ringPos.y) > 0.1) frame = requestAnimationFrame(render);
+        };
+        const schedule = () => { if (!frame) frame = requestAnimationFrame(render); };
+
+        const setState = (next: CursorState) => {
+            if (next === state) return;
+            state = next;
+            root.dataset.state = next;
+            if (LABELS[next]) label.textContent = LABELS[next];
         };
 
-        const onMouseMove = (e: MouseEvent) => {
-            if (document.body.classList.contains('is-scrolling')) return;
-            lastEvent = e;
-            if (!isVisible) setIsVisible(true);
-            if (!scheduled) {
-                scheduled = true;
-                requestAnimationFrame(updatePosition);
-            }
+        const classify = (el: Element | null): CursorState => {
+            if (!el) return 'default';
+            const hinted = el.closest<HTMLElement>('[data-cursor]');
+            const hint = hinted?.dataset.cursor;
+            if (hint && LABELS[hint]) return hint as CursorState;
+            if (el.closest('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=submit]):not([type=button]), textarea, [contenteditable="true"], select')) return 'text';
+            if (el.tagName === 'VIDEO') return 'play';
+            if (el.closest('.gallery-item')) return 'explore';
+            if (el.tagName === 'IMG' && el.closest('a, .cursor-pointer')) return 'view';
+            if (el.closest('a, button, [role="button"], label, summary, .cursor-pointer')) return 'link';
+            return 'default';
         };
 
-        const handleMouseLeave = () => setIsVisible(false);
-        const handleMouseEnter = () => setIsVisible(true);
-
-        const handleHover = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (!target || target === lastTargetRef.current) return;
-            lastTargetRef.current = target;
-
-            const tagName = target.tagName;
-            if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
-                setCursorState('text');
-                return;
+        const onMove = (e: PointerEvent) => {
+            if (e.pointerType !== 'mouse') return;
+            target.x = e.clientX;
+            target.y = e.clientY;
+            if (root.dataset.visible !== 'true') {
+                // Appear exactly at the pointer instead of flying in from the corner
+                ringPos.x = target.x; ringPos.y = target.y;
+                root.dataset.visible = 'true';
             }
-            if (tagName === 'A' || tagName === 'BUTTON') {
-                setCursorState('button');
-                return;
-            }
-
-            const closestInteractive = target.closest(
-                'a, button, [role="button"], .cursor-pointer, .gallery-item, .hero-section-cursor, [contenteditable="true"]'
-            );
-            if (closestInteractive) {
-                if (closestInteractive.classList.contains('gallery-item')) {
-                    setCursorState('gallery');
-                    return;
-                }
-                if (closestInteractive.classList.contains('hero-section-cursor')) {
-                    setCursorState('hero');
-                    return;
-                }
-                if (closestInteractive.getAttribute('contenteditable') === 'true') {
-                    setCursorState('text');
-                    return;
-                }
-                setCursorState('button');
-                return;
-            }
-
-            setCursorState('default');
+            schedule();
+        };
+        const onOver = (e: PointerEvent) => {
+            if (e.target === lastEl) return;
+            lastEl = e.target as Element;
+            setState(classify(lastEl));
+        };
+        const onLeave = (e: PointerEvent) => { if (!e.relatedTarget) root.dataset.visible = 'false'; };
+        const onDown = () => { root.dataset.down = 'true'; };
+        const onUp = () => { root.dataset.down = 'false'; };
+        // Content moves under a still pointer while scrolling: re-check what's beneath it
+        const onScroll = () => {
+            if (root.dataset.visible !== 'true') return;
+            const el = document.elementFromPoint(target.x, target.y);
+            if (el !== lastEl) { lastEl = el; setState(classify(el)); }
         };
 
-        window.addEventListener('mousemove', onMouseMove, { passive: true });
-        window.addEventListener('mouseout', handleMouseLeave, { passive: true });
-        window.addEventListener('mouseover', (e) => {
-            handleMouseEnter();
-            handleHover(e);
-        }, { passive: true });
-
+        window.addEventListener('pointermove', onMove, { passive: true });
+        window.addEventListener('pointerover', onOver, { passive: true });
+        window.addEventListener('pointerout', onLeave, { passive: true });
+        window.addEventListener('pointerdown', onDown, { passive: true });
+        window.addEventListener('pointerup', onUp, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
         return () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseout', handleMouseLeave);
+            if (frame) cancelAnimationFrame(frame);
+            html.classList.remove('has-mm-cursor');
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerover', onOver);
+            window.removeEventListener('pointerout', onLeave);
+            window.removeEventListener('pointerdown', onDown);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('scroll', onScroll);
         };
-    }, [mouseX, mouseY, isVisible]);
-
-    // Don't render on touch or during active scroll for 100% smooth scroll frame rate
-    if (typeof window === 'undefined' || window.innerWidth < 768) {
-        return null;
-    }
-
-    const dotVariants = {
-        default: { width: 24, height: 24, backgroundColor: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(0, 0, 0, 0.15)', x: "-50%", y: "-50%", opacity: 1 },
-        button: { width: 68, height: 68, backgroundColor: 'rgba(56, 189, 248, 0.18)', border: '1.5px solid rgba(56, 189, 248, 0.8)', x: "-50%", y: "-50%", opacity: 1 },
-        gallery: { width: 96, height: 96, backgroundColor: 'rgba(255, 255, 255, 0.15)', border: '1.5px solid rgba(255, 255, 255, 0.9)', x: "-50%", y: "-50%", opacity: 1 },
-        text: { width: 3, height: 36, backgroundColor: '#38bdf8', border: 'none', x: "-50%", y: "-50%", opacity: 1 },
-        hero: { width: 140, height: 140, backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.4)', x: "-50%", y: "-50%", opacity: 1 },
-        hidden: { width: 0, height: 0, opacity: 0 }
-    };
+    }, []);
 
     return (
-        <div className="custom-cursor fixed inset-0 pointer-events-none z-[10000] overflow-hidden">
-            <AnimatePresence>
-                {isVisible && (
-                    <motion.div
-                        className="absolute top-0 left-0 rounded-full flex items-center justify-center pointer-events-none shadow-sm"
-                        style={{ x: dotX, y: dotY }}
-                        variants={dotVariants}
-                        animate={cursorState}
-                        transition={{ type: "spring", stiffness: 450, damping: 30, mass: 0.1 }}
-                    >
-                        <AnimatePresence mode="wait">
-                            {cursorState === 'gallery' && (
-                                <motion.span
-                                    key="gallery-text"
-                                    initial={{ opacity: 0, scale: 0.6 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.6 }}
-                                    className="text-white font-serif font-black text-[11px] tracking-[0.25em] uppercase"
-                                >
-                                    Explore
-                                </motion.span>
-                            )}
-                            {cursorState === 'hero' && (
-                                <motion.div
-                                    key="hero-dot"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="w-2 h-2 rounded-full bg-white animate-pulse"
-                                />
-                            )}
-                        </AnimatePresence>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+        <div ref={rootRef} className="mm-cursor" data-state="default" data-visible="false" data-down="false" aria-hidden="true">
+            <div ref={ringRef} className="mm-cursor__ring">
+                <div className="mm-cursor__halo">
+                    <svg className="mm-cursor__ticks" viewBox="0 0 40 40">
+                        <path d="M20 1.5v4M20 34.5v4M1.5 20h4M34.5 20h4" />
+                    </svg>
+                </div>
+                <div className="mm-cursor__disc" />
+                <span ref={labelRef} className="mm-cursor__label">View</span>
+            </div>
+            <div ref={dotRef} className="mm-cursor__dot" />
         </div>
     );
 };

@@ -3,14 +3,21 @@ import { motion } from 'framer-motion';
 import { storiesApi, galleryApi } from '../../lib/api';
 import { CheckCircle, Clock, XCircle, FileText, Image as ImageIcon } from 'lucide-react';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { SubmissionsSkeleton, ImageWithSkeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 export const UserSubmissionsTab = () => {
     const [stories, setStories] = useState<any[]>([]);
     const [media, setMedia] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    // A failed load shows an error with retry, not the empty state (which would wrongly say there's nothing)
+    const [loadError, setLoadError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
+            setLoadError(false);
             try {
                 const [storiesData, mediaData] = await Promise.all([
                     storiesApi.getMyStories(),
@@ -19,13 +26,14 @@ export const UserSubmissionsTab = () => {
                 setStories(storiesData.stories || []);
                 setMedia(mediaData.items || []);
             } catch (error) {
+                setLoadError(true);
                 console.error('Failed to load submissions:', error);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, []);
+    }, [reloadKey]);
 
     const renderStatus = (status: string) => {
         switch (status) {
@@ -39,7 +47,17 @@ export const UserSubmissionsTab = () => {
     };
 
     if (loading) {
-        return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
+        return <SubmissionsSkeleton />;
+    }
+
+    if (loadError) {
+        return (
+            <ErrorState
+                title="Your submissions didn't load"
+                message="We couldn't reach the server to fetch your stories and uploads. Nothing has been lost — try again in a moment."
+                onRetry={() => setReloadKey(k => k + 1)}
+            />
+        );
     }
 
     return (
@@ -67,7 +85,7 @@ export const UserSubmissionsTab = () => {
                         ) : (
                             stories.map(story => (
                                 <div key={story._id} className="bg-black/5 dark:bg-black/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-black/5 dark:border-white/5 flex gap-3 sm:gap-4 hover:bg-black/10 dark:hover:bg-black/50 transition-colors">
-                                    <img src={story.image} alt={story.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl object-cover flex-shrink-0" />
+                                    <ImageWithSkeleton src={story.image} alt={story.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl object-cover flex-shrink-0" />
                                     <div className="flex-1 flex flex-col justify-center min-w-0">
                                         <h4 className="text-alpine-navy dark:text-white font-bold text-sm mb-1 line-clamp-1">{story.title}</h4>
                                         <p className="text-alpine-navy/50 dark:text-white/50 text-xs mb-2 sm:mb-3">{new Date(story.createdAt).toLocaleDateString()}</p>
@@ -96,7 +114,7 @@ export const UserSubmissionsTab = () => {
                                     {item.type === 'video' ? (
                                         <video src={item.url} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl object-cover flex-shrink-0" />
                                     ) : (
-                                        <img src={item.url} alt={item.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl object-cover flex-shrink-0" />
+                                        <ImageWithSkeleton src={item.url} alt={item.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl object-cover flex-shrink-0" />
                                     )}
                                     <div className="flex-1 flex flex-col justify-center min-w-0">
                                         <h4 className="text-alpine-navy dark:text-white font-bold text-sm mb-1 line-clamp-1">{item.title}</h4>

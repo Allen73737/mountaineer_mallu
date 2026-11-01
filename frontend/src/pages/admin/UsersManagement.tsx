@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Search, Trash2, Loader2, Shield } from 'lucide-react';
+import { Users, Search, Trash2, Shield } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { usersApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { TableRowSkeleton } from '../../components/ui/Skeleton';

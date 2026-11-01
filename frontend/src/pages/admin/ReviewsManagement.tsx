@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, CheckCircle, XCircle, Trash2, Loader2, MessageSquare, Edit2, Save, X, Sparkles, TrendingUp, ThumbsUp, ThumbsDown, RefreshCw, BarChart3, Quote } from 'lucide-react';
+import { Star, CheckCircle, XCircle, Trash2, MessageSquare, Edit2, Save, X, Sparkles, TrendingUp, ThumbsUp, ThumbsDown, RefreshCw, BarChart3, Quote } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { reviewsApi, aiApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { useAdminAction } from '../../store/useAdminAction';

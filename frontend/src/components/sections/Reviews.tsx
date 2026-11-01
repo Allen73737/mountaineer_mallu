@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { Star, Quote, Plus, X, Send, Loader2 } from 'lucide-react';
+import { Star, Quote, Plus, X, Send } from 'lucide-react';
+import { Loader2 } from '../ui/BrandLoader';
 import { reviewsApi } from '../../lib/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToast } from '../ui/Toast';
 import { LanguageInput } from '../ui/LanguageInput';
+import { LineReveal } from '../ui/LineReveal';
 
 const FALLBACK_REVIEWS = [
     {
@@ -20,6 +23,15 @@ const FALLBACK_REVIEWS = [
         rating: 5
     }
 ];
+
+/** Break a quote into subtitle-sized lines (~7 words, at most 4 lines; the last one ellipsised). */
+const subtitleLines = (text: string, perLine = 7, maxLines = 4) => {
+    const words = text.trim().split(/\s+/);
+    const lines: string[] = [];
+    for (let i = 0; i < words.length && lines.length < maxLines; i += perLine) lines.push(words.slice(i, i + perLine).join(' '));
+    if (words.length > perLine * maxLines) lines[maxLines - 1] += '…';
+    return lines;
+};
 
 export const Reviews = () => {
     const [reviews, setReviews] = useState<any[]>(FALLBACK_REVIEWS);
@@ -61,6 +73,13 @@ export const Reviews = () => {
         return () => clearInterval(timer);
     }, [isInView, reviews.length]);
 
+    useEffect(() => {
+        if (!isModalOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsModalOpen(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isModalOpen]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoggedIn) {
@@ -93,7 +112,7 @@ export const Reviews = () => {
             {ToastComponent}
 
             {/* Background massive typography */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10rem] md:text-[20rem] lg:text-[25rem] font-serif font-black text-black/[0.02] dark:text-white/[0.02] whitespace-nowrap pointer-events-none select-none z-0">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10rem] md:text-[20rem] lg:text-[25rem] font-serif font-normal text-alpine-navy/[0.02] dark:text-white/[0.02] whitespace-nowrap pointer-events-none select-none z-0">
                 LEGACY
             </div>
 
@@ -103,7 +122,7 @@ export const Reviews = () => {
             <div className="w-full max-w-5xl mx-auto relative z-10 text-center">
                 <div className="mb-12 md:mb-16">
                     <p className="text-alpine-blue dark:text-alpine-glacier text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3 md:mb-4">Testimonials</p>
-                    <h2 className="text-4xl md:text-6xl lg:text-[5rem] font-serif font-black tracking-tight mb-4 md:mb-6 text-[#0B0C10] dark:text-alpine-snow drop-shadow-sm leading-none m-0">Words from the Summit</h2>
+                    <h2 className="cine-title has-lines text-4xl md:text-6xl lg:text-[5rem] font-serif font-normal tracking-tight mb-4 md:mb-6 text-alpine-navy dark:text-alpine-snow [text-shadow:0_1px_2px_rgba(0,0,0,0.12)] leading-none m-0"><LineReveal>Words from the Summit</LineReveal></h2>
                     <div className="w-16 md:w-24 h-[2px] bg-gradient-to-r from-alpine-blue to-alpine-glacier dark:from-alpine-sunrise dark:to-alpine-gold mx-auto mb-6 md:mb-8" />
                     <button
                         onClick={() => {
@@ -137,8 +156,20 @@ export const Reviews = () => {
                             >
                                 <Quote className="w-10 h-10 md:w-14 md:h-14 mx-auto mb-6 md:mb-8 text-alpine-glacier/20" />
 
-                                <p className="text-xl md:text-3xl lg:text-4xl font-serif italic mb-8 md:mb-10 leading-relaxed text-alpine-navy/90 dark:text-alpine-snow/90 line-clamp-3">
-                                    "{current.content}"
+                                {/* Set like film subtitles: centred lines on a dark backing, arriving one after another */}
+                                <p className="mb-8 md:mb-10 text-base sm:text-lg md:text-2xl font-medium tracking-wide" aria-label={current.content}>
+                                    {subtitleLines(current.content).map((line, i) => (
+                                        <motion.span
+                                            key={i}
+                                            aria-hidden="true"
+                                            className="block"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.25, delay: 0.5 + i * 0.9 }}
+                                        >
+                                            <span className="subtitle-line">{line}</span>
+                                        </motion.span>
+                                    ))}
                                 </p>
 
                                 <div className="flex flex-col items-center gap-3">
@@ -177,7 +208,8 @@ export const Reviews = () => {
                             <button
                                 key={i}
                                 onClick={() => setIndex(i)}
-                                className="relative"
+                                aria-label={`Show review ${i + 1}`}
+                                className="tap-dot relative p-1.5"
                             >
                                 <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full transition-all duration-500 ${i === index ? 'bg-alpine-blue dark:bg-alpine-sunrise scale-125' : 'bg-black/15 dark:bg-white/15'}`} />
                                 {i === index && (
@@ -193,10 +225,10 @@ export const Reviews = () => {
                 )}
             </div>
 
-            {/* Review Modal */}
-            <AnimatePresence>
+            {/* Review Modal — portalled so section scroll transforms can't offset it */}
+            {createPortal(<AnimatePresence>
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -212,13 +244,15 @@ export const Reviews = () => {
                             className="relative w-full max-w-lg bg-white dark:bg-[#15171E] rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl border border-black/5 dark:border-white/10 z-10"
                         >
                             <button
+                                type="button"
+                                aria-label="Close"
                                 onClick={() => setIsModalOpen(false)}
                                 className="absolute top-4 md:top-6 right-4 md:right-6 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-[#0B0C10]/60 dark:text-white/60 hover:text-[#0B0C10] dark:hover:text-white"
                             >
                                 <X size={22} />
                             </button>
 
-                            <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#0B0C10] dark:text-white mb-2">Leave your Mark</h3>
+                            <h3 id="review-modal-title" className="text-2xl md:text-3xl font-serif font-medium text-alpine-navy dark:text-white mb-2">Leave your Mark</h3>
                             <p className="text-base md:text-xl text-[#0B0C10]/70 dark:text-alpine-snow/80 max-w-3xl mx-auto font-light mb-8 md:mb-12">Your review helps our community grow.</p>
 
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-6">
@@ -227,6 +261,8 @@ export const Reviews = () => {
                                         <button
                                             key={star}
                                             type="button"
+                                            aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                                            aria-pressed={rating === star}
                                             onMouseEnter={() => setHoveredStar(star)}
                                             onMouseLeave={() => setHoveredStar(0)}
                                             onClick={() => setRating(star)}
@@ -266,7 +302,7 @@ export const Reviews = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>, document.body)}
         </section>
     );
 };

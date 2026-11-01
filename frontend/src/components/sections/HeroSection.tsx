@@ -1,13 +1,19 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring, useMotionTemplate } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2, UserPlus, LogIn } from 'lucide-react';
-import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool } from '../../data/peaks';
+import { Sparkles, ArrowUpRight, ArrowDown } from 'lucide-react';
+import { Loader2 } from '../ui/BrandLoader';
+import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool, getHeroImageUrl, daySlides, nightSlides } from '../../data/peaks';
 import { useTranslation } from 'react-i18next';
 import { API_URL } from '../../lib/constants';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { PeakInfoSkeleton } from '../ui/Skeleton';
+import { useIntro, splitGraphemes } from '../../lib/intro';
+import { Magnetic } from '../ui/Magnetic';
+import { loadAlpineWeather, windLabel } from '../../lib/weather';
+import { AscentFilm } from '../ui/AscentFilm';
 
 // ─── Live Wallpaper: Starfield Canvas (Ultra Premium) ──────────────────
 const StarfieldCanvas: React.FC = () => {
@@ -20,10 +26,8 @@ const StarfieldCanvas: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let w = 0, h = 0;
-        const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
-        resize();
-        window.addEventListener('resize', resize, { passive: true });
+        let w = canvas.width = window.innerWidth;
+        let h = canvas.height = window.innerHeight;
 
         // Pre-render star sprites to eliminate 40,000+ per-second canvas arc calls!
         const createStarSprite = (size: number, cr: number, cg: number, cb: number) => {
@@ -75,6 +79,23 @@ const StarfieldCanvas: React.FC = () => {
             })),
         ];
 
+        // Fluid multi-ratio resize handler
+        const resize = () => {
+            const prevW = w || window.innerWidth;
+            const prevH = h || window.innerHeight;
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            if (stars.length > 0 && prevW > 0 && prevH > 0) {
+                const rx = w / prevW;
+                const ry = h / prevH;
+                stars.forEach(s => {
+                    s.x = Math.max(0, Math.min(w, s.x * rx));
+                    s.y = Math.max(0, Math.min(h, s.y * ry));
+                });
+            }
+        };
+        window.addEventListener('resize', resize, { passive: true });
+
         // Shooting stars system
         interface ShootingStar {
             x: number; y: number; len: number; speed: number;
@@ -111,6 +132,8 @@ const StarfieldCanvas: React.FC = () => {
 
         let tick = 0;
         let lastTime = 0;
+        let isVisible = true;
+
         const draw = (time: number = 0) => {
             if (document.hidden || !isVisible) {
                 animRef.current = 0;
@@ -226,7 +249,6 @@ const StarfieldCanvas: React.FC = () => {
             }
         };
 
-        let isVisible = true;
         let observer: IntersectionObserver | null = null;
         if (typeof IntersectionObserver !== 'undefined' && canvas) {
             observer = new IntersectionObserver(([entry]) => {
@@ -241,10 +263,21 @@ const StarfieldCanvas: React.FC = () => {
             observer.observe(canvas);
         }
 
+        const handleVisibilityChange = () => {
+            if (!document.hidden && isVisible && !animRef.current) {
+                animRef.current = requestAnimationFrame(draw);
+            } else if (document.hidden && animRef.current) {
+                cancelAnimationFrame(animRef.current);
+                animRef.current = 0;
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true });
+
         animRef.current = requestAnimationFrame(draw);
         return () => {
             if (animRef.current) cancelAnimationFrame(animRef.current);
             if (observer) observer.disconnect();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('resize', resize);
         };
     }, []);
@@ -261,9 +294,22 @@ const LightModeAtmosphere: React.FC = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        let w = 0, h = 0;
-        const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
-        resize();
+        let w = canvas.width = window.innerWidth;
+        let h = canvas.height = window.innerHeight;
+        const resize = () => {
+            const prevW = w || window.innerWidth;
+            const prevH = h || window.innerHeight;
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            if (motes.length > 0 && prevW > 0 && prevH > 0) {
+                const rx = w / prevW;
+                const ry = h / prevH;
+                motes.forEach(m => {
+                    m.x = Math.max(0, Math.min(w, m.x * rx));
+                    m.y = Math.max(0, Math.min(h, m.y * ry));
+                });
+            }
+        };
         window.addEventListener('resize', resize, { passive: true });
 
         interface Bird {
@@ -454,19 +500,34 @@ const LightModeAtmosphere: React.FC = () => {
     return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full z-0" />;
 };
 
+// Skylines of the two hero plates, traced in each photo's own pixel space (1280 px wide). The ridge
+// and everything below it is drawn again *over* the title, so ASCEND stands behind the mountains.
+const SKYLINES: Record<string, { w: number; h: number; ridge: string }> = {
+    '1464822759023-fed622ff2c3b': {
+        w: 1280, h: 853,
+        ridge: '0,268 40,255 70,240 100,236 125,246 150,250 180,247 205,246 230,252 260,268 300,290 340,316 380,338 420,350 460,346 500,340 540,336 580,330 620,330 660,326 700,320 740,324 780,334 810,346 840,350 870,340 900,326 940,318 980,306 1010,296 1040,290 1070,300 1110,312 1150,304 1190,288 1230,276 1260,266 1280,262',
+    },
+    '1519681393784-d120267933ba': {
+        w: 1280, h: 854,
+        ridge: '0,610 40,575 80,545 120,520 155,495 175,492 195,505 230,525 260,530 300,515 340,495 380,480 420,474 460,478 500,470 540,455 580,430 612,410 635,414 660,440 680,470 720,500 760,495 800,475 830,460 850,452 870,462 900,490 940,510 980,525 1020,535 1060,545 1090,548 1105,520 1130,515 1160,510 1190,470 1220,420 1250,385 1280,370',
+    },
+};
+const skylineFor = (src: string) => SKYLINES[Object.keys(SKYLINES).find(id => src.includes(id)) ?? ''];
+
 export const HeroSection = () => {
-    const [isHovered, setIsHovered] = useState(false);
     const sectionRef = useRef<HTMLElement>(null);
     const { scrollYProgress } = useScroll({
         target: sectionRef,
-        offset: ["start start", "end start"]
+        offset: ["start start", "end end"]
     });
 
-    const { theme, weather, setWeather, setWeatherLoaded, weatherLoaded } = useStore();
+    const { theme, weather } = useStore();
     const { demoLoginAsync, isLoggedIn } = useAuthStore();
     const navigate = useNavigate();
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const { t } = useTranslation();
+    const introDone = useIntro(s => s.introDone);
+    const heroTitle = t('hero.ascend', 'Ascend');
 
     const [isDemoLoading, setIsDemoLoading] = useState(false);
     const mouseX = useMotionValue(0);
@@ -499,9 +560,6 @@ export const HeroSection = () => {
     const rotateX = useTransform(springY, (y: number) => y * 0.3);
     const rotateY = useTransform(springX, (x: number) => -x * 0.3);
 
-    const radialBgX = useTransform(springX, (x: number) => `${((x / 30) + 0.5) * 100}%`);
-    const radialBgY = useTransform(springY, (y: number) => `${((y / 30) + 0.5) * 100}%`);
-    const radialBg = useMotionTemplate`radial-gradient(circle 800px at ${radialBgX} ${radialBgY}, rgba(255,255,255,0.6), transparent 70%)`;
 
     const handleDemoLogin = async () => {
         setIsDemoLoading(true);
@@ -519,14 +577,30 @@ export const HeroSection = () => {
     };
 
     // Clean Natural Parallax Values
-    const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '15%']);
-    const bgScale = 1.0;
-    const bgBorderRadius = useTransform(scrollYProgress, [0, 0.6], ['0px', '48px']);
-    const textY = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
-    const textOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
-    const textScale = 1.0;
-    const mountainForegroundY = '0%';
-    const vignetteOpacity = useTransform(scrollYProgress, [0, 0.5], [0.5, 0.8]);
+    // Depth exit: the title recedes into the fog while the ridges pull apart toward the camera
+    // ── Flight to the summit ──
+    // The hero pins for ~3 screens of scroll. The opening shot breaks up (title sinks behind the ridge), the camera
+    // climbs (the valley drops away and pushes in), cloud banks rush past, a white-out covers the cut,
+    // and the camera breaks out above a sea of clouds where the final line and the call to action wait.
+    const p = scrollYProgress;
+    const textY = useTransform(p, [0, 0.12], ['0%', '45%']);
+    const textOpacity = useTransform(p, [0, 0.09], [1, 0]);
+    const textScale = useTransform(p, [0, 0.12], [1, 0.9]);
+    const plateY = useTransform(p, [0, 0.62], ['0%', '30%']);
+    const plateScale = useTransform(p, [0, 0.62], [1, 1.28]);
+    const bankA = { y: useTransform(p, [0.12, 0.48], ['105vh', '-130vh']), scale: useTransform(p, [0.12, 0.48], [1, 1.7]), opacity: useTransform(p, [0.12, 0.2, 0.4, 0.48], [0, 1, 1, 0]) };
+    const bankB = { y: useTransform(p, [0.26, 0.6], ['110vh', '-120vh']), scale: useTransform(p, [0.26, 0.6], [1.1, 1.9]), opacity: useTransform(p, [0.26, 0.34, 0.52, 0.6], [0, 1, 1, 0]) };
+    const whiteout = useTransform(p, [0.5, 0.6, 0.66, 0.76], [0, 0.96, 0.96, 0]);
+    const summitOpacity = useTransform(p, [0.6, 0.64], [0, 1]);
+    const summitScale = useTransform(p, [0.6, 1], [1.22, 1]);
+    const summitY = useTransform(p, [0.6, 1], ['10%', '0%']);
+    const caption1 = useTransform(p, [0.13, 0.19, 0.28, 0.34], [0, 1, 1, 0]);
+    const caption1Y = useTransform(p, [0.13, 0.34], [40, -40]);
+    const caption2 = useTransform(p, [0.36, 0.42, 0.5, 0.55], [0, 1, 1, 0]);
+    const caption2Y = useTransform(p, [0.36, 0.55], [40, -40]);
+    const finale = useTransform(p, [0.74, 0.84], [0, 1]);
+    const finaleY = useTransform(p, [0.74, 0.9], [60, 0]);
+    const hudOpacity = useTransform(p, [0.06, 0.12, 0.92, 1], [0, 1, 1, 0.6]);
 
     // Daily peak selection
     const peak = useMemo(() => {
@@ -567,45 +641,20 @@ export const HeroSection = () => {
 
     const formatMarkdown = (text: string): string => {
         if (!text) return '';
+        // Escape first: this string is rendered as HTML and comes from an AI endpoint
         return text
-            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#64BEFF] font-semibold">$1</strong>')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#A3C9E2] font-semibold">$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/`(.*?)`/g, '<code class="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>')
             .replace(/\n/g, '<br/>');
     };
     // ────────────────────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        const fetchWeather = async () => {
-            if (weatherLoaded) return;
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${peak.lat}&longitude=${peak.lon}&current=temperature_2m,weather_code`;
-                const response = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await response.json();
-                const temp = data.current.temperature_2m;
-                const code = data.current.weather_code;
-                const isSnowing = [71, 73, 75, 77, 85, 86].includes(code);
-
-                let conditionText = 'Clear conditions';
-                if (code >= 1 && code <= 3) conditionText = 'Partly cloudy';
-                else if (code >= 45 && code <= 48) conditionText = 'Foggy/low visibility';
-                else if (code >= 51 && code <= 67) conditionText = 'Raining/Freezing Rain';
-                else if (isSnowing) conditionText = 'Snowing';
-                else if (code >= 95) conditionText = 'Thunderstorm';
-
-                setWeather({ temp, condition: conditionText, isSnowing });
-                setWeatherLoaded(true);
-            } catch (error) {
-                console.error("Failed to fetch alpine weather:", error);
-                setWeather({ temp: null, condition: 'Offline (Last known: Clear)', isSnowing: false });
-                setWeatherLoaded(true);
-            }
-        };
-        fetchWeather();
-    }, [peak]);
+    useEffect(() => { loadAlpineWeather(); }, []);
 
     const getActiveImage = () => {
         const isFreezing = weather.isSnowing || (weather.temp !== null && weather.temp <= 0);
@@ -620,445 +669,395 @@ export const HeroSection = () => {
     };
     const activeImage = getActiveImage();
 
-    return (
-        <section ref={sectionRef} className="relative w-full min-h-screen bg-transparent dark:bg-transparent hero-section-cursor overflow-hidden">
-            <div className="relative w-full h-screen overflow-hidden">
+    // Alpine local time for the meta row, refreshed every 30s
+    const formatAlpineTime = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich', timeZoneName: 'short' }).format(new Date());
+    const [alpineTime, setAlpineTime] = useState(formatAlpineTime);
+    useEffect(() => {
+        const id = window.setInterval(() => setAlpineTime(formatAlpineTime()), 30000);
+        return () => window.clearInterval(id);
+    }, []);
 
-                {/* Layer 1: Background with Ken Burns slow pan (Stable Cinematic) */}
-                <motion.div
-                    className="absolute inset-0 w-[110%] h-[120%] -left-[5%] -top-[10%] z-0 bg-transparent dark:bg-transparent overflow-hidden transform-gpu pointer-events-none select-none"
-                >
-                    <motion.div 
-                        className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%] transform-gpu pointer-events-none select-none"
-                        style={{
-                            rotateX: rotateX,
-                            rotateY: rotateY,
-                        }}
-                    >
-                        <motion.img
-                            key={activeImage}
-                            initial={{ opacity: 0.95, scale: 1.02 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ opacity: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }}
-                            src={activeImage.includes('unsplash') ? `${activeImage}&auto=format,compress&fit=crop&w=1400&q=75&fm=webp` : activeImage}
-                            alt={`Majestic ${peak.name}`}
-                            className="absolute inset-0 w-full h-full object-cover bg-transparent dark:bg-transparent transform-gpu pointer-events-none select-none"
-                            loading="eager"
-                            fetchPriority="high"
-                            decoding="sync"
-                        />
-                    </motion.div>
-                    {/* Atmospheric color wash */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-transparent dark:from-black/20 dark:via-transparent dark:to-transparent pointer-events-none" />
-                </motion.div>
+    const heroLetters = useMemo(() => splitGraphemes(heroTitle), [heroTitle]);
+    const skyline = skylineFor(activeImage);
+    // Depth: the title drifts against the plate (and the mountains in front of it) as the pointer moves
+    const titleX = useTransform(springX, (x: number) => -x * 0.6);
+    const titleY = useTransform(springY, (y: number) => -y * 0.4);
 
-                {/* Layer 1.5: Film Grain + Vignette + LIVE WALLPAPER FX */}
-                <motion.div
-                    style={{ opacity: vignetteOpacity }}
-                    className="absolute inset-0 z-[5] pointer-events-none overflow-hidden"
-                >
-                    {/* Live Wallpaper Canvas Effects */}
-                    <AnimatePresence>
-                        {isDark ? (
-                            <motion.div
-                                key="dark-live"
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 2 }}
-                                className="absolute inset-0"
-                            >
-                                {/* Canvas-rendered twinkling stars + shooting stars */}
-                                <StarfieldCanvas />
+    // Everything in the hero waits for the intro curtain, then plays in sequence
+    const EASE = [0.16, 1, 0.3, 1] as const;
+    // Opening shot, once the intro curtain lifts: 3 → ASCEND rises from behind the ridge, 4 → the rest of the frame.
+    // Scrolling (or reduced motion) cuts straight to the end.
+    const reduceMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const [stage, setStage] = useState(0);
+    useEffect(() => {
+        if (!introDone) return;
+        if (reduceMotion) { setStage(4); return; }
+        const timers = [[3, 250], [4, 1500]].map(([st, ms]) => window.setTimeout(() => setStage(v => Math.max(v, st)), ms));
+        const skip = () => setStage(4);
+        window.addEventListener('wheel', skip, { passive: true, once: true });
+        window.addEventListener('touchmove', skip, { passive: true, once: true });
+        window.addEventListener('keydown', skip, { once: true });
+        return () => {
+            timers.forEach(window.clearTimeout);
+            window.removeEventListener('wheel', skip);
+            window.removeEventListener('touchmove', skip);
+            window.removeEventListener('keydown', skip);
+        };
+    }, [introDone, reduceMotion]);
+    const titleUp = stage >= 3;
+    const frameIn = stage >= 4;
+    // Altimeter: base camp to today's summit across the climb
+    const summitM = parseInt(peak.elevation.replace(/[^0-9]/g, ''), 10) || 4491;
+    const BASE_M = 2940;
+    const altitudeLabel = useTransform(p, [0, 0.95], [BASE_M, summitM], { clamp: true });
+    const altitudeText = useTransform(altitudeLabel, v => Math.round(v).toLocaleString('en-US'));
+    const summitPlate = (isDark ? nightSlides[3] : daySlides[3]) ?? daySlides[0];
 
-                                {/* Breathing Aurora Nebula 1 — Purple/Violet */}
-                                <motion.div
-                                    animate={{ 
-                                        opacity: [0.08, 0.25, 0.12, 0.3, 0.08], 
-                                        scale: [1, 1.15, 1.05, 1.2, 1],
-                                        x: [0, 20, -10, 15, 0],
-                                        y: [0, -15, 10, -5, 0]
-                                    }}
-                                    transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute top-[-15%] right-[-10%] w-[65%] h-[65%] bg-[radial-gradient(circle,rgba(168,85,247,0.25)_0%,transparent_70%)] pointer-events-none"
-                                />
-                                {/* Breathing Aurora Nebula 2 — Teal/Cyan  */}
-                                <motion.div
-                                    animate={{ 
-                                        opacity: [0.05, 0.2, 0.08, 0.22, 0.05], 
-                                        scale: [1, 1.2, 1.1, 1.25, 1],
-                                        x: [0, -20, 10, -15, 0],
-                                        y: [0, 10, -15, 5, 0]
-                                    }}
-                                    transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-                                    className="absolute bottom-[10%] left-[-15%] w-[55%] h-[55%] bg-[radial-gradient(circle,rgba(34,211,238,0.2)_0%,transparent_70%)] pointer-events-none"
-                                />
-                                {/* Breathing Aurora Nebula 3 — Sunrise/Gold */}
-                                <motion.div
-                                    animate={{ 
-                                        opacity: [0.03, 0.12, 0.05, 0.15, 0.03], 
-                                        scale: [1, 1.1, 1, 1.15, 1],
-                                    }}
-                                    transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-                                    className="absolute top-[30%] left-[20%] w-[40%] h-[40%] bg-[radial-gradient(circle,rgba(245,158,11,0.15)_0%,transparent_70%)] pointer-events-none"
-                                />
+    // Frame elements (kicker, line, actions, meta) arrive once the title has risen
+    const enter = (delay: number, from: Record<string, number | string> = { opacity: 0, y: 24 }) => ({
+        initial: from,
+        animate: frameIn ? { opacity: 1, y: 0, x: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } } : undefined,
+        transition: { duration: 1.2, delay: Math.max(0, delay - 1), ease: EASE },
+    });
 
-                                {/* ★ Hero Shooting Star — positioned over the photo's static streak */}
-                                {/* This sits near the upper-right area where "Ascend" 'd' is */}
-                                <div className="absolute inset-0">
-                                    {/* The streak itself — a thin bright line that animates across */}
-                                    <motion.div
-                                        className="absolute"
-                                        style={{
-                                            top: '22%',
-                                            right: '18%',
-                                            width: '220px',
-                                            height: '2px',
-                                            transformOrigin: 'right center',
-                                            transform: 'rotate(28deg)',
-                                        }}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: [0, 0, 1, 1, 0.8, 0] }}
-                                        transition={{ duration: 4, repeat: Infinity, repeatDelay: 5, ease: 'easeInOut' }}
-                                    >
-                                        {/* Trail gradient */}
-                                        <div className="absolute inset-0 rounded-full"
-                                            style={{
-                                                background: 'linear-gradient(to right, transparent 0%, rgba(180,210,255,0.1) 20%, rgba(200,220,255,0.4) 60%, rgba(230,240,255,0.8) 85%, rgba(255,255,255,1) 100%)',
-                                            }}
-                                        />
-                                        {/* Bright head glow */}
-                                        <motion.div
-                                            className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white"
-                                            style={{ boxShadow: '0 0 12px 4px rgba(200,220,255,0.8), 0 0 30px 8px rgba(180,200,255,0.4), 0 0 60px 15px rgba(150,180,255,0.15)' }}
-                                            animate={{ scale: [0.8, 1.2, 0.8] }}
-                                            transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-                                        />
-                                    </motion.div>
-
-                                    {/* Second hero streak — slightly offset, staggered timing */}
-                                    <motion.div
-                                        className="absolute"
-                                        style={{
-                                            top: '18%',
-                                            right: '28%',
-                                            width: '160px',
-                                            height: '1.5px',
-                                            transformOrigin: 'right center',
-                                            transform: 'rotate(32deg)',
-                                        }}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: [0, 0, 0, 0.8, 1, 0.6, 0] }}
-                                        transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 8, ease: 'easeInOut', delay: 6 }}
-                                    >
-                                        <div className="absolute inset-0 rounded-full"
-                                            style={{
-                                                background: 'linear-gradient(to right, transparent 0%, rgba(200,180,255,0.1) 30%, rgba(220,210,255,0.5) 70%, rgba(255,255,255,0.9) 100%)',
-                                            }}
-                                        />
-                                        <motion.div
-                                            className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white"
-                                            style={{ boxShadow: '0 0 10px 3px rgba(220,200,255,0.7), 0 0 25px 6px rgba(200,180,255,0.3)' }}
-                                            animate={{ scale: [0.7, 1.1, 0.7] }}
-                                            transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
-                                        />
-                                    </motion.div>
-
-                                    {/* Sparkle particles left behind by hero streak */}
-                                    {[...Array(6)].map((_, i) => (
-                                        <motion.div
-                                            key={`hero-sparkle-${i}`}
-                                            className="absolute w-1 h-1 rounded-full bg-white"
-                                            style={{
-                                                top: `${23 + i * 1.5}%`,
-                                                right: `${20 + i * 3}%`,
-                                                boxShadow: '0 0 4px 1px rgba(200,220,255,0.6)',
-                                            }}
-                                            animate={{ 
-                                                opacity: [0, 0, 0.8, 0.4, 0],
-                                                scale: [0, 1.2, 0.8, 0.3, 0],
-                                            }}
-                                            transition={{ 
-                                                duration: 3, 
-                                                repeat: Infinity, 
-                                                repeatDelay: 5,
-                                                delay: 0.5 + i * 0.15, 
-                                                ease: 'easeOut' 
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </motion.div>
-                        ) : weather.isSnowing || (weather.temp !== null && weather.temp <= 0) ? (
-                            <motion.div
-                                key="snow-live"
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 2 }}
-                                className="absolute inset-0"
-                            >
-                                {/* Floating snow atmosphere */}
-                                <LightModeAtmosphere />
-                                {/* Misty cloud drift */}
-                                <motion.div
-                                    animate={{ x: [-100, 100, -100], opacity: [0.1, 0.3, 0.1] }}
-                                    transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute top-[10%] left-[-10%] w-[80%] h-[40%] bg-white/10 blur-[100px] rounded-full"
-                                />
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="day-live"
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 2 }}
-                                className="absolute inset-0"
-                            >
-                                {/* Birds, leaves, pollen — full living atmosphere */}
-                                <LightModeAtmosphere />
-                                {/* Slow drifting cloud wisps */}
-                                <motion.div
-                                    animate={{ x: [-80, 120, -80], opacity: [0.05, 0.15, 0.05] }}
-                                    transition={{ duration: 40, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute top-[5%] left-[-20%] w-[70%] h-[30%] bg-white/20 blur-[80px] rounded-full"
-                                />
-                                <motion.div
-                                    animate={{ x: [50, -100, 50], opacity: [0.03, 0.1, 0.03] }}
-                                    transition={{ duration: 35, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-                                    className="absolute top-[15%] right-[-10%] w-[50%] h-[25%] bg-white/15 blur-[90px] rounded-full"
-                                />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Vignette */}
-                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)' }} />
-                    
-                    {/* Cinematic God Rays */}
-                    <motion.div 
-                        className="absolute inset-0 pointer-events-none opacity-20"
-                        animate={{ opacity: [0.1, 0.25, 0.1], rotate: [25, 30, 25] }}
-                        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-                        style={{
-                            background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.8) 45%, transparent 50%, rgba(255,255,255,0.4) 55%, transparent 60%)',
-                            transformOrigin: 'top left',
-                            scale: 1.5
-                        }}
-                    />
-                </motion.div>
-
-                {/* Interactive Dynamic Light Flare tracking cursor */}
-                <motion.div 
-                    className="absolute inset-0 pointer-events-none z-15 opacity-25"
-                    style={{
-                        background: radialBg
-                    }}
-                />
-
-                {/* Layer 2: Massive Typography with matching Iris Transition */}
-                <motion.div
-                    style={{ 
-                        y: textY, 
-                        opacity: textOpacity, 
-                        scale: textScale,
-                        z: 50
-                    }}
-                    className="absolute inset-0 z-40 flex flex-col items-center justify-center pointer-events-none transform-gpu -mt-[20vh] sm:-mt-[8vh] pb-6 sm:pb-0"
-                >
-                    {/* Subtitle above */}
-                    <motion.p
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1.2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                        className="text-white/40 text-[10px] md:text-xs tracking-[0.5em] uppercase font-light mb-4 sm:mb-6"
-                    >
-                        {t('hero.presents', 'Mountaineer Mallu Presents')}
-                    </motion.p>
-
-                    {/* Main title with refined, ultra-premium kinetic typography */}
-                    <motion.div className="relative group">
-                        <motion.h1
-                            className="text-[14vw] sm:text-[13vw] md:text-[12vw] lg:text-[10rem] xl:text-[12rem] font-serif leading-[0.85] tracking-tight font-light pointer-events-auto cursor-default relative text-white uppercase transform-gpu"
-                            style={{
-                                filter: 'drop-shadow(0 4px 15px rgba(0,0,0,0.4)) drop-shadow(0 0 10px rgba(255,255,255,0.1))'
-                            }}
-                            initial={{ scale: 0.8, opacity: 0, filter: 'blur(30px)' }}
-                            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-                            transition={{ duration: 1.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    const ctas = (
+        <div className="flex flex-col items-center md:items-end gap-4">
+            {!isLoggedIn && (
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                    <Magnetic strength={0.25} glow="rgba(255,255,255,0.35)">
+                        <button
+                            onClick={() => navigate('/signup')}
+                            className="group/cta relative flex items-center gap-3 sm:gap-4 whitespace-nowrap rounded-full bg-white text-alpine-navy dark:text-black pl-5 sm:pl-6 pr-1.5 py-1.5 text-[13px] font-semibold tracking-wide shadow-[0_18px_40px_-12px_rgba(0,0,0,0.45)] cursor-pointer"
                         >
-                            {/* Dynamic shimmering mask overlay inside text */}
-                            <motion.div 
-                                className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent mix-blend-overlay -ml-[100%] pointer-events-none rounded-full"
-                                animate={{ x: ['0%', '100%'] }}
-                                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                            />
-                            
-                            <span className="relative z-10 bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/30 font-light">
-                                {t('hero.ascend', 'Ascend')}
+                            {t('hero.join', 'Join the community')}
+                            <span className="grid place-items-center w-9 h-9 rounded-full bg-alpine-navy text-white dark:bg-black transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/cta:rotate-45">
+                                <ArrowUpRight size={16} strokeWidth={2.25} />
                             </span>
-                        </motion.h1>
-                    </motion.div>
+                        </button>
+                    </Magnetic>
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="whitespace-nowrap rounded-full border border-white/35 bg-white/[0.06] backdrop-blur-md px-5 sm:px-6 py-3 text-[13px] font-semibold tracking-wide text-white hover:bg-white/15 transition-colors cursor-pointer"
+                    >
+                        {t('hero.login', 'Log in')}
+                    </button>
+                </div>
+            )}
+            <button
+                onClick={handleDemoLogin}
+                disabled={isDemoLoading}
+                className="group/demo inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+                {isDemoLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} className="text-alpine-glacier" />}
+                <span className="relative">
+                    Explore the demo dashboard
+                    <span className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-white/70 transition-transform duration-500 group-hover/demo:scale-x-100" />
+                </span>
+            </button>
+        </div>
+    );
 
-                    {/* Thin decorative line */}
-                    <motion.div
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: 1.5, delay: 1, ease: [0.16, 1, 0.3, 1] }}
-                        className="w-20 sm:w-24 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent mt-4 sm:mt-8"
+    // The title column is laid out twice, identically: the back copy (behind the mountain cutout) shows only
+    // ASCEND, the front copy shows everything else, so the word sits behind the ridge while the rest stays on top
+    const titleColumn = (layer: 'back' | 'front') => {
+        const back = layer === 'back';
+        const only = (visible: boolean) => (visible ? undefined : { visibility: 'hidden' as const });
+        return (
+            <motion.div
+                aria-hidden={back ? undefined : true}
+                style={{ y: textY, opacity: textOpacity, scale: textScale }}
+                className={`absolute inset-0 ${back ? 'z-[7]' : 'z-40'} flex flex-col items-center justify-center pointer-events-none transform-gpu -mt-[29vh] md:-mt-[33vh] dark:-mt-[1vh] dark:md:-mt-[4vh] px-4`}
+            >
+                <motion.p
+                    {...enter(0.25, { opacity: 0, y: 14, filter: 'blur(6px)' })}
+                    style={only(!back)}
+                    className="hidden dark:block text-white/90 text-[10px] md:text-xs tracking-[0.55em] uppercase font-semibold mb-3 md:mb-5 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]"
+                >
+                    {t('hero.presents', 'Mountaineer Mallu Presents')}
+                </motion.p>
+
+                <motion.div style={{ x: titleX, y: titleY, ...only(back) }} className="transform-gpu">
+                    <motion.h1
+                        aria-label={back ? heroTitle : undefined}
+                        className="hero-title text-[clamp(4.5rem,19vw,19rem)] font-serif leading-[0.82] tracking-[-0.02em] font-light relative text-white uppercase transform-gpu"
+                        // Rises from behind the mountains like the sun: the cutout hides it until it clears the ridge
+                        initial={{ y: '95%', opacity: 0, letterSpacing: '0.06em' }}
+                        animate={titleUp ? { y: '0%', opacity: 1, letterSpacing: '-0.02em' } : undefined}
+                        transition={{ duration: 2.8, ease: [0.22, 1, 0.36, 1], opacity: { duration: 0.9 } }}
+                    >
+                        {/* Then a light glint sweeps across */}
+                        <span aria-hidden="true" className="relative inline-flex pt-[0.04em] pb-[0.08em] -mb-[0.08em]">
+                            {heroLetters.map((ch, i) => (
+                                <span key={i} className="inline-block bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/70 font-light">
+                                    {ch === ' ' ? '\u00A0' : ch}
+                                </span>
+                            ))}
+                            {frameIn && back && (
+                                <span className="hero-glint inline-flex">
+                                    {heroLetters.map((ch, i) => <span key={i} className="inline-block">{ch === ' ' ? '\u00A0' : ch}</span>)}
+                                </span>
+                            )}
+                        </span>
+                    </motion.h1>
+                </motion.div>
+
+                <div className="mt-5 md:mt-8 flex items-center gap-4 md:gap-6" style={only(!back)}>
+                    <motion.span
+                        initial={{ scaleX: 0 }} animate={frameIn ? { scaleX: 1 } : undefined} transition={{ duration: 1.4, delay: 0.1, ease: EASE }}
+                        className="h-px w-10 md:w-20 origin-right bg-gradient-to-r from-transparent to-white/80"
                     />
-
-                    {/* Sub-subtitle */}
                     <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 1.5, delay: 1.2 }}
-                        className="text-white/40 text-[9px] sm:text-[10px] md:text-xs tracking-[0.3em] uppercase font-light mt-4 sm:mt-6"
+                        {...enter(1.15, { opacity: 0, y: 10 })}
+                        className="text-white text-[10px] md:text-[13px] tracking-[0.4em] uppercase font-semibold whitespace-nowrap [text-shadow:0_1px_14px_rgba(0,0,0,0.7)]"
                     >
                         {t('hero.awaits', 'The European Alps Await')}
                     </motion.p>
+                    <motion.span
+                        initial={{ scaleX: 0 }} animate={frameIn ? { scaleX: 1 } : undefined} transition={{ duration: 1.4, delay: 0.1, ease: EASE }}
+                        className="h-px w-10 md:w-20 origin-left bg-gradient-to-l from-transparent to-white/80"
+                    />
+                </div>
 
-                    {/* Integrated Ultra-Premium Hero Action Dock */}
+                {/* Phones: actions sit under the title */}
+                {/* Present (but hidden) in the back copy too, so both copies lay out identically */}
+                <motion.div {...enter(1.35)} style={only(!back)} className={`md:hidden mt-9 ${back ? '' : 'pointer-events-auto'}`}>
+                    {ctas}
+                </motion.div>
+            </motion.div>
+        );
+    };
+
+    return (
+        // Own presence boundary: the page wrapper's <AnimatePresence initial={false}> would otherwise skip every
+        // entrance animation in here on first load
+        <AnimatePresence>
+        <section key="hero" ref={sectionRef} className={`relative w-full ${reduceMotion ? 'h-screen' : 'h-[420vh]'} bg-transparent dark:bg-transparent hero-section-cursor overflow-clip`}>
+            <div className="sticky top-0 w-full h-[100svh] overflow-hidden">
+
+                {/* Everything photographic dissolves to transparent at the bottom, so the hero melts into the page behind it */}
+                <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,#000_66%,transparent_99%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_66%,transparent_99%)]">
+                {/* ── Plate: today's peak, pushed in from darkness as the intro lifts, then a slow drift ── */}
+                <motion.div style={{ y: plateY, scale: plateScale }} className="absolute inset-0 w-[110%] h-[120%] -left-[5%] -top-[10%] z-0 overflow-hidden transform-gpu pointer-events-none select-none">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1.5, delay: 1.4 }}
-                        className="mt-6 sm:mt-8 flex flex-col items-center gap-3.5 w-full max-w-[340px] sm:max-w-md px-4 pointer-events-auto relative z-50"
+                        className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%] transform-gpu"
+                        style={{ rotateX, rotateY }}
                     >
-                        {!isLoggedIn && (
-                            <div className="flex items-center justify-center gap-2 sm:gap-3 w-full">
-                                {/* Join Community (Light Blue in Light Mode, Silver in Dark Mode with Circling Orbit Border) */}
-                                <div className="relative group/orbit flex-1 rounded-2xl p-[1.5px] overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 cursor-pointer shadow-[0_0_25px_rgba(56,189,248,0.45)] dark:shadow-[0_0_25px_rgba(203,213,225,0.45)] hover:shadow-[0_0_40px_rgba(56,189,248,0.8)] dark:hover:shadow-[0_0_40px_rgba(203,213,225,0.8)]">
-                                    {/* Circling Orbit Border Beam */}
-                                    <div 
-                                        className="absolute -inset-[200%] animate-[spin_3s_linear_infinite] pointer-events-none opacity-90"
-                                        style={{
-                                            background: 'conic-gradient(from 0deg, transparent 0deg, transparent 270deg, #38BDF8 320deg, #E2E8F0 360deg)'
-                                        }}
-                                    />
-                                    
-                                    <button
-                                        onClick={() => navigate('/signup')}
-                                        className="relative w-full h-full py-2.5 sm:py-3 px-3.5 sm:px-5 rounded-[14px] bg-gradient-to-r from-[#38BDF8] via-[#0284C7] to-[#0369A1] text-white dark:bg-gradient-to-r dark:from-slate-200 dark:via-slate-100 dark:to-slate-300 dark:text-slate-950 font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 overflow-hidden cursor-pointer"
-                                    >
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-slate-400/30 to-transparent -translate-x-full group-hover/orbit:animate-[shimmer_1.5s_infinite]" />
-                                        <UserPlus size={15} className="text-white dark:text-slate-950 stroke-[2.5]" />
-                                        <span className="truncate">Join Community</span>
-                                    </button>
-                                </div>
-
-                                {/* Log In (Light Blue in Light Mode, Silver in Dark Mode with Circling Orbit Border) */}
-                                <div className="relative group/orbit shrink-0 rounded-2xl p-[1.5px] overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(56,189,248,0.35)] dark:shadow-[0_0_20px_rgba(203,213,225,0.35)] hover:shadow-[0_0_35px_rgba(56,189,248,0.7)] dark:hover:shadow-[0_0_35px_rgba(203,213,225,0.7)]">
-                                    {/* Circling Orbit Border Beam */}
-                                    <div 
-                                        className="absolute -inset-[200%] animate-[spin_3s_linear_infinite] pointer-events-none opacity-90"
-                                        style={{
-                                            background: 'conic-gradient(from 0deg, transparent 0deg, transparent 270deg, #38BDF8 320deg, #E2E8F0 360deg)'
-                                        }}
-                                    />
-
-                                    <button
-                                        onClick={() => navigate('/login')}
-                                        className="relative w-full h-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-[14px] bg-gradient-to-r from-[#38BDF8] via-[#0284C7] to-[#0369A1] text-white dark:bg-gradient-to-r dark:from-slate-200 dark:via-slate-100 dark:to-slate-300 dark:text-slate-950 font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 overflow-hidden cursor-pointer"
-                                    >
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-slate-400/30 to-transparent -translate-x-full group-hover/orbit:animate-[shimmer_1.5s_infinite]" />
-                                        <LogIn size={15} className="text-white dark:text-slate-950 stroke-[2.5]" />
-                                        <span>Log In</span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Explore Demo Dashboard Button */}
-                        <button
-                            onClick={handleDemoLogin}
-                            disabled={isDemoLoading}
-                            className="group relative px-5 py-2 sm:px-6 sm:py-2.5 rounded-full bg-white/5 hover:bg-white/12 border border-white/20 hover:border-[#64BEFF]/50 backdrop-blur-md transition-all duration-300 flex items-center gap-2 shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
+                        <motion.div
+                            className="absolute inset-0"
+                            initial={{ scale: 1.16 }}
+                            animate={introDone ? { scale: 1 } : undefined}
+                            transition={{ duration: 2.8, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#64BEFF]/0 via-[#64BEFF]/20 to-[#64BEFF]/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                            {isDemoLoading ? (
-                                <Loader2 size={14} className="text-white animate-spin" />
-                            ) : (
-                                <Sparkles size={14} className="text-[#64BEFF] group-hover:animate-pulse" />
-                            )}
-                            <span className="text-white/80 group-hover:text-white text-[11px] sm:text-xs font-medium tracking-widest uppercase">
-                                Explore Demo Dashboard
-                            </span>
-                        </button>
+                            <motion.img
+                                key={activeImage}
+                                src={getHeroImageUrl(activeImage)}
+                                alt={`${peak.name}, ${peak.location}`}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.9, ease: EASE }}
+                                className="hero-still absolute inset-0 w-full h-full object-cover"
+                                loading="eager"
+                                fetchPriority="high"
+                                decoding="async"
+                                draggable={false}
+                            />
+                        </motion.div>
                     </motion.div>
                 </motion.div>
 
-                {/* Layer 2.5: Dynamic Aurora */}
-                <motion.div 
-                    className="absolute inset-0 z-15 pointer-events-none opacity-40"
-                    animate={{ 
-                        background: [
-                            'radial-gradient(circle at 30% 60%, rgba(0,242,254,0.3) 0%, transparent 60%)',
-                            'radial-gradient(circle at 70% 40%, rgba(106,17,203,0.3) 0%, transparent 60%)',
-                            'radial-gradient(circle at 50% 80%, rgba(56,189,248,0.2) 0%, transparent 60%)'
-                        ]
-                    }}
-                    transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+                {/* Living light: sun bloom and cloud shadows by day, moonlight by night */}
+                <div className="hero-daylife dark:hidden" aria-hidden="true">
+                    <span className="hero-sun" />
+                    <span className="hero-cloudshadow hero-cloudshadow--a" />
+                    <span className="hero-cloudshadow hero-cloudshadow--b" />
+                </div>
+                <div className="hero-nightlife hidden dark:block" aria-hidden="true">
+                    <span className="hero-moon" />
+                </div>
+                <div className="cine-clouds z-[4] opacity-70 dark:opacity-35" aria-hidden="true" />
+
+                {/* Night sky over the plate in dark mode; falling snow when the peak is below freezing */}
+                <AnimatePresence>
+                    {isDark ? (
+                        <motion.div key="stars" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 2 }} className="absolute inset-0 z-[5] pointer-events-none">
+                            <StarfieldCanvas />
+                        </motion.div>
+                    ) : (weather.isSnowing || (weather.temp !== null && weather.temp <= 0)) ? (
+                        <motion.div key="snow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 2 }} className="absolute inset-0 z-[5] pointer-events-none">
+                            <LightModeAtmosphere />
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
+
+                {/* Grade: deep top for the navbar, readable centre, soft vignette */}
+                <div aria-hidden="true" className="absolute inset-0 z-[6] pointer-events-none">
+                    <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/50 via-black/15 to-transparent" />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_42%,rgba(4,16,31,0.44),rgba(4,16,31,0.12)_60%,transparent_80%)]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.45)_100%)]" />
+                </div>
+
+                {/* First light behind the ridge: warm dawn by day, cold moonlight by night */}
+                <motion.div
+                    aria-hidden="true"
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={stage >= 3 ? { opacity: 1, scale: 1 } : undefined}
+                    transition={{ duration: 3.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 z-[7] pointer-events-none bg-[radial-gradient(ellipse_55%_35%_at_50%_36%,rgba(255,206,160,0.42),rgba(255,180,130,0.14)_55%,transparent_80%)] dark:bg-[radial-gradient(ellipse_55%_35%_at_50%_50%,rgba(170,195,255,0.28),rgba(140,160,230,0.08)_55%,transparent_80%)]"
+                />
+                {titleColumn('back')}
+
+                {/* The mountains, again: the same plate (same transforms, so pixel-aligned) clipped to everything below the
+                    traced skyline, drawn over the title. preserveAspectRatio="slice" reproduces object-cover exactly. */}
+                {skyline && (
+                    <motion.div style={{ y: plateY, scale: plateScale }} aria-hidden="true" className="absolute inset-0 w-[110%] h-[120%] -left-[5%] -top-[10%] z-[8] overflow-hidden transform-gpu pointer-events-none select-none">
+                        <motion.div className="absolute inset-0 w-[110%] h-[110%] -left-[5%] -top-[5%] transform-gpu" style={{ rotateX, rotateY }}>
+                            <motion.div
+                                className="absolute inset-0"
+                                initial={{ scale: 1.16 }}
+                                animate={introDone ? { scale: 1 } : undefined}
+                                transition={{ duration: 2.8, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                                <svg viewBox={`0 0 ${skyline.w} ${skyline.h}`} preserveAspectRatio="xMidYMid slice" className="hero-still absolute inset-0 w-full h-full">
+                                    <defs>
+                                        <clipPath id="hero-ridge">
+                                            <polygon points={`${skyline.ridge} ${skyline.w},${skyline.h} 0,${skyline.h}`} />
+                                        </clipPath>
+                                        {/* Approximates the screen grade over the mountains so the cutout doesn't read brighter */}
+                                        <linearGradient id="hero-ridge-shade" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0" stopColor="#04101F" stopOpacity="0.32" />
+                                            <stop offset="0.6" stopColor="#04101F" stopOpacity="0.12" />
+                                            <stop offset="1" stopColor="#000" stopOpacity="0.35" />
+                                        </linearGradient>
+                                    </defs>
+                                    <g clipPath="url(#hero-ridge)">
+                                        <image href={getHeroImageUrl(activeImage)} width={skyline.w} height={skyline.h} preserveAspectRatio="none" />
+                                        <rect width={skyline.w} height={skyline.h} fill="url(#hero-ridge-shade)" />
+                                    </g>
+                                </svg>
+                            </motion.div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {/* Dawn: the opening shot comes up out of darkness (an overlay, cheaper than animating a filter) */}
+                <motion.div
+                    aria-hidden="true"
+                    initial={{ opacity: 0.6 }}
+                    animate={introDone ? { opacity: 0 } : undefined}
+                    transition={{ duration: 2.8, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 z-[8] bg-[#02060D] pointer-events-none"
                 />
 
-                {/* Layer 3: Mountain Foreground with Soft Aurora Fluid Glow */}
-                
-                {/* Back Mountain Layer */}
+                {/* Cloud banks rushing past as the camera climbs */}
+                {!reduceMotion && (
+                    <>
+                        <motion.div aria-hidden="true" style={bankA} className="hero-bank absolute -inset-x-[30%] top-0 h-[90vh] z-[9] pointer-events-none" />
+                        <motion.div aria-hidden="true" style={bankB} className="hero-bank hero-bank--b absolute -inset-x-[35%] top-0 h-[110vh] z-[9] pointer-events-none" />
+
+                        {/* Above the clouds: the summit plate, revealed through the white-out */}
+                        <motion.div aria-hidden="true" style={{ opacity: summitOpacity }} className="absolute inset-0 z-[10] overflow-hidden pointer-events-none">
+                            <motion.img
+                                src={getHeroImageUrl(summitPlate.src)}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                style={{ scale: summitScale, y: summitY }}
+                                className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_42%,rgba(4,16,31,0.38),transparent_75%)]" />
+                            <div className="absolute inset-x-0 top-0 h-[35%] bg-gradient-to-b from-black/45 to-transparent" />
+                        </motion.div>
+                        <motion.div aria-hidden="true" style={{ opacity: whiteout }} className="absolute inset-0 z-[11] pointer-events-none bg-[radial-gradient(ellipse_at_50%_50%,#FFFFFF,#EEF2F6_60%,#DCE4EC)] dark:bg-[radial-gradient(ellipse_at_50%_50%,#3A4A63,#1E2A3D_60%,#101827)]" />
+                    </>
+                )}
+                </div>
+
+                {titleColumn('front')}
+
+                {/* Story lines on the way up */}
+                {!reduceMotion && (
+                    <>
+                        {/* The climb as footage: letterbox, slate + timecode, snow rushing past the lens */}
+                        <AscentFilm progress={p} />
+
+                        <motion.div style={{ opacity: caption1, y: caption1Y }} className="absolute inset-x-0 top-[38%] z-40 text-center px-6 pointer-events-none">
+                            <p className="font-mono text-[10px] md:text-xs uppercase tracking-[0.4em] text-white/80 mb-3 md:mb-4 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">{isDark ? '03:40' : '05:12'} · {t('hero.story_camp', 'Base camp')}</p>
+                            <p className="font-serif italic font-light text-4xl md:text-7xl text-white [text-shadow:0_4px_30px_rgba(0,0,0,0.5)]">{t('hero.story1', 'We leave before first light.')}</p>
+                        </motion.div>
+                        <motion.div style={{ opacity: caption2, y: caption2Y }} className="absolute inset-x-0 top-[38%] z-40 text-center px-6 pointer-events-none">
+                            <p className="font-mono text-[10px] md:text-xs uppercase tracking-[0.4em] text-white/80 mb-3 md:mb-4 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">{t('hero.story_clouds', 'Into the clouds')}</p>
+                            <p className="font-serif italic font-light text-4xl md:text-7xl text-white [text-shadow:0_4px_30px_rgba(0,0,0,0.5)]">{t('hero.story2', 'Every step, a little higher.')}</p>
+                        </motion.div>
+
+                        {/* Summit finale */}
+                        <motion.div style={{ opacity: finale, y: finaleY }} className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center px-6 pointer-events-none">
+                            <p className="font-mono text-[10px] md:text-xs uppercase tracking-[0.45em] text-white/85 mb-4 md:mb-6 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">{t('hero.summit', 'Summit')} · {peak.name} · {peak.elevation}</p>
+                            <h2 className="font-serif font-light text-5xl sm:text-7xl md:text-8xl lg:text-9xl leading-[0.95] text-white [text-shadow:0_8px_40px_rgba(0,0,0,0.45)]">
+                                {t('hero.finale_1', 'Above the clouds,')}<br /><span className="italic">{t('hero.finale_2', 'you belong.')}</span>
+                            </h2>
+                            <div className="mt-10 md:mt-12 pointer-events-auto">{ctas}</div>
+                        </motion.div>
+
+                        {/* Altimeter */}
+                        <motion.div style={{ opacity: hudOpacity }} className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-40 flex flex-col items-center gap-2 px-10 py-3 pointer-events-none bg-[radial-gradient(closest-side,rgba(4,16,31,0.38),transparent)]">
+                            <span className="font-mono text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-white/70">{t('hero.altitude', 'Altitude')}</span>
+                            <span className="font-serif text-3xl md:text-4xl text-white tabular-nums [text-shadow:0_2px_16px_rgba(0,0,0,0.5)]"><motion.span>{altitudeText}</motion.span><span className="ml-1 text-sm text-white/70">m</span></span>
+                            <span className="relative w-32 md:w-48 h-px bg-white/25 overflow-hidden">
+                                <motion.span style={{ scaleX: p }} className="absolute inset-0 origin-left bg-white" />
+                            </span>
+                        </motion.div>
+                    </>
+                )}
+
+                {/* ── Frame: meta row under the navbar ── */}
                 <motion.div
-                    style={{ 
-                        y: useTransform(scrollYProgress, [0, 1], ['50%', '-20%'])
-                    }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[35vh] sm:h-[50vh] z-20 origin-bottom pointer-events-none opacity-80 transform-gpu"
+                    style={{ opacity: textOpacity }}
+                    className="absolute inset-x-5 md:inset-x-12 top-24 md:top-28 z-40 flex items-center justify-between pointer-events-none"
                 >
-                    <svg className="w-[120%] -ml-[10%] h-full text-alpine-blue/40 dark:text-[#09152B]/70 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 300" style={{ filter: 'blur(8px)' }}>
-                        <path d="M0,300 L0,150 C300,50 500,200 800,100 C1100,0 1300,150 1440,50 L1440,300 Z" />
-                    </svg>
+                    <motion.div {...enter(1, { opacity: 0, x: -16 })} className="flex items-center gap-3 font-mono text-[9px] md:text-[11px] uppercase tracking-[0.3em] text-white/75 [text-shadow:0_1px_10px_rgba(0,0,0,0.5)]">
+                        <span className="w-6 md:w-10 h-px bg-white/50" />
+                        {peak.lat.toFixed(2)}°N · {peak.lon.toFixed(2)}°E
+                    </motion.div>
+                    <motion.div {...enter(1, { opacity: 0, x: 16 })} className="flex items-center gap-3 font-mono text-[9px] md:text-[11px] uppercase tracking-[0.3em] text-white/75 [text-shadow:0_1px_10px_rgba(0,0,0,0.5)]">
+                        <span className="hidden sm:inline">Alpine time</span> {alpineTime}
+                        <span className="w-6 md:w-10 h-px bg-white/50" />
+                    </motion.div>
                 </motion.div>
-                
-                {/* Mid Mountain Layer */}
+
+                {/* ── Frame: actions bottom-right and a rotating scroll badge (desktop) ── */}
+                <motion.div style={{ opacity: textOpacity }} className="hidden md:block absolute right-24 lg:right-28 bottom-10 z-40">
+                    <motion.div {...enter(1.4)}>{ctas}</motion.div>
+                </motion.div>
+
+                <motion.button
+                    type="button"
+                    aria-label={t('hero.scroll', 'Scroll')}
+                    onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+                    style={{ opacity: textOpacity }}
+                    className="hidden md:grid absolute left-1/2 -translate-x-1/2 bottom-8 z-40 w-24 h-24 place-items-center text-alpine-navy dark:text-white cursor-pointer"
+                >
+                    <motion.span {...enter(1.8, { opacity: 0, y: 12 })} className="absolute inset-0">
+                        <svg viewBox="0 0 100 100" className="hero-scroll-badge w-full h-full" aria-hidden="true">
+                            <defs><path id="hero-scroll-ring" d="M50 50 m-38 0 a38 38 0 1 1 76 0 a38 38 0 1 1 -76 0" /></defs>
+                            <text fontSize="7.4" className="fill-current font-semibold uppercase">
+                                {/* textLength spreads the phrase evenly around the full ring (2π·38 ≈ 238) */}
+                                <textPath href="#hero-scroll-ring" textLength="236" lengthAdjust="spacing">Scroll to explore • Scroll to explore •</textPath>
+                            </text>
+                        </svg>
+                    </motion.span>
+                    <motion.span {...enter(1.9, { opacity: 0, y: -8 })} className="grid place-items-center w-9 h-9 rounded-full border border-current/30">
+                        <ArrowDown size={15} className="hero-scroll-arrow" />
+                    </motion.span>
+                </motion.button>
+
+
+                {/* The peak card joins the frame once the opening story has played */}
                 <motion.div
-                    style={{ 
-                        y: useTransform(scrollYProgress, [0, 1], ['40%', '-10%'])
-                    }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[28vh] sm:h-[45vh] z-25 origin-bottom pointer-events-none opacity-90 transform-gpu"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={frameIn ? { opacity: 1, y: 0 } : undefined}
+                    transition={{ duration: 1.2, delay: 0.35, ease: EASE }}
+                    className="absolute inset-0 z-40 pointer-events-none"
                 >
-                    <svg className="w-[110%] -ml-[5%] h-full text-alpine-navy/40 dark:text-[#050D1A]/80 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 250" style={{ filter: 'drop-shadow(0 -10px 20px rgba(0,0,0,0.3))' }}>
-                        <path d="M0,250 L0,120 C250,190 450,60 750,160 C1050,260 1250,80 1440,140 L1440,250 Z" />
-                    </svg>
-                </motion.div>
-
-                {/* Dynamic Soft Aurora Ribbon Flow across lower section */}
-                <motion.div 
-                    className="absolute inset-x-0 bottom-0 h-[30vh] sm:h-[45vh] z-28 pointer-events-none opacity-60 overflow-hidden"
-                    animate={{ opacity: [0.5, 0.7, 0.5] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                    <div 
-                        className="w-[140%] -left-[20%] h-full bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-[#00F2FE]/30 via-[#38BDF8]/20 via-[#6A11CB]/20 to-transparent blur-2xl animate-aurora-pulse"
-                    />
-                </motion.div>
-
-                {/* Cinematic Drifting Fog */}
-                <motion.div 
-                    className="absolute inset-x-0 bottom-0 h-[25vh] sm:h-[40vh] z-28 pointer-events-none opacity-40 overflow-visible"
-                    animate={{ x: ['-5%', '5%', '-5%'] }}
-                    transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                    <div className="absolute bottom-0 w-[120%] -left-[10%] h-full bg-gradient-to-t from-[#00F2FE]/20 via-white/10 to-transparent blur-3xl rounded-[100%]" />
-                </motion.div>
-
-                {/* Glowing Mist */}
-                <motion.div 
-                    className="absolute inset-x-0 bottom-0 h-[20vh] sm:h-[30vh] z-28 pointer-events-none bg-gradient-to-t from-white/30 to-transparent dark:from-[#38BDF8]/20 dark:to-transparent blur-[20px]"
-                    animate={{ opacity: [0.3, 0.7, 0.3] }}
-                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-                />
-
-                {/* Front Mountain Layer (Smooth Translucent Glass Tint) */}
-                <motion.div
-                    style={{ 
-                        y: mountainForegroundY
-                    }}
-                    className="absolute inset-x-0 bottom-0 top-auto h-[25vh] sm:h-[40vh] z-30 origin-bottom pointer-events-none transform-gpu"
-                >
-                    <svg className="w-full h-full text-alpine-snow dark:text-[#030712]/85 fill-current" preserveAspectRatio="none" viewBox="0 0 1440 200" style={{ filter: 'drop-shadow(0 -15px 30px rgba(0,242,254,0.15))' }}>
-                        <path d="M0,200 L0,80 C200,150 400,30 700,120 C1000,210 1200,40 1440,90 L1440,200 Z" />
-                    </svg>
-                </motion.div>
-
-
                 {/* Layer 4: Weather & Peak Info — Refined Glassmorphic Panel (Desktop & Mobile) */}
                 <motion.div
                     initial={{ opacity: 1, x: 0 }}
@@ -1066,7 +1065,7 @@ export const HeroSection = () => {
                     transition={{ duration: 0.3 }}
                     style={{ opacity: textOpacity }}
                     onClick={handlePeakClick}
-                    className={`absolute glass-premium cursor-pointer hover:border-alpine-glacier/30 transition-all duration-300 group/peak ${
+                    className={`absolute glass-premium hero-peak-card pointer-events-auto cursor-pointer hover:border-alpine-glacier/30 transition-[color,background-color,border-color,box-shadow] duration-300 group/peak ${
                         isPeakExpanded 
                             ? 'z-50 shadow-[0_10px_60px_rgba(0,0,0,0.8)] border-alpine-glacier/30 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl bottom-4 sm:bottom-6 left-3 sm:left-6 md:left-12 w-[calc(100%-1.5rem)] sm:w-[360px] max-w-sm flex flex-col' 
                             : 'z-30 sm:z-40 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bottom-4 sm:bottom-6 md:bottom-8 left-3 sm:left-6 md:left-12 w-[240px] sm:w-[270px] md:w-[300px] max-w-xs flex flex-col'
@@ -1081,24 +1080,28 @@ export const HeroSection = () => {
                         <span className="w-1.5 h-1.5 rounded-full bg-alpine-glacier/60" />
                         {t('hero.featured_peak', 'Featured Peak')}
                     </p>
-                    <h3 className="text-white font-serif text-sm sm:text-2xl md:text-3xl font-bold mb-0.5 sm:mb-1 tracking-wide">{peak.name}</h3>
+                    <h3 className="text-white font-serif text-sm sm:text-2xl md:text-3xl font-normal mb-0.5 sm:mb-1 tracking-wide">{peak.name}</h3>
                     <p className="text-white/60 text-[10px] sm:text-sm mb-2 sm:mb-5 font-light">{peak.location} — {peak.elevation}</p>
 
-                    <div className="h-[1px] w-full bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-2 sm:mb-5" />
-
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="relative">
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-alpine-glacier animate-pulse" />
-                            <div className="absolute inset-0 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-alpine-glacier/50 animate-ping" />
-                        </div>
-                        <div>
-                            <p className="text-white/40 text-[7px] sm:text-[9px] tracking-[0.15em] sm:tracking-[0.2em] uppercase mb-0.5 font-medium">{t('hero.live_conditions', 'Live Conditions')}</p>
-                            <p className="text-white/90 font-medium text-[10px] sm:text-sm">
-                                {isDark ? `${t('hero.nighttime', 'Nighttime')}, ` : `${t('weather.' + weather.condition, weather.condition)}, `}
-                                {weather.temp !== null ? `${weather.temp}°C` : '--'}
-                            </p>
-                        </div>
-                    </div>
+                    {/* Only show live conditions when we actually have them */}
+                    {weather.temp !== null && (
+                        <>
+                            <div className="h-[1px] w-full bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-2 sm:mb-5" />
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="relative">
+                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-alpine-glacier animate-pulse" />
+                                    <div className="absolute inset-0 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-alpine-glacier/50 animate-ping" />
+                                </div>
+                                <div>
+                                    <p className="text-white/55 text-[7px] sm:text-[9px] tracking-[0.15em] sm:tracking-[0.2em] uppercase mb-0.5 font-medium">{t('hero.live_conditions', 'Live Conditions')}</p>
+                                    <p className="text-white/90 font-medium text-[10px] sm:text-sm">
+                                        {t('weather.' + weather.condition, weather.condition)}, {weather.temp}°C
+                                        {windLabel(weather) && <span className="block font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-white/55 mt-0.5">{windLabel(weather)}</span>}
+                                    </p>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     <AnimatePresence>
                         {isPeakExpanded && (
@@ -1109,9 +1112,12 @@ export const HeroSection = () => {
                                 className="mt-4 pt-4 border-t border-white/10 overflow-hidden max-h-[50vh] overflow-y-auto hide-scrollbar"
                             >
                                 {isPeakLoading ? (
-                                    <div className="flex items-center gap-3 text-white/50 text-xs font-medium uppercase tracking-wider">
-                                        <LoadingSpinner className="scale-75 origin-left" />
-                                        Connecting to Summit Guide...
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-alpine-glacier text-xs font-semibold uppercase tracking-wider">
+                                            <Sparkles size={13} className="animate-pulse" />
+                                            <span>Looking up this peak…</span>
+                                        </div>
+                                        <PeakInfoSkeleton />
                                     </div>
                                 ) : (
                                     <div className="text-[13px] sm:text-sm text-white/90 leading-relaxed font-normal">
@@ -1134,25 +1140,10 @@ export const HeroSection = () => {
                         </motion.div>
                     )}
                 </motion.div>
-
-                {/* Layer 5: Scroll Indicator — Minimal & Premium */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 2, duration: 1.5 }}
-                    className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3 pointer-events-none"
-                >
-                    <div className="w-5 h-9 rounded-full border border-white/20 flex justify-center pt-2 relative overflow-hidden">
-                        <motion.div
-                            animate={{ y: [0, 14, 0] }}
-                            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                            className="w-1 h-2 rounded-full bg-white/60"
-                        />
-                    </div>
-                    <span className="text-[9px] tracking-[0.4em] uppercase text-white/30 font-light">{t('hero.scroll', 'Scroll')}</span>
                 </motion.div>
 
             </div>
         </section>
+        </AnimatePresence>
     );
 };

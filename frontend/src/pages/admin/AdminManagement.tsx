@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Plus, UserX, Settings, Loader2, Check, X, AlertTriangle } from 'lucide-react';
+import { Shield, Plus, UserX, Settings, Check, X, AlertTriangle } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { useAuthStore } from '../../store/useAuthStore';
 import { adminApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';

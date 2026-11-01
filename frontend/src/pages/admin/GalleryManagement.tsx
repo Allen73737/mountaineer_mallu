@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image as ImageIcon, Check, X, Play, Loader2, Trash2, UploadCloud, Maximize2, Minimize2, Eye, EyeOff, Edit2, Sparkles, Tag, Wand2, CheckCircle } from 'lucide-react';
+import { Image as ImageIcon, Check, X, Play, Trash2, UploadCloud, Maximize2, Minimize2, Eye, EyeOff, Edit2, Sparkles, Tag, Wand2, CheckCircle } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { galleryApi, aiApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -253,14 +254,14 @@ export const GalleryManagement = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-all duration-300"
+                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-[color,background-color,border-color,box-shadow] duration-300"
                         onClick={() => setShowUpload(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.9, y: 30 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95 }}
-                            className="premium-card p-8 transition-all duration-300 relative max-w-md w-full rounded-3xl"
+                            className="premium-card p-8 transition-[color,background-color,border-color,box-shadow] duration-300 relative max-w-md w-full rounded-3xl"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
@@ -339,14 +340,14 @@ export const GalleryManagement = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-all duration-300"
+                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-[color,background-color,border-color,box-shadow] duration-300"
                         onClick={() => setEditItem(null)}
                     >
                         <motion.div
                             initial={{ scale: 0.9, y: 30 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95 }}
-                            className="premium-card p-8 transition-all duration-300 relative max-w-md w-full rounded-3xl"
+                            className="premium-card p-8 transition-[color,background-color,border-color,box-shadow] duration-300 relative max-w-md w-full rounded-3xl"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             <h2 className="text-2xl font-bold text-white font-serif mb-6">Edit Gallery Media</h2>
@@ -374,7 +375,7 @@ export const GalleryManagement = () => {
                         initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
                         animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
                         exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-[100] flex items-center justify-center bg-black/90 p-4 md:p-12 cursor-pointer transition-all duration-300"
+                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-[100] flex items-center justify-center bg-black/90 p-4 md:p-12 cursor-pointer transition-[color,background-color,border-color,box-shadow] duration-300"
                         onClick={() => setSelectedMedia(null)}
                     >
                         <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-4 backdrop-blur-lg" onClick={() => setSelectedMedia(null)}>

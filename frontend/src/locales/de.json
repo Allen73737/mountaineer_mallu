@@ -32,8 +32,10 @@
     "vision_desc": "Die führende globale Plattform zu sein, die die nächste Generation von Bergsteigern verbindet, ausbildet und inspiriert."
   },
   "pillars": {
+    "leadership_subtitle": "Führungskader",
     "title": "Die Vier Säulen",
     "subtitle": "Das Fundament unserer Gemeinschaft",
+    "meet_team": "Kernteam Kennenlernen",
     "p1_title": "Bruderschaft",
     "p1_desc": "Unzerbrechliche Bande knüpfen durch gemeinsame Entbehrungen und Triumphe am Berg.",
     "p2_title": "Ausdauer",
@@ -50,8 +52,11 @@
     "view_all": "Alle Berichte ansehen"
   },
   "events": {
+    "operations_subtitle": "Bevorstehende Einsätze",
     "title": "Kommende Expeditionen",
     "subtitle": "Begleiten Sie uns auf unserem nächsten Abenteuer",
+    "full_calendar": "Vollständiger Kalender",
+    "inspect_route": "Route Prüfen",
     "register": "Interesse anmelden",
     "spots_left": "Plätze übrig"
   },
@@ -60,10 +65,20 @@
     "subtitle": "Die raue Schönheit der Hochalpen einfangen",
     "view_more": "Galerie erkunden"
   },
+  "reviews": {
+    "title": "Das Vermächtnis",
+    "subtitle": "Lesen Sie ungefilterte Berichte von Bergsteigern, die mit uns den Himmel berührt haben.",
+    "average_rating": "Durchschnittsbewertung",
+    "summits_reached": "Erreichte Gipfel",
+    "verified_climber": "Verifizierter Bergsteiger"
+  },
   "community": {
-    "title": "Tritt der Bruderschaft bei",
+    "join_brotherhood": "Der Bruderschaft Beitreten",
+    "title": "Gemeinschafts-Puls",
     "subtitle": "Verbinde dich mit anderen Alpinisten, teile Wissen und finde deinen nächsten Kletterpartner.",
-    "join_now": "Mitglied werden"
+    "become_member": "Mitglied Werden",
+    "access_comms": "Funkkanal Öffnen",
+    "join_now": "Jetzt Beitreten"
   },
   "auth": {
     "login_title": "Expeditionszugang",
@@ -87,7 +102,9 @@
     "contact": "Kontakt",
     "privacy": "Datenschutz",
     "terms": "Nutzungsbedingungen",
-    "rights": "Alle Rechte vorbehalten."
+    "rights": "Alle Rechte vorbehalten.",
+    "telemetry_wind": "Wind",
+    "telemetry_peak_today": "Gipfel des Tages"
   },
   "contact": {
     "get_in_touch": "In Kontakt kommen",
@@ -121,5 +138,10 @@
       "title": "Matterhorn-Besteigung",
       "region": "Schweiz"
     }
+  },
+  "route": {
+    "kicker": "Die Route · Mont Blanc",
+    "title": "Die Goûter-Route, Lager für Lager",
+    "altitude": "Höhe"
   }
 }

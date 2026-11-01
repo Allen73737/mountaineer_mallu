@@ -48,6 +48,8 @@ const storySchema = new mongoose.Schema({
     timestamps: true
 });
 
+storySchema.index({ status: 1, createdAt: -1 });
+storySchema.index({ createdBy: 1, createdAt: -1 });
 storySchema.index({ createdAt: -1 });
 
 const Story = mongoose.model('Story', storySchema);

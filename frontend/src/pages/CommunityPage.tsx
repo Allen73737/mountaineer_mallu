@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Users, MessageSquare, Map, Star, ShieldCheck, ArrowRight, Lock, MapPin, Calendar, Loader2, Send, Wand2, X, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, Users, MessageSquare, Map, Star, ShieldCheck, ArrowRight, Lock, MapPin, Calendar, Send, Wand2, X, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { Link } from 'react-router-dom';
 import { communityApi, aiApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
 import { CommunitySkeleton } from '../components/ui/Skeleton';
+import { CreditTitle } from '../components/ui/CreditTitle';
+import { ErrorState } from '../components/ui/ErrorState';
+import { EmptyState } from '../components/ui/EmptyState';
 
 const TABS = [
-    { id: 'groups', label: 'Factions & Groups', icon: Users },
-    { id: 'discussions', label: 'Global Comms', icon: MessageSquare },
+    { id: 'groups', label: 'Groups', icon: Users },
+    { id: 'discussions', label: 'Discussions', icon: MessageSquare },
     { id: 'trails', label: 'Trail Logistics', icon: Map },
-    { id: 'spotlight', label: 'Vanguard Spotlight', icon: Star }
+    { id: 'spotlight', label: 'Member spotlight', icon: Star }
 ];
 
 export const CommunityPage = () => {
@@ -34,22 +38,29 @@ export const CommunityPage = () => {
     const { user, isLoggedIn } = useAuthStore();
     const { showToast, ToastComponent } = useToast();
 
+    // Failed loads get an error state with retry (bumping reloadKey re-runs the fetch)
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
     useEffect(() => {
         const fetchGroups = async () => {
+            setLoading(true);
+            setLoadError(null);
             try {
                 const data = await communityApi.listGroups();
                 setGroups(data.groups);
                 if (data.groups.length > 0) {
                     loadGroupDetail(data.groups[0]._id);
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to load groups:', err);
+                setLoadError(err?.message || 'We could not reach the community right now.');
             } finally {
                 setLoading(false);
             }
         };
         fetchGroups();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reloadKey]);
 
     const loadGroupDetail = async (groupId: string) => {
         if (!isLoggedIn) {
@@ -126,7 +137,7 @@ export const CommunityPage = () => {
     const isMember = selectedGroup?.members?.some?.((m: any) => m._id === user?.id || m === user?.id);
 
     return (
-        <main className="min-h-screen bg-alpine-navy dark:bg-[#0B0C10] text-white pt-28 pb-20 relative overflow-hidden transition-colors duration-500">
+        <main className="flashlight min-h-screen bg-alpine-navy dark:bg-[#0B0C10] text-white pt-28 pb-20 relative overflow-hidden transition-colors duration-500">
             {ToastComponent}
 
             {/* Ambient Background */}
@@ -136,7 +147,8 @@ export const CommunityPage = () => {
             </div>
 
             <div className="max-w-7xl mx-auto px-6 relative z-50">
-                <BackButton />
+                {/* Night-sky page: render in the dark palette even in light mode */}
+                <div className="dark"><BackButton /></div>
 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
                     <motion.div
@@ -144,18 +156,20 @@ export const CommunityPage = () => {
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.8 }}
                     >
-                        <h1 className="font-serif text-5xl md:text-7xl font-bold mb-4 drop-shadow-sm dark:drop-shadow-md text-white">Community Terminal</h1>
+                        <CreditTitle lines={['Community']} creditClassName="text-alpine-glacier" className="font-serif text-5xl md:text-7xl font-normal drop-shadow-sm dark:drop-shadow-md text-white" />
                         <p className="text-xl text-white/60 font-light max-w-2xl">
-                            Secure coordination for dedicated high-altitude climbers and Alpine enthusiasts. Connect with established factions or plan future logistics.
+                            Find your people. Join a regional group, swap route advice, and plan your next trip together.
                         </p>
                     </motion.div>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-12 border-b border-white/10 pb-4 transition-colors duration-500">
+                <div role="tablist" aria-label="Community sections" className="scroll-fade-x flex overflow-x-auto hide-scrollbar gap-2 mb-12 border-b border-white/10 pb-4 transition-colors duration-500">
                     {TABS.map((tab) => (
                         <button
                             key={tab.id}
+                            role="tab"
+                            aria-selected={activeTab === tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`relative px-6 py-3 rounded-xl flex items-center gap-2 font-medium tracking-wide whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'text-white' : 'text-white/40 hover:text-white hover:bg-white/5'
                                 }`}
@@ -177,6 +191,24 @@ export const CommunityPage = () => {
                 <div className="min-h-[50vh]">
                     {loading && groups.length === 0 ? (
                         <CommunitySkeleton />
+                    ) : loadError && groups.length === 0 ? (
+                        <div className="max-w-md mx-auto py-16">
+                            <ErrorState
+                                title="Community signal lost"
+                                message={loadError}
+                                onRetry={() => setReloadKey(k => k + 1)}
+                                backLink="/"
+                                backText="Back to base camp"
+                            />
+                        </div>
+                    ) : groups.length === 0 ? (
+                        <EmptyState
+                            icon={Users}
+                            title="No community groups yet"
+                            description="Groups for regions, skill levels and upcoming trips will appear here as soon as they're created."
+                            actionText="See upcoming expeditions"
+                            actionLink="/events"
+                        />
                     ) : (
                         <AnimatePresence mode="wait">
                             {activeTab === 'groups' && (
@@ -403,8 +435,8 @@ export const CommunityPage = () => {
                                 <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6 transition-colors duration-500">
                                     <Lock size={32} className="text-white/20" />
                                 </div>
-                                <h2 className="font-serif text-3xl font-bold mb-2 text-white">Sector Restricted</h2>
-                                <p className="text-white/40 max-w-md">This communications channel requires verified Vanguard clearance. Access denied.</p>
+                                <h2 className="font-serif text-3xl font-normal mb-2 text-white">Members only</h2>
+                                <p className="text-white/40 max-w-md">Sign in or create a free account to join the conversation.</p>
                             </motion.div>
                         )}
                     </AnimatePresence>

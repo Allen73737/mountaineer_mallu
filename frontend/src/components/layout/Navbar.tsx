@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
-import { User, LogIn, UserPlus, Menu, Clock, Globe, AlertCircle, X, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { LogIn, UserPlus, Clock, Globe, AlertCircle, X, ChevronDown } from 'lucide-react';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSiteSettings } from '../../store/useSiteSettings';
 import { DynamicLogo } from '../ui/DynamicLogo';
+import { useLenis } from '../ui/SmoothScrollProvider';
+import { useSectionNavigator } from '../../lib/useSectionNavigator';
 
 // Reusable Magnetic Button wrapper for nav links (Performance optimized - zero layout thrashing)
 const MagneticButton = ({ children, className, onMouseEnter, onMouseLeave }: any) => {
@@ -72,11 +75,17 @@ export const Navbar: React.FC = () => {
     const [langMenuOpen, setLangMenuOpen] = useState(false);
     const [pendingLang, setPendingLang] = useState<string | null>(null);
 
-    const { toggleSidebar } = useStore();
+    const { toggleSidebar, isSidebarOpen } = useStore();
     const { isLoggedIn, user } = useAuthStore();
     const { settings } = useSiteSettings();
     const navRef = useRef<HTMLDivElement>(null);
     const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+    const { lenis } = useLenis();
+    const goToSection = useSectionNavigator();
+    const [activeSection, setActiveSection] = useState<string | null>(null);
+
+    // Collapse the mobile menu whenever the route changes
+    useEffect(() => { setIsMobileExpanded(false); }, [location.pathname]);
 
     // Filter nav links based on section visibility
     const filteredLinks = navLinks.filter(link => {
@@ -84,6 +93,31 @@ export const Navbar: React.FC = () => {
         const config = settings.sections[link.sectionKey];
         return config && config.status !== 'hidden';
     });
+
+    // Highlight the section currently in view (home page only)
+    const sectionIdsKey = filteredLinks.map(l => l.href.slice(1)).join(',');
+    useEffect(() => {
+        if (location.pathname !== '/') { setActiveSection(null); return; }
+        const ids = sectionIdsKey.split(',');
+        const watched = new Set<string>();
+        const observer = new IntersectionObserver(entries => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) setActiveSection(entry.target.id);
+            }
+        }, { rootMargin: '-45% 0px -50% 0px' });
+        // Sections mount after the route transition (slower on weak devices) — keep looking until all are watched
+        let tries = 0;
+        let timer: ReturnType<typeof setTimeout>;
+        const attach = () => {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !watched.has(id)) { observer.observe(el); watched.add(id); }
+            });
+            if (watched.size < ids.length && ++tries < 20) timer = setTimeout(attach, 300);
+        };
+        attach();
+        return () => { clearTimeout(timer); observer.disconnect(); };
+    }, [location.pathname, sectionIdsKey]);
 
     const { scrollY, scrollYProgress } = useScroll();
     const [hidden, setHidden] = useState(false);
@@ -131,190 +165,226 @@ export const Navbar: React.FC = () => {
         setPendingLang(null);
     };
 
+    const theme = useStore(s => s.theme);
+    const isDarkTheme = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    // Same night palette as the full-screen menu: navy by day, near-black at night
+    const tint = isDarkTheme ? '5,7,12' : '6,26,49';
+    const pillClass = 'rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.1] hover:border-white/35 text-white transition-colors duration-300';
+    const labelClass = 'text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em]';
+    // `tap-dot` opts the round controls out of the global 44px mobile button height (index.css), which
+    // would stretch them into ovals; the bar has no room for 44px circles on a phone
+
     return (
+        // Always on the menu's night palette, so `dark` variants inside (theme toggle, dropdowns) match it
         <header
-            className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 py-3 md:py-5 ${hidden ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
+            className={`dark fixed top-0 left-0 right-0 z-40 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] py-3 md:py-4 ${hidden ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
         >
-            <div className="max-w-[95rem] mx-auto px-4 md:px-8">
+            <div className="max-w-[95rem] mx-auto px-3 sm:px-4 md:px-6">
                 <div
                     ref={navRef}
                     onMouseMove={handleNavMouseMove}
-                    className={`relative flex flex-col w-full rounded-[2rem] px-4 md:px-8 py-3 md:py-4 transition-[background-color,border-color,box-shadow] duration-500 border overflow-hidden ${
-                        scrolled || isMobileExpanded
-                            ? 'bg-white/40 dark:bg-white/[0.08] backdrop-blur-[45px] backdrop-saturate-[250%] shadow-[0_20px_50px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8),inset_0_-1px_1px_rgba(255,255,255,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-1px_1px_rgba(255,255,255,0.1)] border-white/60 dark:border-white/20'
-                            : 'bg-transparent border-transparent'
-                    }`}
+                    style={{ backgroundColor: `rgba(${tint},${scrolled || isMobileExpanded ? 0.82 : 0.32})` }}
+                    className={`relative flex flex-col w-full border border-white/10 backdrop-blur-xl backdrop-saturate-150 text-white transition-[background-color,box-shadow,border-radius] duration-500 overflow-hidden ${
+                        isMobileExpanded ? 'rounded-[1.75rem]' : 'rounded-full'
+                    } ${scrolled ? 'shadow-[0_18px_50px_-18px_rgba(0,0,0,0.65)]' : ''}`}
                 >
-                    {/* Prismatic Caustic Spotlight that follows cursor */}
-                    {(scrolled || isMobileExpanded) && (
-                        <div
-                            className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none opacity-60 dark:opacity-40 transition-opacity duration-300 z-0"
-                            style={{
-                                background: `radial-gradient(350px circle at var(--nav-x, 50%) var(--nav-y, 50%), rgba(255,255,255,0.4), rgba(163,201,226,0.2) 40%, transparent 70%)`,
-                            }}
-                        />
-                    )}
+                    {/* Soft light that follows the cursor across the bar */}
+                    <div
+                        aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none opacity-70"
+                        style={{ background: 'radial-gradient(260px circle at var(--nav-x, 50%) var(--nav-y, 50%), rgba(255,255,255,0.07), transparent 70%)' }}
+                    />
 
-                    {/* Ultra Liquid Glass Top Specular Arc Reflection */}
-                    {(scrolled || isMobileExpanded) && (
-                        <div className="absolute top-0 inset-x-0 h-14 bg-gradient-to-b from-white/30 dark:from-white/10 to-transparent rounded-t-[2rem] pointer-events-none z-0" />
-                    )}
-
-                    {/* Main Navbar Header Row */}
-                    <div className="w-full flex items-center justify-between relative z-50 gap-4">
-                        {/* Logo Area (Left Bubble) */}
-                        <motion.div
-                            whileHover={{ scale: 1.04 }}
+                    {/* Main row */}
+                    <div className="w-full flex items-center justify-between relative z-50 gap-2 sm:gap-4 pl-4 md:pl-6 pr-1.5 md:pr-2 py-1.5 md:py-2">
+                        {/* Wordmark */}
+                        <motion.button
+                            type="button"
+                            aria-label="Mountaineer Mallu home"
                             whileTap={{ scale: 0.97 }}
-                            className="flex items-center gap-2 relative z-50 cursor-pointer px-4 py-2 md:px-5 md:py-2.5 rounded-2xl backdrop-blur-2xl transition-all hover:scale-105 bg-white/40 dark:bg-white/10 border-white/60 dark:border-white/20 shadow-[0_4px_15px_rgba(0,0,0,0.05)] border"
+                            className="flex items-center shrink-0 relative z-50 cursor-pointer py-1"
                             onClick={() => {
                                 if (location.pathname !== '/') {
                                     navigate('/');
+                                } else if (lenis) {
+                                    lenis.scrollTo(0, { duration: 1.2 });
                                 } else {
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }
                             }}
                         >
-                            <DynamicLogo className="h-8 md:h-10" showText={true} forceWhiteText={false} />
-                        </motion.div>
+                            <DynamicLogo className="h-7 md:h-8" showText={true} forceWhiteText={true} />
+                        </motion.button>
 
-                        {/* Center Links (Liquid Glass Capsule Bubble - Desktop Only) */}
-                        <nav className="hidden lg:flex items-center gap-1 bg-white/40 dark:bg-white/10 p-1 rounded-2xl backdrop-blur-2xl border border-white/60 dark:border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.7)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.2)]">
-                            {filteredLinks.map((link) => {
+                        {/* Sections: numbered serif links, like the menu */}
+                        <nav aria-label="Sections" className="hidden lg:flex items-center gap-0.5 xl:gap-1">
+                            {filteredLinks.map((link, index) => {
                                 const config = link.sectionKey ? settings.sections[link.sectionKey] : null;
                                 const isComingSoon = config && config.status === 'coming_soon';
                                 const translatedName = t(link.nameKey);
                                 const targetHref = link.href.startsWith('#') && location.pathname !== '/' ? `/${link.href}` : link.href;
+                                const sectionId = link.href.slice(1);
+                                // Home: the section in view. Elsewhere: the page that section belongs to (/events, /gallery...)
+                                const isActive = location.pathname === '/'
+                                    ? activeSection === sectionId
+                                    : location.pathname.startsWith(`/${sectionId}`);
+                                const dim = hoveredLink !== null && hoveredLink !== link.nameKey;
                                 return (
                                     <a
                                         key={link.nameKey}
                                         href={targetHref}
-                                        className={`relative z-10 block ${isComingSoon ? 'pointer-events-none' : ''}`}
+                                        onClick={e => goToSection(sectionId, e)}
+                                        aria-current={isActive ? (location.pathname === '/' ? 'location' : 'page') : undefined}
+                                        aria-disabled={isComingSoon || undefined}
+                                        className={`group/nl relative z-10 block ${isComingSoon ? 'pointer-events-none' : ''}`}
                                     >
-                                        <MagneticButton 
+                                        <MagneticButton
                                             onMouseEnter={() => setHoveredLink(link.nameKey)}
                                             onMouseLeave={() => setHoveredLink(null)}
-                                            className={`relative px-4 xl:px-5 py-2.5 text-xs xl:text-sm font-bold tracking-[0.05em] hover:text-alpine-navy dark:hover:text-white transition-colors duration-300 uppercase flex items-center gap-2 ${isComingSoon ? 'text-amber-500/80 dark:text-amber-400/70' : 'text-alpine-navy/70 dark:text-white/70'}`}
+                                            className={`relative px-3 xl:px-4 py-2 flex items-baseline gap-1.5 transition-opacity duration-500 ${dim ? 'opacity-45' : 'opacity-100'}`}
                                         >
                                             {hoveredLink === link.nameKey && (
                                                 <motion.div
                                                     layoutId="nav-hover"
-                                                    className="absolute inset-0 bg-white/70 dark:bg-white/20 backdrop-blur-md rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] z-[-1] border border-white/80 dark:border-white/30"
-                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                    className="absolute inset-0 rounded-full bg-white/[0.07] z-[-1]"
+                                                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                                                 />
                                             )}
-                                            {translatedName}
-                                            {isComingSoon && <Clock size={11} className="text-amber-500/80" />}
+                                            <span className="font-mono text-[9px] tabular-nums text-alpine-sunrise/75">{String(index + 1).padStart(2, '0')}</span>
+                                            <span className={`font-serif text-[17px] xl:text-[19px] leading-none tracking-[-0.01em] transition-colors duration-300 group-hover/nl:italic ${isComingSoon ? 'text-amber-300/70' : isActive ? 'text-alpine-sunrise' : 'text-white'}`}>
+                                                {translatedName}
+                                            </span>
+                                            {isComingSoon && <Clock size={11} className="text-amber-300/80 self-center" />}
+                                            {isActive && (
+                                                <motion.span
+                                                    layoutId="nav-active-underline"
+                                                    className="absolute left-1/2 -translate-x-1/2 bottom-0.5 w-1 h-1 rounded-full bg-alpine-sunrise shadow-[0_0_10px_rgba(226,160,113,0.9)]"
+                                                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                                                />
+                                            )}
                                         </MagneticButton>
                                     </a>
                                 );
                             })}
                         </nav>
 
-                        {/* Right Actions Bubble */}
-                        <div className="flex items-center gap-2 md:gap-3.5 relative z-50">
-                            {/* Language Switcher */}
+                        {/* Actions */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 relative z-50">
+                            {/* Day / night */}
+                            <ThemeToggle className="tap-dot rounded-full! bg-white/[0.04]! hover:bg-white/[0.1]! border-white/15! shadow-none! w-9! h-9! md:w-10! md:h-10!" />
+
+                            {/* Language */}
                             <div className="relative">
                                 <motion.button
-                                    whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setLangMenuOpen(!langMenuOpen)}
-                                    className="px-2.5 py-2 md:px-3.5 md:py-2.5 rounded-xl md:rounded-2xl bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 transition-all duration-300 flex items-center gap-1.5 border border-white/60 dark:border-white/20 shadow-sm text-alpine-navy dark:text-white"
+                                    aria-label="Change language"
+                                    aria-expanded={langMenuOpen}
+                                    className={`tap-dot ${pillClass} h-9 md:h-10 px-3 md:px-3.5 flex items-center gap-1.5 cursor-pointer`}
                                 >
-                                    <Globe size={15} className="text-alpine-navy/80 dark:text-white/80" />
-                                    <span className="hidden md:inline text-xs font-bold uppercase tracking-wider">{i18n.language.split('-')[0]}</span>
+                                    <Globe size={14} className="text-white/75" />
+                                    <span className="hidden md:inline font-mono text-[11px] uppercase tracking-[0.2em]">{i18n.language.split('-')[0]}</span>
                                 </motion.button>
-                                
+
                                 <AnimatePresence>
                                     {langMenuOpen && (
                                         <>
                                             <div className="fixed inset-0 z-40" onClick={() => setLangMenuOpen(false)} />
                                             <motion.div
-                                                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                initial={{ opacity: 0, y: 10, scale: 0.97 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                                                className="absolute right-0 top-full mt-3 w-40 bg-white/90 dark:bg-[#15171E]/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/10 overflow-hidden z-50 flex flex-col p-1.5"
+                                                exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                                                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                                                style={{ backgroundColor: `rgba(${tint},0.96)` }}
+                                                className="absolute right-0 top-full mt-3 w-44 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.55)] border border-white/10 overflow-hidden z-50 flex flex-col p-1.5"
                                             >
-                                                <button onClick={() => initiateLanguageChange('en')} className={`px-3 py-2 text-sm text-left rounded-lg transition-colors ${i18n.language.startsWith('en') ? 'bg-alpine-glacier/20 text-alpine-blue dark:text-alpine-glacier font-bold' : 'text-[#0B0C10]/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5'}`}>English</button>
-                                                <button onClick={() => initiateLanguageChange('ml')} className={`px-3 py-2 text-sm text-left rounded-lg transition-colors ${i18n.language.startsWith('ml') ? 'bg-alpine-glacier/20 text-alpine-blue dark:text-alpine-glacier font-bold' : 'text-[#0B0C10]/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5'}`}>മലയാളം</button>
-                                                <button onClick={() => initiateLanguageChange('de')} className={`px-3 py-2 text-sm text-left rounded-lg transition-colors ${i18n.language.startsWith('de') ? 'bg-alpine-glacier/20 text-alpine-blue dark:text-alpine-glacier font-bold' : 'text-[#0B0C10]/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5'}`}>Deutsch</button>
+                                                {([['en', 'English'], ['ml', 'മലയാളം'], ['de', 'Deutsch']] as const).map(([code, name], i) => (
+                                                    <button
+                                                        key={code}
+                                                        onClick={() => initiateLanguageChange(code)}
+                                                        className={`flex items-baseline gap-3 px-3 py-2 text-left rounded-xl transition-colors cursor-pointer ${i18n.language.startsWith(code) ? 'bg-white/[0.08] text-alpine-sunrise' : 'text-white/75 hover:bg-white/[0.05] hover:text-white'}`}
+                                                    >
+                                                        <span className="font-mono text-[9px] text-alpine-sunrise/70">{String(i + 1).padStart(2, '0')}</span>
+                                                        <span className="font-serif text-lg leading-none">{name}</span>
+                                                    </button>
+                                                ))}
                                             </motion.div>
                                         </>
                                     )}
                                 </AnimatePresence>
                             </div>
 
-                            {/* Profile / Auth Buttons */}
+                            {/* Profile / auth */}
                             {isLoggedIn ? (
-                                <motion.div
-                                    whileHover={{ scale: 1.05 }}
+                                <motion.button
+                                    type="button"
+                                    aria-label="Open your dashboard"
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => navigate('/portal')}
-                                    className="px-2 py-2 md:px-3 md:py-2 rounded-xl md:rounded-2xl bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 transition-all duration-300 group flex items-center gap-2 border border-white/60 dark:border-white/20 shadow-sm cursor-pointer"
+                                    className={`tap-dot ${pillClass} h-9 md:h-10 pl-1 pr-1 md:pr-4 flex items-center gap-2.5 cursor-pointer`}
                                 >
-                                    <span className="hidden md:inline font-bold text-xs text-alpine-navy dark:text-white tracking-wide">
-                                        {user?.name.split(' ')[0]}
-                                    </span>
                                     {user?.avatar ? (
-                                        <img src={user.avatar} alt="Profile" className="w-6 h-6 md:w-8 md:h-8 rounded-lg object-cover" />
+                                        <img src={user.avatar} alt="Profile" className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover" />
                                     ) : (
-                                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-alpine-navy dark:bg-alpine-glacier/20 flex items-center justify-center text-white dark:text-alpine-glacier font-bold text-xs">
+                                        <span className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-alpine-blue to-alpine-glacier grid place-items-center text-alpine-navy font-bold text-xs">
                                             {user?.name.charAt(0)}
-                                        </div>
+                                        </span>
                                     )}
-                                </motion.div>
+                                    <span className={`hidden md:inline ${labelClass}`}>{user?.name.split(' ')[0]}</span>
+                                </motion.button>
                             ) : (
                                 <>
-                                    {/* Desktop Mode text buttons */}
-                                    <Link
-                                        to="/login"
-                                        className="hidden md:flex items-center gap-1.5 px-3 py-2.5 rounded-xl md:rounded-2xl font-bold text-xs text-alpine-navy/80 dark:text-white/80 hover:text-alpine-navy dark:hover:text-white bg-white/30 dark:bg-white/10 hover:bg-white/50 dark:hover:bg-white/20 border border-white/50 dark:border-white/20 shadow-sm transition-all duration-300 tracking-wider uppercase"
-                                    >
+                                    <Link to="/login" className={`hidden md:flex ${pillClass} ${labelClass} h-10 px-4 items-center gap-1.5`}>
                                         <LogIn size={13} />
                                         {t('nav.login')}
                                     </Link>
+                                    {/* Join: the menu's primary pill — white, with the navy disc */}
                                     <Link
                                         to="/signup"
-                                        className="hidden md:flex relative group overflow-hidden px-4 py-2.5 rounded-xl md:rounded-2xl bg-gradient-to-r from-alpine-navy via-blue-600 to-blue-500 dark:from-white dark:via-white/90 dark:to-white/70 text-white dark:text-alpine-navy font-black text-xs hover:scale-[1.03] transition-all duration-300 shadow-sm flex items-center gap-1.5 tracking-wider uppercase border border-white/30 dark:border-white"
+                                        className={`group/join hidden md:flex items-center gap-2.5 h-10 pl-4 pr-1 rounded-full bg-white text-alpine-navy hover:bg-alpine-sunrise transition-colors duration-300 ${labelClass}`}
                                     >
                                         {t('nav.join')}
+                                        <span className="grid place-items-center w-8 h-8 rounded-full bg-alpine-navy text-white transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/join:rotate-45">
+                                            <UserPlus size={13} />
+                                        </span>
                                     </Link>
-                                    {/* Mobile Mode compact icon button */}
-                                    <Link
-                                        to="/login"
-                                        className="md:hidden flex items-center justify-center p-2 rounded-xl bg-white/40 dark:bg-white/10 text-alpine-navy dark:text-white border border-white/60 dark:border-white/20 shadow-sm"
-                                        aria-label="Login"
-                                    >
-                                        <LogIn size={15} />
+                                    <Link to="/login" className={`md:hidden ${pillClass} w-9 h-9 grid place-items-center`} aria-label="Login">
+                                        <LogIn size={14} />
                                     </Link>
                                 </>
                             )}
 
-                            {/* Mobile expansion caret trigger */}
+                            {/* Phones / tablets: section list toggle */}
                             <button
                                 onClick={() => requestAnimationFrame(() => setIsMobileExpanded(!isMobileExpanded))}
-                                className="lg:hidden p-2 rounded-xl bg-white/40 dark:bg-white/10 text-alpine-navy dark:text-white border border-white/60 dark:border-white/20 shadow-sm flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer"
-                                aria-label="Toggle Navigation"
+                                className={`tap-dot lg:hidden ${pillClass} w-9 h-9 grid place-items-center cursor-pointer`}
+                                aria-label="Toggle section links"
+                                aria-expanded={isMobileExpanded}
                             >
-                                <div
-                                    className={`transition-transform duration-300 ${isMobileExpanded ? 'rotate-180' : 'rotate-0'}`}
-                                >
+                                <span className={`transition-transform duration-300 ${isMobileExpanded ? 'rotate-180' : 'rotate-0'}`}>
                                     <ChevronDown size={15} />
-                                </div>
+                                </span>
                             </button>
 
-                            {/* Universal menu trigger to open side panel settings */}
+                            {/* Menu: the twin of the menu's "Close" pill */}
                             <button
                                 onClick={() => requestAnimationFrame(toggleSidebar)}
-                                className="relative group overflow-hidden p-2 rounded-xl md:rounded-2xl bg-white/40 dark:bg-white/10 border border-white/60 dark:border-white/25 text-alpine-navy dark:text-white shadow-sm hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer"
-                                aria-label="Open menu"
+                                className={`tap-dot group/menu ${pillClass} h-9 md:h-10 pl-1 md:pl-5 pr-1 flex items-center gap-3 cursor-pointer`}
+                                aria-label={isSidebarOpen ? 'Close menu' : 'Open menu'}
+                                aria-expanded={isSidebarOpen}
                             >
-                                <Menu size={16} className="relative z-10" />
+                                <span className={`hidden md:inline ${labelClass}`}>Menu</span>
+                                <span className="grid place-items-center w-7 h-7 md:w-8 md:h-8 rounded-full bg-white text-alpine-navy" aria-hidden="true">
+                                    <span className="flex flex-col items-end gap-[3px] w-3.5">
+                                        <span className={`block h-[1.5px] rounded-full bg-current transition-all duration-300 origin-center ${isSidebarOpen ? 'w-full translate-y-[2.25px] rotate-45' : 'w-full'}`} />
+                                        <span className={`block h-[1.5px] rounded-full bg-current transition-all duration-300 origin-center ${isSidebarOpen ? 'w-full -translate-y-[2.25px] -rotate-45' : 'w-2/3 group-hover/menu:w-full'}`} />
+                                    </span>
+                                </span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Expandable Mobile Navigation Menu Container */}
+                    {/* Phones / tablets: numbered section list */}
                     <AnimatePresence>
                         {isMobileExpanded && (
                             <motion.div
@@ -322,9 +392,9 @@ export const Navbar: React.FC = () => {
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                                className="w-full lg:hidden flex flex-col gap-2 mt-3 pt-3 border-t border-white/20 dark:border-white/10 z-50 relative"
+                                className="w-full lg:hidden flex flex-col px-5 pb-4 pt-2 border-t border-white/10 z-50 relative"
                             >
-                                {filteredLinks.map((link) => {
+                                {filteredLinks.map((link, index) => {
                                     const config = link.sectionKey ? settings.sections[link.sectionKey] : null;
                                     const isComingSoon = config && config.status === 'coming_soon';
                                     const translatedName = t(link.nameKey);
@@ -333,11 +403,12 @@ export const Navbar: React.FC = () => {
                                         <a
                                             key={link.nameKey}
                                             href={targetHref}
-                                            onClick={() => setIsMobileExpanded(false)}
-                                            className={`w-full py-3 px-5 rounded-2xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/15 border border-white/40 dark:border-white/10 text-center font-bold tracking-wider text-alpine-navy dark:text-white uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${isComingSoon ? 'pointer-events-none text-amber-500/60 dark:text-amber-400/50' : ''}`}
+                                            onClick={e => { setIsMobileExpanded(false); goToSection(link.href.slice(1), e); }}
+                                            className={`flex items-baseline gap-4 py-2.5 border-b border-white/[0.06] last:border-b-0 active:opacity-70 ${isComingSoon ? 'pointer-events-none opacity-50' : ''}`}
                                         >
-                                            {translatedName}
-                                            {isComingSoon && <Clock size={13} className="text-amber-500/80" />}
+                                            <span className="font-mono text-[10px] tabular-nums text-alpine-sunrise/80 w-5">{String(index + 1).padStart(2, '0')}</span>
+                                            <span className="font-serif text-3xl leading-none tracking-[-0.01em] text-white">{translatedName}</span>
+                                            {isComingSoon && <Clock size={13} className="text-amber-300/80 self-center" />}
                                         </a>
                                     );
                                 })}
@@ -347,12 +418,12 @@ export const Navbar: React.FC = () => {
                 </div>
             </div>
 
-            {/* Scroll Progress Bar */}
+            {/* Scroll progress */}
             <motion.div
-                className="absolute bottom-0 left-0 right-0 h-[2px] origin-left z-50"
+                className="absolute bottom-0 left-0 right-0 h-px origin-left z-50"
                 style={{
                     scaleX: scrollYProgress,
-                    background: 'linear-gradient(90deg, rgba(163,201,226,0.6) 0%, rgba(226,160,113,0.6) 50%, rgba(163,201,226,0.6) 100%)',
+                    background: 'linear-gradient(90deg, rgba(163,201,226,0.7) 0%, rgba(226,160,113,0.85) 50%, rgba(201,169,110,0.7) 100%)',
                     opacity: scrolled ? 1 : 0,
                 }}
             />

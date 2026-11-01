@@ -195,7 +195,7 @@ export const DriftingClouds: React.FC<DriftingCloudsProps> = React.memo(({ activ
                                 transform: 'translate3d(0,0,0)',
                                 willChange: 'transform'
                             }}
-                            className="absolute top-0 left-0 w-[35vw] h-[35vw] rounded-full bg-gradient-to-r from-white/90 via-[#E0F2FE]/60 to-transparent blur-[65px] opacity-70 mix-blend-normal pointer-events-none transform-gpu"
+                            className="absolute top-0 left-0 w-[35vw] h-[35vw] rounded-full bg-gradient-to-r from-white/90 via-[#E1EEF6]/60 to-transparent blur-[65px] opacity-70 mix-blend-normal pointer-events-none transform-gpu"
                         />
                     )}
                 </>

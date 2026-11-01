@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Plus, Edit2, Trash2, Save, X, Loader2, Tag, IndianRupee, UploadCloud } from 'lucide-react';
+import { ShoppingBag, Plus, Edit2, Trash2, Save, X, Tag, IndianRupee, UploadCloud } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { merchandiseApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { useAdminAction } from '../../store/useAdminAction';

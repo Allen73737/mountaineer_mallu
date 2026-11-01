@@ -39,11 +39,11 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className={`w-full py-16 px-6 flex flex-col items-center justify-center text-center rounded-3xl border border-red-500/20 dark:border-red-500/30 bg-red-500/5 dark:bg-red-950/10 backdrop-blur-xl ${className}`}
+            className={`w-full py-16 px-6 flex flex-col items-center justify-center text-center rounded-[28px] border border-alpine-navy/10 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl shadow-[0_30px_80px_-40px_rgba(8,40,76,0.35)] ${className}`}
         >
             {/* Status Code or Alert Icon Badge */}
             <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 shadow-inner">
+                <div className="w-20 h-20 rounded-full bg-alpine-sunrise/10 ring-1 ring-alpine-sunrise/30 flex items-center justify-center text-alpine-ember dark:text-alpine-sunrise">
                     {statusCode === 503 ? (
                         <ShieldAlert className="w-10 h-10" />
                     ) : (
@@ -51,14 +51,14 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
                     )}
                 </div>
                 {statusCode && (
-                    <span className="absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase bg-red-600 text-white shadow-md">
+                    <span className="absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase bg-alpine-navy text-white dark:bg-alpine-sunrise dark:text-[#1B0F08] shadow-md">
                         {statusCode}
                     </span>
                 )}
             </div>
 
             {/* Error Message */}
-            <h3 className="font-serif text-2xl md:text-3xl font-bold text-alpine-navy dark:text-alpine-snow mb-3">
+            <h3 className="font-serif text-2xl md:text-3xl font-normal text-alpine-navy dark:text-alpine-snow mb-3">
                 {title}
             </h3>
             <p className="text-sm md:text-base font-light text-alpine-navy/70 dark:text-alpine-snow/70 max-w-md mb-8 leading-relaxed">

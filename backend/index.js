@@ -115,7 +115,7 @@ const createRateLimiter = (options) => {
     return rateLimit({ ...options, store });
 };
 
-// Helmet with strict CSP (removing unsafe-inline for scripts where possible)
+// Helmet with strict CSP (permitting trusted CDNs, Unsplash imagery, and Open-Meteo)
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
@@ -123,9 +123,24 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://*.googleusercontent.com"],
+            imgSrc: [
+                "'self'", 
+                "data:", 
+                "blob:", 
+                "https://res.cloudinary.com", 
+                "https://images.unsplash.com", 
+                "https://*.unsplash.com", 
+                "https://*.googleusercontent.com"
+            ],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            connectSrc: ["'self'", ...CLIENT_URL, "https://accounts.google.com"],
+            connectSrc: [
+                "'self'", 
+                ...CLIENT_URL, 
+                "https://accounts.google.com", 
+                "https://api.open-meteo.com",
+                "ws:",
+                "wss:"
+            ],
             frameSrc: ["https://accounts.google.com"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,

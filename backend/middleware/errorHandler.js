@@ -9,8 +9,9 @@ export const errorHandler = (err, req, res, next) => {
 
     // Mongoose duplicate key error
     if (err.code === 11000) {
-        const field = Object.keys(err.keyValue)[0];
-        return res.status(409).json({ error: `An account with this ${field} already exists.` });
+        const field = err.keyValue ? Object.keys(err.keyValue)[0] : (err.keyPattern ? Object.keys(err.keyPattern)[0] : 'entry');
+        const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
+        return res.status(409).json({ error: `${formattedField} is already in use. Please provide a unique value.` });
     }
 
     // Mongoose cast error (invalid ObjectId)

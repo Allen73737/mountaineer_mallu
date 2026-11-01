@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, BookOpen, Calendar, Image as ImageIcon, Users, ShoppingBag, Star, UserCircle, Mail, Eye, EyeOff, Clock, Wrench, Save, Loader2, AlertTriangle, Shield } from 'lucide-react';
+import { Layers, BookOpen, Calendar, Image as ImageIcon, Users, ShoppingBag, Star, UserCircle, Mail, Eye, EyeOff, Clock, Wrench, Save, AlertTriangle, Shield } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { settingsApi } from '../../lib/api';
 import { useSiteSettings, SectionStatus } from '../../store/useSiteSettings';
 import { useAdminAction } from '../../store/useAdminAction';

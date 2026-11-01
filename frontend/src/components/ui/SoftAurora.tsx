@@ -1,6 +1,7 @@
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
 import React, { useEffect, useRef } from 'react';
 import { getDeviceConfig } from '../../lib/deviceOptimization';
+import { useQuality } from '../../lib/quality';
 import './SoftAurora.css';
 
 function hexToVec3(hex: string): [number, number, number] {
@@ -74,10 +75,6 @@ float fastNoise3D(vec3 x) {
   ) * 2.0 - 1.0;
 }
 
-vec3 cosineGradient(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
-  return a + b * cos(TAU * (c * t + d));
-}
-
 float auroraGlow(float t, vec2 shift) {
   vec2 uv = gl_FragCoord.xy / uResolution.y;
   uv += shift;
@@ -100,8 +97,12 @@ void main() {
   }
 
   vec3 col = vec3(0.0);
-  col += 0.95 * auroraGlow(t, shift) * cosineGradient(uv.x + uTime * uSpeed * 0.15 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
-  col += 0.95 * auroraGlow(t + uLayerOffset, shift) * cosineGradient(uv.x + uTime * uSpeed * 0.08 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
+  // Brand-true colour: the glow breathes in brightness only (equal-channel gradient), so the palette
+  // colours stay themselves instead of being multiplied through a full-spectrum rainbow
+  float shimmer1 = 0.65 + 0.35 * cos(TAU * (uv.x + uTime * uSpeed * 0.15 * uColorSpeed));
+  float shimmer2 = 0.65 + 0.35 * cos(TAU * (uv.x * 1.5 + uTime * uSpeed * 0.08 * uColorSpeed + 0.3));
+  col += 0.95 * auroraGlow(t, shift) * shimmer1 * uColor1;
+  col += 0.95 * auroraGlow(t + uLayerOffset, shift) * shimmer2 * uColor2;
 
   col *= uBrightness;
   float alpha = clamp(length(col), 0.0, 1.0);
@@ -268,7 +269,11 @@ export default function SoftAurora({
       }
 
       const isScrolling = typeof document !== 'undefined' && document.body.classList.contains('is-scrolling');
-      const targetFpsInterval = isScrolling ? Math.max(33, deviceConfig.auroraFpsInterval * 2) : deviceConfig.auroraFpsInterval;
+      // The aurora drifts slowly: cap it harder on weaker quality tiers (lib/quality.ts) and while scrolling
+      const tier = useQuality.getState().tier;
+      const tierInterval = tier === 'low' ? 50 : tier === 'medium' ? 33 : deviceConfig.auroraFpsInterval;
+      const baseInterval = Math.max(deviceConfig.auroraFpsInterval, tierInterval);
+      const targetFpsInterval = isScrolling ? Math.max(tier === 'low' ? 66 : 33, baseInterval * 2) : baseInterval;
 
       if (time - lastTime < targetFpsInterval) {
         animationFrameId = requestAnimationFrame(update);

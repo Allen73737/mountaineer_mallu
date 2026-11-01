@@ -212,7 +212,7 @@ export const UserDashboard = () => {
                                 <Link key={item.id} to={item.path} className="relative block">
                                     <motion.div
                                         whileHover={{ x: 4 }}
-                                        className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all duration-300 ${
+                                        className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-[color,background-color,border-color,box-shadow] duration-300 ${
                                             isActive 
                                                 ? 'bg-black/5 dark:bg-white/10 text-alpine-navy dark:text-white shadow-inner' 
                                                 : 'text-alpine-navy/60 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
@@ -240,7 +240,7 @@ export const UserDashboard = () => {
                         <Link to="/">
                             <motion.button 
                                 whileHover={{ x: 4 }}
-                                className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-alpine-navy/60 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300"
+                                className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-alpine-navy/60 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-[color,background-color,border-color,box-shadow] duration-300"
                             >
                                 <Home size={18} />
                                 <span className="font-semibold text-sm sm:text-base tracking-wide">Return to Main Site</span>
@@ -249,7 +249,7 @@ export const UserDashboard = () => {
                         <motion.button 
                             whileHover={{ x: 4 }}
                             onClick={handleLogoutClick}
-                            className="relative z-[70] w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all duration-300"
+                            className="relative z-[70] w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-[color,background-color,border-color,box-shadow] duration-300"
                         >
                             <LogOut size={18} />
                             <span className="font-semibold text-sm sm:text-base tracking-wide">Secure Logout</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Edit2, Trash2, Save, X, Image as ImageIcon, Loader2, Quote, UploadCloud } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Save, X, Image as ImageIcon, Quote, UploadCloud } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { pillarsApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { LanguageInput } from '../../components/ui/LanguageInput';

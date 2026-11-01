@@ -3,27 +3,45 @@ import { motion } from 'framer-motion';
 import { usersApi } from '../../lib/api';
 import { Folder, Download, Loader, Image as ImageIcon, Video } from 'lucide-react';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { CollectionsTabSkeleton, ImageWithSkeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 export const UserCollectionsTab = () => {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    // A failed load shows an error with retry, not the empty state (which would wrongly say there's nothing)
+    const [loadError, setLoadError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         const fetchProfile = async () => {
+            setLoading(true);
+            setLoadError(false);
             try {
                 const res = await usersApi.getMyProfile();
                 setProfile(res.user);
             } catch (err) {
+                setLoadError(true);
                 console.error(err);
             } finally {
                 setLoading(false);
             }
         };
         fetchProfile();
-    }, []);
+    }, [reloadKey]);
 
     if (loading) {
-        return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
+        return <CollectionsTabSkeleton />;
+    }
+
+    if (loadError) {
+        return (
+            <ErrorState
+                title="Your collections didn't load"
+                message="We couldn't reach the server to fetch your saved collections. Nothing has been lost — try again in a moment."
+                onRetry={() => setReloadKey(k => k + 1)}
+            />
+        );
     }
 
     const renderMediaCard = (item: any) => (
@@ -31,7 +49,7 @@ export const UserCollectionsTab = () => {
             {item.type === 'video' ? (
                 <video src={item.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
             ) : (
-                <img src={item.url} alt={item.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                <ImageWithSkeleton src={item.url} alt={item.title} containerClassName="w-full h-full" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 flex justify-between items-end">

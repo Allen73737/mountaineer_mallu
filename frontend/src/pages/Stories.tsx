@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, ArrowRight, Loader2, BookOpen } from 'lucide-react';
+import { MapPin, Calendar, ArrowRight, BookOpen } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { Link } from 'react-router-dom';
 import { storiesApi } from '../lib/api';
-import { CardSkeleton } from '../components/ui/Skeleton';
+import { CardSkeleton, ImageWithSkeleton } from '../components/ui/Skeleton';
 import { BackButton } from '../components/ui/BackButton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
+import { CreditTitle } from '../components/ui/CreditTitle';
+import { MorphLink } from '../components/ui/MorphLink';
 
 export const StoriesPage = () => {
     const [stories, setStories] = useState<any[]>([]);
@@ -46,9 +49,7 @@ export const StoriesPage = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 1, type: "spring", damping: 15 }}
                     >
-                        <h1 className="text-6xl md:text-8xl font-serif font-bold text-alpine-navy dark:text-alpine-snow drop-shadow-sm mb-6">
-                            The Chronicles
-                        </h1>
+                        <CreditTitle lines={['The Chronicles']} creditClassName="text-[#9A5E43] dark:text-alpine-sunrise" className="text-6xl md:text-8xl font-serif font-normal text-alpine-navy dark:text-alpine-snow drop-shadow-sm" />
                         <p className="text-xl md:text-2xl font-light text-alpine-navy/60 dark:text-alpine-snow/60 max-w-2xl">
                             Authentic field reports, survival tales, and breathtaking journals from the Mountaineer Mallu community.
                         </p>
@@ -85,14 +86,17 @@ export const StoriesPage = () => {
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true, margin: "-100px" }}
                                     transition={{ duration: 0.8, delay: i * 0.1, type: "spring", damping: 15 }}
-                                    className={`group relative rounded-3xl overflow-hidden glass-dark bg-white/50 dark:bg-black/30 border border-black/5 dark:border-white/10 hover:shadow-2xl transition-shadow ${i === 0 || i === 3 ? 'md:col-span-2 lg:col-span-2 aspect-[21/9] md:aspect-[21/10]' : 'aspect-square md:aspect-[3/4]'}`}
+                                    data-cursor="read"
+                                    data-morph-card
+                                    className={`reveal-img [--rev-radius:1.5rem] group relative rounded-3xl overflow-hidden glass-dark bg-white/50 dark:bg-black/30 border border-black/5 dark:border-white/10 hover:shadow-2xl transition-shadow ${i === 0 || i === 3 ? 'md:col-span-2 lg:col-span-2 aspect-[21/9] md:aspect-[21/10]' : 'aspect-square md:aspect-[3/4]'}`}
                                 >
-                                    <img
+                                    <ImageWithSkeleton
                                         src={story.image}
                                         alt={story.title}
                                         loading="lazy"
                                         decoding="async"
-                                        className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 group-hover:scale-105 transition-all duration-1000"
+                                        containerClassName="w-full h-full absolute inset-0"
+                                        className="ken-burns-target w-full h-full object-cover filter brightness-75 group-hover:brightness-100 transition-[filter] duration-1000"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-700" />
 
@@ -105,13 +109,18 @@ export const StoriesPage = () => {
 
                                             <h2 className={`font-serif text-white mb-4 drop-shadow-lg ${i === 0 || i === 3 ? 'text-4xl md:text-5xl' : 'text-3xl'}`}>{story.title}</h2>
 
-                                            <p className="text-white/80 font-light text-sm md:text-base mb-6 line-clamp-2">{story.excerpt}</p>
+                                            {/* Opening line slides out beneath the title on hover (always shown on touch) */}
+                                            <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] [@media(hover:none)]:grid-rows-[1fr] transition-[grid-template-rows] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                                                <p className="overflow-hidden text-white/80 font-light text-sm md:text-base italic font-serif">
+                                                    <span className="block pb-6 line-clamp-3">“{story.excerpt}”</span>
+                                                </p>
+                                            </div>
 
                                             <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
                                                 <span className="text-xs font-semibold uppercase tracking-widest text-white/50">By {story.author}</span>
-                                                <Link to={`/stories/${story._id}`} className="flex items-center gap-2 text-alpine-glacier font-medium text-sm hover:text-white transition-colors">
+                                                <MorphLink to={`/stories/${story._id}`} className="flex items-center gap-2 text-alpine-glacier font-medium text-sm hover:text-white transition-colors">
                                                     Read Log <ArrowRight size={16} />
-                                                </Link>
+                                                </MorphLink>
                                             </div>
                                         </div>
                                     </div>

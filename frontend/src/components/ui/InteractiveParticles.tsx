@@ -52,10 +52,21 @@ export const InteractiveParticles = () => {
         let targetMouseX = width / 2;
         let targetMouseY = height / 2;
 
+        let resizeTimeout: any = null;
         const handleResize = () => {
+            const oldW = width || window.innerWidth;
+            const oldH = height || window.innerHeight;
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-            initParticles();
+            if (oldW > 0 && oldH > 0 && particles.length > 0) {
+                const rx = width / oldW;
+                const ry = height / oldH;
+                particles.forEach(p => { p.x *= rx; p.y *= ry; });
+            }
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                initParticles();
+            }, 200);
         };
 
         const handleMouseMove = (e: MouseEvent) => {
@@ -110,7 +121,9 @@ export const InteractiveParticles = () => {
                 const renderY = this.y + parallaxY;
 
                 ctx.globalAlpha = this.baseAlpha;
-                ctx.drawImage(sprite, renderX - this.size, renderY - this.size, this.size * 2, this.size * 2);
+                // Fast scrolling streaks the flakes along the motion, nearer ones more
+                const stretch = 1 + Math.min(Math.abs(scrollVelocity) * 0.04 * this.z, 3);
+                ctx.drawImage(sprite, renderX - this.size, renderY - this.size * stretch, this.size * 2, this.size * 2 * stretch);
             }
 
             update() {
@@ -119,7 +132,8 @@ export const InteractiveParticles = () => {
                 const driftX = Math.sin(this.angle) * 0.15 * this.z;
 
                 this.x += this.vx + driftX;
-                this.y += this.vy;
+                // Parallax against the page: scrolling down lifts the flakes, near ones faster
+                this.y += this.vy - scrollVelocity * 0.12 * this.z;
 
                 // Wrap around edges gracefully
                 if (this.y < -this.size * 2) this.y = height + this.size * 2;
@@ -143,6 +157,8 @@ export const InteractiveParticles = () => {
         let observer: IntersectionObserver | null = null;
 
         let lastParticleTime = 0;
+        let scrollVelocity = 0;
+        let lastScrollY = window.scrollY;
         const animate = (time: number = 0) => {
             if (!ctx) return;
             if (document.hidden || !isIntersecting) {
@@ -164,6 +180,12 @@ export const InteractiveParticles = () => {
             
             mouseX += (targetMouseX - mouseX) * 0.05;
             mouseY += (targetMouseY - mouseY) * 0.05;
+
+            // Scroll speed in px per frame, eased so flakes settle smoothly once scrolling stops
+            const sy = window.scrollY;
+            scrollVelocity += ((sy - lastScrollY) - scrollVelocity) * 0.25;
+            if (Math.abs(scrollVelocity) < 0.01) scrollVelocity = 0;
+            lastScrollY = sy;
 
             for (let i = 0; i < particles.length; i++) {
                 particles[i].draw();
@@ -201,6 +223,7 @@ export const InteractiveParticles = () => {
 
         return () => {
             if (observer) observer.disconnect();
+            if (resizeTimeout) clearTimeout(resizeTimeout);
             document.removeEventListener('visibilitychange', handleVisibility);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('mousemove', handleMouseMove);

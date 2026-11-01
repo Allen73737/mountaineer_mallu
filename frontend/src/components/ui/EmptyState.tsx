@@ -31,7 +31,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         >
             {/* Compass / Mountain Badge with Ambient Pulse */}
             <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#A3C9E2]/20 to-[#E2A071]/10 dark:from-[#A3C9E2]/15 dark:to-[#64BEFF]/10 flex items-center justify-center border border-black/5 dark:border-white/10 shadow-inner">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#A3C9E2]/20 to-[#E2A071]/10 dark:from-[#A3C9E2]/15 dark:to-[#A3C9E2]/10 flex items-center justify-center border border-black/5 dark:border-white/10 shadow-inner">
                     <Icon className="w-10 h-10 text-[#4A6A8C] dark:text-[#A3C9E2]" />
                 </div>
                 <div className="absolute inset-0 rounded-2xl bg-[#A3C9E2]/10 blur-xl -z-10 animate-pulse" />

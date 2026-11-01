@@ -95,7 +95,7 @@ export const AdminOverview = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1, type: 'spring', damping: 15 }}
-                        className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 group hover:bg-white/10 transition-all relative overflow-hidden"
+                        className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 group hover:bg-white/10 transition-[color,background-color,border-color,box-shadow] relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-10 rounded-bl-full" style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }} />
                         <div className="flex items-start justify-between mb-4">

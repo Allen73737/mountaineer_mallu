@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Clock, ArrowRight, Mountain, AlertTriangle, Loader2, CheckCircle, MessageCircle } from 'lucide-react';
+import { Calendar, MapPin, Clock, ArrowRight, Mountain, AlertTriangle, CheckCircle, MessageCircle } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { Link } from 'react-router-dom';
 import { eventsApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
-import { EventSkeleton } from '../components/ui/Skeleton';
+import { EventSkeleton, ImageWithSkeleton } from '../components/ui/Skeleton';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
+import { CreditTitle } from '../components/ui/CreditTitle';
+import { MorphLink } from '../components/ui/MorphLink';
 
 export const EventsPage = () => {
     const [events, setEvents] = useState<any[]>([]);
@@ -93,9 +96,7 @@ export const EventsPage = () => {
                     transition={{ duration: 1, type: "spring", damping: 15 }}
                     className="mb-24 text-center max-w-4xl mx-auto"
                 >
-                    <h1 className="text-6xl md:text-8xl font-serif font-black mb-8 text-alpine-navy dark:text-alpine-snow leading-none">
-                        Expedition<br />Roster
-                    </h1>
+                    <CreditTitle lines={['Upcoming', 'Trips']} align="center" creditClassName="text-[#9A5E43] dark:text-alpine-sunrise" className="text-6xl md:text-8xl font-serif font-normal text-alpine-navy dark:text-alpine-snow leading-none" />
                     <p className="text-xl md:text-2xl font-light text-alpine-navy/60 dark:text-alpine-snow/60">
                         Secure your place on the rope. Filter by difficulty, region, and technical requirements.
                     </p>
@@ -108,7 +109,7 @@ export const EventsPage = () => {
                     </div>
                 ) : error ? (
                     <ErrorState
-                        title="Expedition Telemetry Offline"
+                        title="We couldn't load trips right now"
                         message={error}
                         onRetry={fetchEvents}
                     />
@@ -135,11 +136,16 @@ export const EventsPage = () => {
                                 {/* Timeline marker node */}
                                 <div className="absolute -left-[37px] md:-left-[69px] w-6 h-6 rounded-full bg-alpine-blue dark:bg-alpine-sunrise border-4 border-alpine-snow dark:border-alpine-navy z-10 group-hover:scale-150 transition-transform duration-500 shadow-xl" />
 
-                                <div className="flex flex-col xl:flex-row gap-12 bg-white/50 dark:bg-black/30 glass-dark rounded-3xl p-6 md:p-10 border border-black/5 dark:border-white/10 hover:bg-white/80 dark:hover:bg-black/50 transition-colors shadow-2xl">
+                                <div data-morph-card className="flex flex-col xl:flex-row gap-12 bg-white/50 dark:bg-black/30 glass-dark rounded-3xl p-6 md:p-10 border border-black/5 dark:border-white/10 hover:bg-white/80 dark:hover:bg-black/50 transition-colors shadow-2xl">
 
                                     {/* Image */}
-                                    <div className="w-full xl:w-2/5 aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden relative">
-                                        <img src={evt.image} className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 group-hover:scale-110 transition-transform duration-[2000ms]" />
+                                    <div className="reveal-img [--rev-radius:1rem] w-full xl:w-2/5 aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden relative">
+                                        <ImageWithSkeleton
+                                            src={evt.image}
+                                            alt={evt.title}
+                                            containerClassName="w-full h-full"
+                                            className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 group-hover:scale-110 transition-transform duration-[2000ms]"
+                                        />
                                         <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-bold uppercase tracking-widest border border-white/20">
                                             {evt.type}
                                         </div>
@@ -193,7 +199,7 @@ export const EventsPage = () => {
                                                     disabled={registeringId === evt._id}
                                                     className="px-8 py-4 bg-alpine-blue dark:bg-alpine-sunrise text-white font-medium rounded-full text-center hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2"
                                                 >
-                                                    {registeringId === evt._id ? <Loader2 className="animate-spin" size={18} /> : 'Apply for Roster'}
+                                                    {registeringId === evt._id ? <Loader2 className="animate-spin" size={18} /> : 'Join this trip'}
                                                 </button>
                                             )}
                                             {evt.ticketUrl && (
@@ -206,9 +212,9 @@ export const EventsPage = () => {
                                                     Get Tickets <ArrowRight size={18} className="group-hover/tkt:translate-x-1 transition-transform" />
                                                 </a>
                                             )}
-                                            <Link to={`/events/${evt._id}`} className="px-8 py-4 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-alpine-navy dark:text-alpine-snow font-medium rounded-full text-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex justify-center items-center gap-2 group/btn">
+                                            <MorphLink to={`/events/${evt._id}`} className="px-8 py-4 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-alpine-navy dark:text-alpine-snow font-medium rounded-full text-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex justify-center items-center gap-2 group/btn">
                                                 View Briefing <ArrowRight size={18} className="group-hover/btn:translate-x-2 transition-transform" />
-                                            </Link>
+                                            </MorphLink>
                                         </div>
                                     </div>
 

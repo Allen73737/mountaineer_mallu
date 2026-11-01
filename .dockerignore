@@ -7,6 +7,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .env
+# Nested env files too (frontend/.env would bake VITE_API_URL=localhost into the bundle)
+**/.env
+**/.env.*
+!**/.env.example
 *.local
 build.log
 errors.log

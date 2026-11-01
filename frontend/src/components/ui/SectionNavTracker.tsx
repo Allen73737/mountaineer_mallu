@@ -114,10 +114,10 @@ export const SectionNavTracker: React.FC = () => {
                                 <motion.div
                                     animate={{
                                         scale: isActive ? 1.4 : 1,
-                                        backgroundColor: isActive ? '#38bdf8' : 'rgba(255, 255, 255, 0.3)',
+                                        backgroundColor: isActive ? '#7EAACB' : 'rgba(255, 255, 255, 0.3)',
                                     }}
                                     transition={{ duration: 0.3 }}
-                                    className={`w-2 h-2 rounded-full transition-all ${
+                                    className={`w-2 h-2 rounded-full transition-[color,background-color,border-color,box-shadow] ${
                                         isActive
                                             ? 'shadow-[0_0_12px_rgba(56,189,248,0.9)]'
                                             : 'group-hover:bg-white group-hover:scale-125'

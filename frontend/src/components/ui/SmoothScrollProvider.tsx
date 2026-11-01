@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Lenis from 'lenis';
+import { cancelFrame, frame } from 'framer-motion';
 
 export type ScrollDirection = 'down' | 'up' | 'idle';
 
@@ -31,23 +32,28 @@ export const SmoothScrollProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        // Mobile / Touch check: Native scrolling is much smoother on mobile touch devices
-        const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || window.matchMedia('(pointer: coarse)').matches);
+        // True coarse-only mobile phone check: native touch scrolling is ideal for pocket smartphones,
+        // while touchscreen laptops, hybrids, tablets with pointers, and desktop monitors get silky Lenis inertia
+        const isCoarseOnlyMobile = typeof window !== 'undefined' && 
+            window.innerWidth < 768 && 
+            window.matchMedia('(pointer: coarse) and (hover: none)').matches;
 
-        if (isTouchDevice) {
-            return; // Use 100% native smooth touch scrolling on mobile
+        if (isCoarseOnlyMobile) {
+            return; // Use 100% native smooth touch scrolling on pocket phones
         }
 
-        // Ultra-buttery smooth Lenis inertia scroll configuration
+        // Frame-rate-independent lerp instead of a fixed-duration tween: the page starts moving on the very
+        // next frame after a wheel tick and each new tick retargets smoothly (no restart of a 1 s curve),
+        // so it stays silky but follows input with minimal latency
         const lenis = new Lenis({
-            duration: 1.05,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -8 * t)),
+            lerp: 0.11,
             orientation: 'vertical',
             gestureOrientation: 'vertical',
             smoothWheel: true,
-            wheelMultiplier: 0.95,
-            touchMultiplier: 1.2,
+            wheelMultiplier: 1,
+            touchMultiplier: 1.5,
             infinite: false,
+            autoResize: true,
         });
 
         setLenisInstance(lenis);
@@ -81,19 +87,51 @@ export const SmoothScrollProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         lenis.on('scroll', handleScroll);
 
-        // High-precision RAF loop
-        let rafId: number;
-        function raf(time: number) {
-            lenis.raf(time);
-            rafId = requestAnimationFrame(raf);
+        // Ultra-responsive resize listener: prevents jank when resizing between aspect ratios
+        let resizeTimeout: any = null;
+        const handleResize = () => {
+            if (typeof document !== 'undefined') {
+                document.body.classList.add('is-resizing');
+            }
+            lenis.resize();
+
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (typeof document !== 'undefined') {
+                    document.body.classList.remove('is-resizing');
+                }
+                lenis.resize();
+            }, 150);
+        };
+
+        window.addEventListener('resize', handleResize, { passive: true });
+        window.addEventListener('orientationchange', handleResize, { passive: true });
+
+        // Observe DOM mutations / dynamic height expansions (accordion expansions, image loads, skeletal resolves)
+        let resizeObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== 'undefined' && document.documentElement) {
+            resizeObserver = new ResizeObserver(() => {
+                lenis.resize();
+            });
+            resizeObserver.observe(document.documentElement);
         }
-        rafId = requestAnimationFrame(raf);
+
+        // Step Lenis inside framer-motion's own frame loop (its "update" phase runs before framer reads
+        // scroll and renders), so the scroll position and every scroll-linked animation move in the same
+        // frame — no one-frame lag between two independent rAF loops
+        const raf = ({ timestamp }: { timestamp: number }) => lenis.raf(timestamp);
+        frame.update(raf, true);
 
         return () => {
-            cancelAnimationFrame(rafId);
+            cancelFrame(raf);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('orientationchange', handleResize);
+            if (resizeObserver) resizeObserver.disconnect();
             if (typeof document !== 'undefined') {
                 document.body.classList.remove('is-scrolling');
+                document.body.classList.remove('is-resizing');
             }
             lenis.off('scroll', handleScroll);
             lenis.destroy();

@@ -4,30 +4,44 @@ import { ShieldCheck, MapPin, Users, ArrowRight, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { communityApi } from '../../lib/api';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { CommunitiesTabSkeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 export const UserCommunitiesTab = () => {
     const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    // A failed load shows an error with retry, not the empty state (which would wrongly say there's nothing)
+    const [loadError, setLoadError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         const fetchGroups = async () => {
+            setLoading(true);
+            setLoadError(false);
             try {
                 const data = await communityApi.listGroups();
                 setGroups(data.groups || []);
             } catch (error) {
+                setLoadError(true);
                 console.error('Failed to fetch groups:', error);
             } finally {
                 setLoading(false);
             }
         };
         fetchGroups();
-    }, []);
+    }, [reloadKey]);
 
     if (loading) {
+        return <CommunitiesTabSkeleton />;
+    }
+
+    if (loadError) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <LoadingSpinner />
-            </div>
+            <ErrorState
+                title="Your communities didn't load"
+                message="We couldn't reach the server to fetch the groups you belong to. Nothing has been lost — try again in a moment."
+                onRetry={() => setReloadKey(k => k + 1)}
+            />
         );
     }
 
@@ -75,7 +89,7 @@ export const UserCommunitiesTab = () => {
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.1 }}
                             key={group._id}
-                            className="premium-card-light dark:premium-card p-6 md:p-8 rounded-3xl flex flex-col justify-between border border-black/5 dark:border-white/[0.06] shadow-lg group hover:shadow-2xl hover:border-alpine-glacier/30 transition-all duration-500"
+                            className="premium-card-light dark:premium-card p-6 md:p-8 rounded-3xl flex flex-col justify-between border border-black/5 dark:border-white/[0.06] shadow-lg group hover:shadow-2xl hover:border-alpine-glacier/30 transition-[color,background-color,border-color,box-shadow] duration-500"
                         >
                             <div>
                                 <div className="flex justify-between items-start mb-5">

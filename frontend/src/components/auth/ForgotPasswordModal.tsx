@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, KeyRound, Lock, Loader2, ArrowRight, X, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Mail, KeyRound, Lock, ArrowRight, X, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Loader2 } from '../ui/BrandLoader';
 import { authApi } from '../../lib/api';
 import { PasswordStrengthMeter } from '../ui/PasswordStrengthMeter';
 

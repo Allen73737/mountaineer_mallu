@@ -22,14 +22,18 @@ export const TourGuide = () => {
 
     const isDemoUser = user?.email === 'demo@mountaineermallu.com';
 
+    // Only invite signed-in members, and only where the tour makes sense — never interrupt
+    // anonymous visitors or someone mid-way through login/signup/admin work.
+    const tourEligibleRoute = location.pathname === '/' || location.pathname.startsWith('/portal') || location.pathname.startsWith('/dashboard');
     useEffect(() => {
-        if (!hasSeenWalkthrough) {
+        if (!hasSeenWalkthrough && user && tourEligibleRoute) {
             const timer = setTimeout(() => {
                 setShowModal(true);
             }, isDemoUser ? 100 : 3500);
             return () => clearTimeout(timer);
         }
-    }, [hasSeenWalkthrough, isDemoUser]);
+        if (!tourEligibleRoute) setShowModal(false);
+    }, [hasSeenWalkthrough, isDemoUser, user, tourEligibleRoute]);
 
     // Handle Cinematic Autoplay loop
     useEffect(() => {
@@ -259,7 +263,7 @@ export const TourGuide = () => {
                             exit={{ scale: 0.9, y: 20 }}
                             className="bg-[#0A0D14] border border-white/10 rounded-3xl p-10 max-w-lg w-full mx-4 shadow-2xl relative overflow-hidden"
                         >
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-alpine-blue via-[#64BEFF] to-alpine-blue" />
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-alpine-blue via-[#A3C9E2] to-alpine-blue" />
                             <h3 className="text-3xl font-serif font-bold text-white mb-3 tracking-wide drop-shadow-sm">Welcome to Basecamp</h3>
                             <p className="text-white/60 mb-8 font-light text-lg leading-relaxed">
                                 {isDemoUser ? 'Would you like a cinematic guided tour of your premium explorer portal?' : 'Would you like a quick guided tour of your premium explorer portal?'}

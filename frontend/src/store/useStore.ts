@@ -4,14 +4,23 @@ import { persist } from 'zustand/middleware';
 type Theme = 'light' | 'dark' | 'system';
 export type TranslationScope = 'interface' | 'everything';
 
+/** Live conditions at today's featured peak (lib/weather.ts). The extended readings are optional. */
+export interface AlpineWeather {
+    temp: number | null;
+    condition: string;
+    isSnowing: boolean;
+    code?: number;
+    wind?: number;      // km/h
+    windDir?: number;   // degrees, meteorological (where the wind comes from)
+    cloud?: number;     // %
+    visibility?: number; // m
+    precip?: number;    // mm
+}
+
 interface AppState {
     theme: Theme;
     isSidebarOpen: boolean;
-    weather: {
-        temp: number | null;
-        condition: string;
-        isSnowing: boolean;
-    };
+    weather: AlpineWeather;
     weatherLoaded: boolean;
     translationScope: TranslationScope;
     hasSeenWalkthrough: boolean;
@@ -19,7 +28,7 @@ interface AppState {
     setTheme: (theme: Theme) => void;
     toggleSidebar: () => void;
     setSidebarOpen: (isOpen: boolean) => void;
-    setWeather: (weather: { temp: number | null; condition: string; isSnowing: boolean }) => void;
+    setWeather: (weather: AlpineWeather) => void;
     setWeatherLoaded: (loaded: boolean) => void;
     setTranslationScope: (scope: TranslationScope) => void;
     setHasSeenWalkthrough: (seen: boolean) => void;

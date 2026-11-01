@@ -184,7 +184,7 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
             <div className="absolute top-4 right-4 md:top-6 md:right-6">
                 <div className="glass-premium px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-alpine-glacier animate-pulse" />
-                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/80">Premium Feed</span>
+                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/80">Film</span>
                 </div>
             </div>
         </div>

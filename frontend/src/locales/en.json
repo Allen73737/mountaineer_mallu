@@ -27,7 +27,7 @@
   "mission": {
     "title": "Our Mission",
     "heading": "Elevating the Spirit of Adventure",
-    "description": "We are a brotherhood of climbers dedicated to pushing the boundaries of human endurance. Our mission is to foster a culture of safety, respect for nature, and relentless pursuit of the summit.",
+    "description": "We're a community of Malayalee hikers and climbers across Europe. We plan trips together, look out for each other on the mountain, and leave the trails better than we found them.",
     "vision_title": "Our Vision",
     "vision_desc": "To be the leading global platform connecting, training, and inspiring the next generation of mountaineers."
   },
@@ -36,7 +36,7 @@
     "title": "Pillars of the Community",
     "subtitle": "The heartbeat of Mountaineer Mallu. Our seasoned team leads ensure every expedition is safe, thrilling, and unforgettable.",
     "meet_team": "Meet the Full Core",
-    "p1_title": "Brotherhood",
+    "p1_title": "Community",
     "p1_desc": "Forging unbreakable bonds through shared hardships and triumphs on the mountain.",
     "p2_title": "Endurance",
     "p2_desc": "Training the mind and body to withstand the harshest environments on earth.",
@@ -47,12 +47,12 @@
   },
   "stories": {
     "title": "Expedition Logs",
-    "subtitle": "Real stories from the frontlines of adventure",
+    "subtitle": "Real stories from the trail",
     "read_more": "Read Full Story",
-    "view_all": "View All Logs"
+    "view_all": "All stories"
   },
   "events": {
-    "operations_subtitle": "Upcoming Operations",
+    "operations_subtitle": "Upcoming trips",
     "title": "Upcoming Expeditions",
     "subtitle": "Join us on our next adventure. Whether you are a seasoned mountaineer or a beginner looking for a community, there is a path for you.",
     "full_calendar": "Full Calendar",
@@ -73,9 +73,9 @@
     "verified_climber": "Verified Climber"
   },
   "community": {
-    "join_brotherhood": "Join the Brotherhood",
+    "join_brotherhood": "Join the community",
     "title": "Community Pulse",
-    "subtitle": "We are more than a club. We are a brotherhood united by the elements. Engage with members, share beta, and find your next climbing partner.",
+    "subtitle": "Meet other members, swap route advice, and find someone to hike with next weekend.",
     "become_member": "Become a Member",
     "access_comms": "Access Comms",
     "join_now": "Join Now"
@@ -86,7 +86,7 @@
     "email_placeholder": "Email Address",
     "password_placeholder": "Password",
     "forgot_password": "Forgot password?",
-    "access_command": "Access Command",
+    "access_command": "Sign in",
     "new_explorer": "New explorer?",
     "signup_link": "Sign up for the expedition",
     "signup_title": "Join the Community",
@@ -102,16 +102,18 @@
     "contact": "Contact",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "telemetry_wind": "Wind",
+    "telemetry_peak_today": "Peak of the day"
   },
   "contact": {
     "get_in_touch": "Get in Touch",
     "base_camp": "Base Camp",
     "description": "Ready for your next ascent? Connect with us for expedition details, membership, or general inquiries.",
-    "open_communications": "Open Communications",
+    "open_communications": "Get in touch",
     "hq": "HQ",
-    "dispatch": "Dispatch",
-    "emergency_direct": "Emergency Direct",
+    "dispatch": "Call us",
+    "emergency_direct": "Call now →",
     "rights": "© 2025 Mountaineer Mallu. All rights reserved.",
     "crafted_with_love": "Crafted with ❤️ for the mountains"
   },
@@ -136,5 +138,10 @@
       "title": "Matterhorn Ascent",
       "region": "Switzerland"
     }
+  },
+  "route": {
+    "kicker": "The route · Mont Blanc",
+    "title": "The Goûter line, camp by camp",
+    "altitude": "Altitude"
   }
 }

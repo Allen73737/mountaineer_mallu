@@ -424,7 +424,7 @@ export const UserStoryEditorTab = () => {
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSubmit}
                         disabled={submitting}
-                        className="lg:mt-auto w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-alpine-glacier text-[#0A0D14] font-bold text-sm tracking-wide shadow-[0_0_30px_rgba(163,201,226,0.3)] hover:shadow-[0_0_40px_rgba(163,201,226,0.5)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="lg:mt-auto w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-alpine-glacier text-[#0A0D14] font-bold text-sm tracking-wide shadow-[0_0_30px_rgba(163,201,226,0.3)] hover:shadow-[0_0_40px_rgba(163,201,226,0.5)] transition-[color,background-color,border-color,box-shadow] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {submitting ? <Loader size={18} className="animate-spin" /> : <Send size={18} />}
                         {submitting ? 'Submitting...' : 'Submit to Editors'}
@@ -526,7 +526,7 @@ export const UserStoryEditorTab = () => {
                                         <motion.div 
                                             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}
                                             key={img.id} 
-                                            className="group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_20px_50px_rgba(163,201,226,0.3)] transition-all duration-500 border border-white/10 hover:border-alpine-glacier/50"
+                                            className="group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_20px_50px_rgba(163,201,226,0.3)] transition-[color,background-color,border-color,box-shadow] duration-500 border border-white/10 hover:border-alpine-glacier/50"
                                             onClick={() => {
                                                 setUnsplashUrl(img.url);
                                                 setImage(null); // Clear file upload if they choose unsplash

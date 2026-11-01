@@ -36,7 +36,7 @@ export const GlobalRouteMap = () => {
                     {/* Dark Mode Gradient: Neon Cyan/White Glow */}
                     <linearGradient id="route-gradient-dark" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#ffffff" />
-                        <stop offset="50%" stopColor="#64BEFF" />
+                        <stop offset="50%" stopColor="#A3C9E2" />
                         <stop offset="100%" stopColor="#ffffff" />
                     </linearGradient>
                 </defs>

@@ -8,6 +8,57 @@ export const hashPeakName = (str: string) => {
     return Math.abs(hash);
 };
 
+/**
+ * Device-sized hero image URL. Used by both the <link rel=preload> in App and the hero <img>,
+ * so the preload is actually consumed. Width snaps to 400px steps (cache-friendly), capped at 2400.
+ */
+export const getHeroImageUrl = (raw: string) => {
+    if (!raw.includes('unsplash')) return raw;
+    const dpr = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    const vw = typeof window === 'undefined' ? 1440 : window.innerWidth;
+    const width = Math.min(2400, Math.max(800, Math.ceil((vw * dpr) / 400) * 400));
+    try {
+        const url = new URL(raw);
+        url.searchParams.set('auto', 'format,compress');
+        url.searchParams.set('fit', 'crop');
+        url.searchParams.set('w', String(width));
+        url.searchParams.set('q', '72');
+        return url.toString();
+    } catch {
+        return raw;
+    }
+};
+
+/** Curated slideshow sets (hero + sign-in panel). First entry matches the single-image pools below. */
+export interface Slide { src: string; alt: string }
+const unsplash = (id: string) => `https://images.unsplash.com/photo-${id}?q=80&w=2560&auto=format&fit=crop`;
+
+export const daySlides: Slide[] = [
+    { src: unsplash('1464822759023-fed622ff2c3b'), alt: 'Snow-capped peaks above a forested alpine valley' },
+    { src: unsplash('1491555103944-7c647fd857e6'), alt: 'A climber in a red jacket facing the Matterhorn' },
+    { src: unsplash('1454496522488-7a8e488e8606'), alt: 'A steep snow pyramid peak under a blue sky' },
+    { src: unsplash('1458668383970-8ddd3927deed'), alt: 'Rocky summits rising above a sea of clouds' },
+    { src: unsplash('1486870591958-9b9d0d1dda99'), alt: 'A snowy peak over golden alpine meadows' },
+];
+
+export const nightSlides: Slide[] = [
+    { src: unsplash('1519681393784-d120267933ba'), alt: 'The Milky Way over snowy mountains at night' },
+    { src: unsplash('1419242902214-272b3f66ee7a'), alt: 'The Milky Way above a glowing mountain horizon' },
+    { src: unsplash('1531366936337-7c912a4589a7'), alt: 'Northern lights over a snowy landscape' },
+    { src: unsplash('1483728642387-6c3bdd6c93e5'), alt: 'Snow peaks at blue hour' },
+    { src: unsplash('1444080748397-f442aa95c3e5'), alt: 'The Milky Way over a pine forest' },
+];
+
+/** One-off scene photography: each image appears in exactly one place on the site, never in the hero sets above. */
+export const sceneImages = {
+    missionDay: { src: unsplash('1486728297118-82a07bc48a28'), alt: 'Alpenglow lighting snow peaks above a sea of cloud' },
+    missionNight: { src: unsplash('1536431311719-398b6704d4cc'), alt: 'Moonlit limestone peaks under a sky full of stars' },
+    posterDay: { src: unsplash('1589802829985-817e51171b92'), alt: 'A lone pyramid summit catching the morning sun' },
+    posterNight: { src: unsplash('1478827536114-da961b7f86d2'), alt: 'A glowing tent under a starry night sky' },
+    finaleDay: { src: unsplash('1520208422220-d12a3c588e6c'), alt: 'A roped team climbing across glacier ice' },
+    finaleNight: { src: unsplash('1477346611705-65d1883cee1e'), alt: 'Jagged peaks glowing red at dusk' },
+} satisfies Record<string, Slide>;
+
 export const defaultPool = [
     "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2560&auto=format&fit=crop" // White snow mountain day
 ];

@@ -100,7 +100,9 @@ export function getDeviceConfig(): DeviceConfig {
     }
 
     // Never show custom cursor on touch devices or small screens
-    const enableCustomCursor = isDesktop && hasFinePointer && !isTouch;
+    // Gate on the *primary* pointer: touchscreen laptops used with a mouse still get the cursor (it ignores
+    // touch input itself), while phones / tablets whose main pointer is a finger do not
+    const enableCustomCursor = isDesktop && hasFinePointer && !window.matchMedia('(pointer: coarse)').matches;
 
     return {
         isMobile,

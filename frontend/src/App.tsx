@@ -1,7 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { Navbar } from './components/layout/Navbar';
 import { SidePanel } from './components/layout/SidePanel';
 import { LoadingScreen } from './components/layout/LoadingScreen';
@@ -21,12 +21,28 @@ import { useStore } from './store/useStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useSiteSettings } from './store/useSiteSettings';
 import { setAuthInvalidatedCallback } from './lib/api';
-import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool } from './data/peaks';
+import { peaksData, hashPeakName, defaultPool, snowyPool, nightPool, getHeroImageUrl } from './data/peaks';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import { AIChatAssistant } from './components/ui/AIChatAssistant';
-import { TourGuide } from './components/ui/TourGuide';
-import { DemoLockOverlay } from './components/ui/DemoLockOverlay';
-import { SmoothScrollProvider, useLenis } from './components/ui/SmoothScrollProvider';
+import { SmoothScrollProvider } from './components/ui/SmoothScrollProvider';
+import { RouteTransition, getRouteKey } from './components/ui/RouteTransition';
+import { CinematicTitles } from './components/ui/CinematicTitles';
+import { LogoHandoff } from './components/ui/LogoHandoff';
+import { Flashlight } from './components/ui/Flashlight';
+import { AltitudeGauge } from './components/ui/AltitudeGauge';
+import { DayCycleGrade } from './components/ui/DayCycleGrade';
+import { LensFX } from './components/ui/LensFX';
+import { MorphOverlay } from './components/ui/MorphOverlay';
+import { WeatherAtmosphere } from './components/ui/WeatherAtmosphere';
+import { loadAlpineWeather } from './lib/weather';
+import { startQualityProbe } from './lib/quality';
+import { SafeBoundary } from './components/ui/SafeBoundary';
+import { ErrorState } from './components/ui/ErrorState';
+
+// Global overlays that only matter after the page is up (chat, guided tour with driver.js, demo lock):
+// split out of the main bundle so first load parses less JavaScript
+const AIChatAssistant = lazy(() => import('./components/ui/AIChatAssistant').then(m => ({ default: m.AIChatAssistant })));
+const TourGuide = lazy(() => import('./components/ui/TourGuide').then(m => ({ default: m.TourGuide })));
+const DemoLockOverlay = lazy(() => import('./components/ui/DemoLockOverlay').then(m => ({ default: m.DemoLockOverlay })));
 
 // Dynamic Route Imports (Code Splitting for Optimal Loading Performance)
 const StoriesPage = lazy(() => import('./pages/Stories').then(m => ({ default: m.StoriesPage })));
@@ -61,21 +77,6 @@ const ReviewsManagement = lazy(() => import('./pages/admin/ReviewsManagement').t
 const MerchandiseManagement = lazy(() => import('./pages/admin/MerchandiseManagement').then(m => ({ default: m.MerchandiseManagement })));
 const CampaignAutopilot = lazy(() => import('./pages/admin/CampaignAutopilot').then(m => ({ default: m.CampaignAutopilot })));
 
-function ScrollToTop() {
-    const { pathname } = useLocation();
-    const { lenis } = useLenis();
-
-    useEffect(() => {
-        if (lenis) {
-            lenis.scrollTo(0, { immediate: true });
-        } else {
-            window.scrollTo(0, 0);
-        }
-    }, [pathname, lenis]);
-
-    return null;
-}
-
 /** Route guard — redirects hidden sections, shows ComingSoon for coming_soon */
 const SectionRoute = ({ sectionKey, label, children }: { sectionKey: string; label: string; children: React.ReactNode }) => {
     const { settings, loaded } = useSiteSettings();
@@ -91,7 +92,18 @@ function App() {
     const { checkAuth, user } = useAuthStore();
     const { fetchSettings, initSocket, disconnectSocket, settings } = useSiteSettings();
     const { i18n } = useTranslation();
-    const [isLoading, setIsLoading] = useState(false);
+    // Brand loader plays on every full page load (first visit and each refresh); in-app navigation never remounts it
+    const [isLoading, setIsLoading] = useState(true);
+    // Decorative layers (WebGL aurora, particle canvas, custom cursor) are expensive to boot.
+    // While the brand loader's logo draws itself, hold them back so it stays
+    // smooth during the busiest part of the intro.
+    const [decorReady, setDecorReady] = useState(() => !isLoading);
+    useEffect(() => {
+        if (decorReady) return;
+        const t = setTimeout(() => setDecorReady(true), 1650);
+        return () => clearTimeout(t);
+    }, [decorReady]);
+
 
     const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const getPreloadUrl = () => {
@@ -109,14 +121,15 @@ function App() {
             else if (isFreezing) imgUrl = snowyPool[hash % snowyPool.length];
             else imgUrl = defaultPool[hash % defaultPool.length];
         }
-        return imgUrl.includes('unsplash') ? `${imgUrl}&auto=format&fit=crop&w=1600&q=75` : imgUrl;
+        return getHeroImageUrl(imgUrl);
     };
     const preloadUrl = getPreloadUrl();
 
     const location = useLocation();
     const isAdminRoute = location.pathname.startsWith('/summit-control-panel');
     const isPortalRoute = location.pathname.startsWith('/portal');
-    const isAuthRoute = location.pathname === '/profile-complete';
+    // Auth screens are full-bleed with their own header, so they skip the global Navbar/SidePanel
+    const isAuthRoute = ['/profile-complete', '/login', '/signup'].includes(location.pathname);
     const isAppLayout = !isAdminRoute && !isPortalRoute && !isAuthRoute;
 
     const isAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin';
@@ -128,43 +141,8 @@ function App() {
         fetchSettings();
         initSocket();
 
-        // Fetch weather globally
-        const fetchWeather = async () => {
-            const date = new Date();
-            const dateSeed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
-            const peak = peaksData[dateSeed % peaksData.length];
-            
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${peak.lat}&longitude=${peak.lon}&current=temperature_2m,weather_code`;
-                const response = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await response.json();
-                const temp = data.current.temperature_2m;
-                const code = data.current.weather_code;
-                const isSnowing = [71, 73, 75, 77, 85, 86].includes(code);
-
-                let conditionText = 'Clear conditions';
-                if (code >= 1 && code <= 3) conditionText = 'Partly cloudy';
-                else if (code >= 45 && code <= 48) conditionText = 'Foggy/low visibility';
-                else if (code >= 51 && code <= 67) conditionText = 'Raining/Freezing Rain';
-                else if (isSnowing) conditionText = 'Snowing';
-                else if (code >= 95) conditionText = 'Thunderstorm';
-
-                useStore.getState().setWeather({ temp, condition: conditionText, isSnowing });
-                useStore.getState().setWeatherLoaded(true);
-            } catch (error) {
-                console.error("Failed to fetch alpine weather:", error);
-                useStore.getState().setWeather({ temp: null, condition: 'Offline (Last known: Clear)', isSnowing: false });
-                useStore.getState().setWeatherLoaded(true);
-            }
-        };
-
-        const state = useStore.getState();
-        if (!state.weatherLoaded) {
-            fetchWeather();
-        }
+        // Live conditions at today's peak drive the hero plate, the weather layer and the footer readout
+        loadAlpineWeather();
 
         // Wire up auto-logout on 401 (expired/invalid session)
         setAuthInvalidatedCallback(() => {
@@ -174,16 +152,29 @@ function App() {
         return () => disconnectSocket();
     }, []);
 
+    // Watch the frame rate and step effects down if this device can't keep up. Starts after the intro
+    // (the loader's own animation and the decor booting would read as a slow device) plus a short warm-up.
+    useEffect(() => {
+        if (isLoading) return;
+        let stopProbe = () => {};
+        const t = window.setTimeout(() => { stopProbe = startQualityProbe(); }, 3000);
+        return () => { window.clearTimeout(t); stopProbe(); };
+    }, [isLoading]);
+
     useEffect(() => {
         const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
+        const next = theme === 'system'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : theme;
+        const changing = !root.classList.contains(next);
 
-        if (theme === 'system') {
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            root.classList.add(systemTheme);
-        } else {
-            root.classList.add(theme);
+        // Cross-fade colours only while the theme actually flips (no cost the rest of the time)
+        if (changing && (root.classList.contains('light') || root.classList.contains('dark'))) {
+            root.classList.add('theme-fading');
+            window.setTimeout(() => root.classList.remove('theme-fading'), 450);
         }
+        root.classList.remove('light', 'dark');
+        root.classList.add(next);
     }, [theme]);
 
     useEffect(() => {
@@ -204,23 +195,35 @@ function App() {
 
     // Framer motion whileInView configurations need x overflow hidden for horizontal sections
     return (
+        <MotionConfig reducedMotion="user">
         <SmoothScrollProvider>
-            <div className="min-h-screen bg-transparent dark:bg-transparent text-alpine-navy dark:text-alpine-snow transition-colors duration-500 overflow-x-hidden film-grain">
+            <div className="min-h-screen bg-transparent dark:bg-transparent text-alpine-navy dark:text-alpine-snow transition-colors duration-500 overflow-x-clip film-grain">
             <div className="fixed inset-0 bg-[#030712] dark:bg-black -z-50 pointer-events-none" />
-            <link rel="preload" as="image" href={preloadUrl} />
+            {!isAdminRoute && <div className="cinema-vignette" aria-hidden="true" />}
+            <CinematicTitles />
+            {/* Decorative layers: if one fails (GPU, driver, browser quirk) it switches itself off instead of taking the page down */}
+            {location.pathname === '/' && <SafeBoundary name="DayCycleGrade"><DayCycleGrade /></SafeBoundary>}
+            {!isAdminRoute && <SafeBoundary name="LensFX"><LensFX /></SafeBoundary>}
+            {decorReady && isAppLayout && <SafeBoundary name="WeatherAtmosphere"><WeatherAtmosphere /></SafeBoundary>}
+            <SafeBoundary name="MorphOverlay"><MorphOverlay /></SafeBoundary>
+            <LogoHandoff />
+            <Flashlight />
+            {location.pathname === '/' && !isLoading && <AltitudeGauge />}
+            {location.pathname === '/' && <link rel="preload" as="image" href={preloadUrl} fetchPriority="high" />}
             <Toaster richColors position="bottom-right" theme={theme === 'system' ? 'system' : theme as 'light' | 'dark'} />
-            <CustomCursor />
-            <AtmosphericBackground />
-            <InteractiveParticles />
-            <ScrollToTop />
+            {decorReady && (
+                <>
+                    <SafeBoundary name="CustomCursor"><CustomCursor /></SafeBoundary>
+                    {/* Auth screens have their own photographic backdrop — keep them clean */}
+                    {!isAuthRoute && <SafeBoundary name="AtmosphericBackground"><AtmosphericBackground /></SafeBoundary>}
+                    {!isAuthRoute && <SafeBoundary name="InteractiveParticles"><InteractiveParticles /></SafeBoundary>}
+                </>
+            )}
 
             <AnimatePresence>
                 {isLoading && (
                     <LoadingScreen 
-                        onComplete={() => {
-                            setIsLoading(false);
-                            sessionStorage.setItem('hasSeenLoadingScreen', 'true');
-                        }} 
+                        onComplete={() => setIsLoading(false)}
                     />
                 )}
             </AnimatePresence>
@@ -240,8 +243,24 @@ function App() {
                     <SidePanel />
                 </>
             )}
-            <Suspense fallback={<RouteSuspenseSkeleton />}>
-                <Routes>
+            {/* Suspense sits inside the transition so the route curtain stays on screen while a lazy page loads */}
+            <RouteTransition routeKey={getRouteKey(location.pathname)}>
+                {/* A page that crashes shows an error card in place; the navbar, menu and the rest of the site keep working */}
+                <SafeBoundary name="Page" resetKey={location.pathname} fallback={reset => (
+                    <div className="min-h-screen flex items-center justify-center px-6 pt-28 pb-16">
+                        <div className="max-w-md w-full">
+                            <ErrorState
+                                title="This page hit a snag"
+                                message="Something went wrong while showing this page. Try again, or head back to base camp."
+                                onRetry={reset}
+                                backLink="/"
+                                backText="Back to base camp"
+                            />
+                        </div>
+                    </div>
+                )}>
+                <Suspense fallback={<RouteSuspenseSkeleton />}>
+                <Routes location={location}>
                     <Route path="/" element={<Home />} />
                     <Route path="/stories" element={<SectionRoute sectionKey="stories" label="Stories"><StoriesPage /></SectionRoute>} />
                     <Route path="/stories/:id" element={<SectionRoute sectionKey="stories" label="Stories"><StoryDetail /></SectionRoute>} />
@@ -308,7 +327,9 @@ function App() {
                     {/* Global Catch-All 404 Route */}
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
-            </Suspense>
+                </Suspense>
+                </SafeBoundary>
+            </RouteTransition>
 
             {/* Global Cookie Consent Banner */}
             <CookieBanner />
@@ -317,17 +338,18 @@ function App() {
             <NetworkStatusToast />
 
             {/* Global Demo Lock for Read-Only Mode */}
-            {user?.email === 'demo@mountaineermallu.com' && <DemoLockOverlay />}
+            {user?.email === 'demo@mountaineermallu.com' && <SafeBoundary name="DemoLockOverlay"><Suspense fallback={null}><DemoLockOverlay /></Suspense></SafeBoundary>}
 
             {/* Global Tour Guide */}
-            <TourGuide />
+            <SafeBoundary name="TourGuide"><Suspense fallback={null}><TourGuide /></Suspense></SafeBoundary>
 
             {/* Global AI Chat Assistant */}
             {!isLoading && (
-                <AIChatAssistant />
+                <SafeBoundary name="AIChatAssistant"><Suspense fallback={null}><AIChatAssistant /></Suspense></SafeBoundary>
             )}
             </div>
         </SmoothScrollProvider>
+        </MotionConfig>
     );
 }
 

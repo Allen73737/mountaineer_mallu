@@ -13,18 +13,18 @@ interface LightPalette {
 }
 
 const LIGHT_PALETTES: Record<string, LightPalette> = {
-    hero: { orb1: '#FFE5B4', orb2: '#FFC3A0', orb3: '#E0F2FE' },       // Champagne & Warm Sunrise Gold
+    hero: { orb1: '#FFE5B4', orb2: '#FFC3A0', orb3: '#E1EEF6' },       // Champagne & Warm Sunrise Gold
     mission: { orb1: '#FFC3A0', orb2: '#FFE5B4', orb3: '#FFCCD5' },    // Rose Gold & Peach Sunrise
-    stories: { orb1: '#E0F2FE', orb2: '#BAE6FD', orb3: '#DDD6FE' },    // Morning Frost & Sky Glacier
-    events: { orb1: '#CCFBF1', orb2: '#E0F2FE', orb3: '#A7F3D0' },     // Glacier Mint & Luminous Cyan
+    stories: { orb1: '#E1EEF6', orb2: '#C6DDEC', orb3: '#DDD6FE' },    // Morning Frost & Sky Glacier
+    events: { orb1: '#CCFBF1', orb2: '#E1EEF6', orb3: '#A7F3D0' },     // Glacier Mint & Luminous Cyan
     team: { orb1: '#FEF3C7', orb2: '#FDE68A', orb3: '#FFC3A0' },       // Golden Mountain Light
     reviews: { orb1: '#FFCCD5', orb2: '#FFC3A0', orb3: '#FFE4E6' },    // Warm Sunset Rose
     merch: { orb1: '#FFE5B4', orb2: '#FFD1BA', orb3: '#FFCCD5' },      // Champagne & Peach Sunburst
-    gallery: { orb1: '#38BDF8', orb2: '#818CF8', orb3: '#BAE6FD' },    // Alpine Cyan & Deep Sea Dew
-    contact: { orb1: '#38BDF8', orb2: '#C084FC', orb3: '#E0F2FE' },    // Glacier Starburst & Violet
-    community: { orb1: '#38BDF8', orb2: '#60A5FA', orb3: '#818CF8' },  // Electric Arctic Blue
-    dashboard: { orb1: '#E0F2FE', orb2: '#C4B5FD', orb3: '#BAE6FD' },  // Crisp Glacier Platinum
-    default: { orb1: '#FFE5B4', orb2: '#FFC3A0', orb3: '#E0F2FE' }
+    gallery: { orb1: '#7EAACB', orb2: '#9C93B5', orb3: '#C6DDEC' },    // Alpine Cyan & Deep Sea Dew
+    contact: { orb1: '#7EAACB', orb2: '#9C93B5', orb3: '#E1EEF6' },    // Glacier Starburst & Violet
+    community: { orb1: '#7EAACB', orb2: '#60A5FA', orb3: '#9C93B5' },  // Electric Arctic Blue
+    dashboard: { orb1: '#E1EEF6', orb2: '#C4B5FD', orb3: '#C6DDEC' },  // Crisp Glacier Platinum
+    default: { orb1: '#FFE5B4', orb2: '#FFC3A0', orb3: '#E1EEF6' }
 };
 
 export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.memo(({ activeSectionKey, isBlueSection }) => {

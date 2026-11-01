@@ -3,7 +3,7 @@ import { motion, useInView } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Instagram, Youtube, Heart, MessageCircle, Play, ArrowUpRight } from 'lucide-react';
 import { API_URL } from '../../lib/constants';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { LineReveal } from '../ui/LineReveal';
 
 interface InstagramPost {
     id: string;
@@ -51,7 +51,7 @@ const DEFAULT_IG_POSTS: InstagramPost[] = [
         id: 'ig-3',
         type: 'IMAGE',
         url: 'https://instagram.com',
-        imageUrl: 'https://images.unsplash.com/photo-1549880181-56a44cf4a9a1?q=80&w=800&auto=format&fit=crop',
+        imageUrl: 'https://images.unsplash.com/photo-1434394354979-a235cd36269d?q=80&w=800&auto=format&fit=crop',
         caption: 'Traversing the Gran Paradiso ridgeline under crystal blue skies.',
         likes: 421,
         comments: 31,
@@ -64,7 +64,7 @@ const DEFAULT_YT_VIDEOS: YouTubeVideo[] = [
         id: 'yt-1',
         title: 'Alpine Summit Ascent: Eiger Nordwand Winter Expedition',
         url: 'https://youtube.com',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?q=80&w=800&auto=format&fit=crop',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1486911278844-a81c5267e227?q=80&w=800&auto=format&fit=crop',
         views: '14.2K',
         duration: '18:42',
         publishedAt: '2 days ago',
@@ -73,7 +73,7 @@ const DEFAULT_YT_VIDEOS: YouTubeVideo[] = [
         id: 'yt-2',
         title: 'Essential High-Altitude Gear: Surviving Alpine Conditions',
         url: 'https://youtube.com',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=800&auto=format&fit=crop',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=800&auto=format&fit=crop',
         views: '8.7K',
         duration: '12:15',
         publishedAt: '1 week ago',
@@ -82,7 +82,7 @@ const DEFAULT_YT_VIDEOS: YouTubeVideo[] = [
         id: 'yt-3',
         title: 'Dolomites Via Ferrata: Guide for Malayalee Mountaineers',
         url: 'https://youtube.com',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=800&auto=format&fit=crop',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=800&auto=format&fit=crop',
         views: '22.1K',
         duration: '24:08',
         publishedAt: '2 weeks ago',
@@ -179,14 +179,14 @@ export const AltitudeNetwork = () => {
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
                             <p className="text-alpine-glacier dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase">
-                                Global Broadcast
+                                From the trail
                             </p>
                         </div>
-                        <h2 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-alpine-navy dark:text-white mb-4">
-                            Altitude Network
+                        <h2 className="cine-title has-lines text-4xl md:text-6xl lg:text-7xl font-serif font-normal tracking-tight text-alpine-navy dark:text-white mb-4">
+                            <LineReveal>Follow along</LineReveal>
                         </h2>
                         <p className="text-alpine-navy/60 dark:text-white/60 font-light text-lg md:text-xl">
-                            Real-time dispatches from the world's most unforgiving peaks.
+                            Photos, films and notes from our members, straight from the mountains.
                         </p>
                     </motion.div>
                 </div>
@@ -213,7 +213,7 @@ export const AltitudeNetwork = () => {
                                     @mountaineermallu
                                 </a>
                             </div>
-                            <div className="text-[4rem] font-serif font-black text-alpine-navy/5 dark:text-white/5 leading-none">IG</div>
+                            <div className="text-[4rem] font-serif font-normal text-alpine-navy/5 dark:text-white/5 leading-none">IG</div>
                         </div>
 
                         {/* ── EFFORTLESS EDITORIAL HOVER LIST ── */}
@@ -233,7 +233,7 @@ export const AltitudeNetwork = () => {
                                         >
                                             <img 
                                                 src={post.imageUrl} 
-                                                alt="Instagram Dispatch"
+                                                alt="Instagram post"
                                                 loading="lazy"
                                                 decoding="async"
                                                 className="w-full h-full object-cover transition-transform duration-[2s] ease-out scale-100 group-hover:scale-105"
@@ -281,7 +281,7 @@ export const AltitudeNetwork = () => {
                                                     0{idx + 1}
                                                 </span>
                                                 <h4 className={`font-light text-sm md:text-base line-clamp-1 transition-colors duration-300 ${isActive ? 'text-alpine-navy dark:text-white' : 'text-alpine-navy/50 dark:text-white/50'}`}>
-                                                    {post.caption || 'Field Dispatch from the summit.'}
+                                                    {post.caption || 'Shared from the trail.'}
                                                 </h4>
                                             </div>
                                             
@@ -324,7 +324,7 @@ export const AltitudeNetwork = () => {
                                     Mountaineer Mallu
                                 </a>
                             </div>
-                            <div className="text-[4rem] font-serif font-black text-alpine-navy/5 dark:text-white/5 leading-none">YT</div>
+                            <div className="text-[4rem] font-serif font-normal text-alpine-navy/5 dark:text-white/5 leading-none">YT</div>
                         </div>
 
                         {/* Interactive Accordion */}

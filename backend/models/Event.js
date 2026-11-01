@@ -75,6 +75,7 @@ eventSchema.set('toJSON', { virtuals: true });
 eventSchema.set('toObject', { virtuals: true });
 
 eventSchema.index({ date: 1 });
+eventSchema.index({ date: 1, createdAt: -1 });
 
 const Event = mongoose.model('Event', eventSchema);
 export default Event;

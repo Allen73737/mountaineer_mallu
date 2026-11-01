@@ -4,17 +4,27 @@ import { MapPin, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
+import { LineReveal } from '../ui/LineReveal';
+import { MorphLink } from '../ui/MorphLink';
+import { isPageScrolling } from '../../lib/isScrolling';
+// Unsplash photos sized to this screen (viewport × DPR) instead of a fixed 1600 px
+import { getHeroImageUrl } from '../../data/peaks';
+import { useLiveContent } from '../../lib/useLiveContent';
+import { storiesApi } from '../../lib/api';
 
 // Expanded dummy data to demonstrate pagination
-const STORIES = [
+interface HomeStory { id: string | number; title: string; author: string; region: string; image: string; excerpt: string }
+
+// Shown until the API answers, and kept if nothing is published yet
+const STORIES: HomeStory[] = [
     { 
         id: 1, title: 'The Eiger North Face', author: 'Rahul Krishnan', region: 'Swiss Alps', 
-        image: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1486911278844-a81c5267e227?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'A grueling 18-hour ascent up the infamous Nordwand. The loose limestone tested every ounce of our mental fortitude.'
     },
     { 
         id: 2, title: 'Dolomites Sunrise', author: 'Arun Thomas', region: 'Italy', 
-        image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'Navigating the Via Ferrata as the sun broke the horizon. The jagged spires offered a surreal, vertical playground.'
     },
     { 
@@ -24,23 +34,23 @@ const STORIES = [
     },
     { 
         id: 4, title: 'Zugspitze Summit', author: 'Sneha Nair', region: 'Germany', 
-        image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1502126324834-38f8e02d7160?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'A sudden blizzard forced us to rethink our strategy. The glacier crossing was treacherous, but rewarding.'
     },
     { 
         id: 5, title: 'Matterhorn Ascent', author: 'Vivek G.', region: 'Switzerland', 
-        image: 'https://images.unsplash.com/photo-1533038590840-1cde6e668a86?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1491555103944-7c647fd857e6?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'Scaling the iconic Hörnli Ridge. Standing on the razor-thin summit ridge was an unforgettable triumph.'
     },
     // Page 2
     { 
         id: 6, title: 'Aiguille du Midi', author: 'Rahul Krishnan', region: 'Chamonix, FR', 
-        image: 'https://images.unsplash.com/photo-1647468153096-27bcfe49c303?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'Exposed ridges and thin air. The traverse to the cosmic arête tested our rope skills at altitude.'
     },
     { 
         id: 7, title: 'Gran Paradiso', author: 'Sneha Nair', region: 'Aosta Valley, IT', 
-        image: 'https://images.unsplash.com/photo-1549880181-56a44cf4a9a1?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1434394354979-a235cd36269d?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'A perfect introductory 4000m peak that threw unexpected crevasses our way near the summit.'
     },
     { 
@@ -50,7 +60,7 @@ const STORIES = [
     },
     { 
         id: 9, title: 'Jungfrau Journey', author: 'Vivek G.', region: 'Bernese Alps', 
-        image: 'https://images.unsplash.com/photo-1491555103944-7c647fd857e6?q=80&w=1600&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1458668383970-8ddd3927deed?q=80&w=1600&auto=format&fit=crop',
         excerpt: 'Taking the railway up and climbing the rest. The deep snow made the final push incredibly taxing.'
     },
     { 
@@ -69,10 +79,14 @@ export const Stories = () => {
     const [page, setPage] = useState(0);
     const [activeIndex, setActiveIndex] = useState(0);
 
-    const totalPages = Math.ceil(STORIES.length / ITEMS_PER_PAGE);
+    // Published stories from the API (newest first); the samples above until they arrive
+    const stories = useLiveContent<HomeStory>(STORIES, async () => (await storiesApi.list(1, 10)).stories.map((s: any) => ({
+        id: s._id, title: s.title, author: s.author, region: s.region, image: s.image, excerpt: s.excerpt,
+    })));
+    const totalPages = Math.ceil(stories.length / ITEMS_PER_PAGE);
     
     // Get the current slice of stories based on the page
-    const currentStories = STORIES.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+    const currentStories = stories.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
 
     const handleNextPage = () => {
         setPage((prev) => (prev + 1) % totalPages);
@@ -95,7 +109,7 @@ export const Stories = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true, amount: 0.2 }}
                         transition={{ duration: 0.6 }}
-                        className="text-alpine-glacier dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3"
+                        className="text-[#9A5E43] dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3"
                     >
                         {t('stories.title', 'Expedition Logs')}
                     </motion.p>
@@ -104,9 +118,9 @@ export const Stories = () => {
                         whileInView={{ x: 0, opacity: 1 }}
                         viewport={{ once: true, amount: 0.2 }}
                         transition={{ duration: 0.8, delay: 0.1, type: "spring", bounce: 0.4 }}
-                        className="text-black dark:text-white text-4xl md:text-5xl lg:text-6xl font-serif font-bold tracking-tight transition-colors duration-500"
+                        className="cine-title has-lines text-alpine-navy dark:text-white text-4xl md:text-5xl lg:text-6xl font-serif font-normal tracking-tight transition-colors duration-500"
                     >
-                        {t('stories.subtitle', 'Raw Field Notes')}
+                        <LineReveal>{t('stories.subtitle', 'Raw Field Notes')}</LineReveal>
                     </motion.h2>
                 </div>
 
@@ -119,9 +133,9 @@ export const Stories = () => {
                 >
                     <Link
                         to="/stories"
-                        className="flex items-center gap-2 group text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-all duration-300 border border-black/20 dark:border-white/20 hover:border-black dark:hover:border-white px-6 py-3 rounded-full"
+                        className="flex items-center gap-2 whitespace-nowrap shrink-0 group text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors duration-300 border border-black/20 dark:border-white/20 hover:border-black dark:hover:border-white px-6 py-3 rounded-full"
                     >
-                        <span className="font-medium tracking-wide uppercase text-xs tracking-[0.2em]">{t('stories.view_all', 'View Archives')}</span>
+                        <span className="font-medium tracking-wide uppercase text-xs tracking-[0.2em]">{t('stories.view_all', 'All stories')}</span>
                         <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </Link>
                 </motion.div>
@@ -149,7 +163,6 @@ export const Stories = () => {
                         return (
                             <motion.div
                                 key={`${page}-${story.id}`} // Force re-render on page change for entry animation
-                                layout
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ 
                                     opacity: 1, 
@@ -157,26 +170,36 @@ export const Stories = () => {
                                     flex: isActive ? 5 : 1,
                                 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.5, layout: { type: "spring", stiffness: 280, damping: 26, mass: 0.7 } }}
-                                style={{ transform: 'translateZ(0)', willChange: 'flex, transform' }}
-                                onMouseEnter={() => window.innerWidth >= 768 && setActiveIndex(index)}
-                                onClick={() => window.innerWidth < 768 && setActiveIndex(index)}
+                                transition={{ duration: 0.5, flex: { type: "spring", stiffness: 260, damping: 30, mass: 0.8 } }}
+                                // Cards passing under a resting cursor while scrolling don't count as hover (the flex animation is a layout per frame)
+                                onMouseEnter={() => window.innerWidth >= 768 && !isPageScrolling() && setActiveIndex(index)}
+                                onMouseMove={() => window.innerWidth >= 768 && activeIndex !== index && !isPageScrolling() && setActiveIndex(index)}
+                                onClick={() => setActiveIndex(index)}
+                                data-cursor="read"
+                                data-morph-card
                                 className={`relative overflow-hidden cursor-pointer group transform-gpu ${
                                     isActive ? 'cursor-default' : 'hover:brightness-110'
                                 }`}
                             >
                                 {/* Background Image */}
                                 <motion.img
-                                    src={story.image}
+                                    src={getHeroImageUrl(story.image)}
                                     alt={displayTitle}
                                     loading="lazy"
                                     decoding="async"
-                                    className="absolute inset-0 w-full h-full object-cover"
+                                    className="develop-img absolute inset-0 w-full h-full object-cover"
                                     animate={{ 
                                         scale: isActive ? 1.05 : 1.2,
-                                        filter: isActive ? 'brightness(0.9) saturate(1.1)' : 'brightness(0.4) saturate(0.5)'
                                     }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
+                                />
+                                {/* Dim inactive panels with an opacity-only layer (no per-frame filter repaint) */}
+                                <motion.div
+                                    aria-hidden="true"
+                                    className="absolute inset-0 bg-[#05080F] pointer-events-none"
+                                    initial={false}
+                                    animate={{ opacity: isActive ? 0.08 : 0.58 }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
                                 />
                                 
                                 {/* Gradient Overlay */}
@@ -196,7 +219,7 @@ export const Stories = () => {
                                                 transition={{ duration: 0.2 }}
                                                 className="absolute inset-0 flex items-center justify-center md:pb-12 md:items-end"
                                             >
-                                                <h3 className="text-white/60 font-serif text-lg md:text-2xl tracking-widest whitespace-nowrap md:-rotate-90 origin-bottom-left md:translate-x-6 md:mb-16">
+                                                <h3 className="text-white/60 font-serif text-lg md:text-2xl tracking-widest whitespace-nowrap max-md:max-w-full max-md:truncate max-md:px-3 md:-rotate-90 origin-bottom-left md:translate-x-6 md:mb-16">
                                                     {displayRegion}
                                                 </h3>
                                             </motion.div>
@@ -211,14 +234,14 @@ export const Stories = () => {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: 20 }}
                                                 transition={{ duration: 0.4, delay: 0.2 }}
-                                                className="relative z-10 w-full md:w-[800px] max-w-[90vw]"
+                                                className="relative z-10 w-full md:w-[800px] max-w-full"
                                             >
                                                 <div className="flex items-center gap-2 text-alpine-glacier mb-3">
                                                     <MapPin size={14} className="md:w-4 md:h-4" />
                                                     <span className="text-xs md:text-sm font-bold tracking-[0.2em] uppercase">{displayRegion}</span>
                                                 </div>
                                                 
-                                                <h3 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-[1.1] tracking-tight">
+                                                <h3 className="font-serif text-3xl md:text-5xl lg:text-6xl font-medium text-white mb-4 leading-[1.1] tracking-tight">
                                                     {displayTitle}
                                                 </h3>
                                                 
@@ -232,12 +255,15 @@ export const Stories = () => {
                                                         <p className="text-white/90 font-medium tracking-wide uppercase text-xs md:text-sm">By <span className="font-bold">{story.author}</span></p>
                                                     </div>
 
-                                                    <Link to={`/stories/${story.id}`}>
+                                                    {/* Real stories open their page; sample entries (no API data yet) go to the listing */}
+                                                    {(() => { const StoryLink = story.live ? MorphLink : Link; return (
+                                                    <StoryLink to={story.live ? `/stories/${story.id}` : '/stories'}>
                                                         <button className="group/btn relative px-4 py-2 md:px-6 md:py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white overflow-hidden hover:bg-white hover:text-black transition-all duration-300 flex items-center gap-2">
                                                             <span className="font-bold tracking-wider text-[10px] md:text-xs uppercase relative z-10">Read</span>
                                                             <ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-1 transition-transform" />
                                                         </button>
-                                                    </Link>
+                                                    </StoryLink>
+                                                    ); })()}
                                                 </div>
                                             </motion.div>
                                         )}

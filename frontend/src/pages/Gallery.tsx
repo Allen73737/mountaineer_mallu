@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Play, X, Maximize2, UploadCloud, Loader2 } from 'lucide-react';
+import { Play, X, Maximize2, UploadCloud } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { galleryApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
-import { Skeleton } from '../components/ui/Skeleton';
+import { Skeleton, GallerySkeleton, ImageWithSkeleton } from '../components/ui/Skeleton';
 import { usersApi } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { Heart, BookmarkPlus, Download, Camera } from 'lucide-react';
 import { BackButton } from '../components/ui/BackButton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
+import { CreditTitle } from '../components/ui/CreditTitle';
 
 export const GalleryPage = () => {
     const [mediaItems, setMediaItems] = useState<any[]>([]);
@@ -163,24 +165,18 @@ export const GalleryPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-alpine-navy dark:bg-black text-alpine-snow dark:text-white pt-32 pb-24 px-4 md:px-8">
+        <div className="flashlight relative min-h-screen bg-alpine-navy dark:bg-black text-alpine-snow dark:text-white pt-32 pb-24 px-4 md:px-8">
             {ToastComponent}
 
             <div className="max-w-7xl mx-auto px-4 relative z-50">
-                <BackButton />
+                {/* Night-sky page: render in the dark palette even in light mode */}
+                <div className="dark"><BackButton /></div>
             </div>
 
             {/* Header */}
             <div className="max-w-7xl mx-auto mb-16 px-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>
-                    <motion.h1
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, type: "spring" }}
-                        className="text-5xl md:text-7xl font-serif font-black mb-6 text-alpine-glacier"
-                    >
-                        Visual Vault
-                    </motion.h1>
+                    <CreditTitle lines={['Visual Vault']} creditClassName="text-alpine-sunrise" className="text-5xl md:text-7xl font-serif font-normal text-alpine-glacier" />
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -206,15 +202,16 @@ export const GalleryPage = () => {
             {/* Bento Grid */}
             <div className="max-w-7xl mx-auto">
                 {loading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[200px] gap-4 md:gap-6">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <Skeleton key={i} className="rounded-3xl" />)}
-                    </div>
+                    <GallerySkeleton />
                 ) : error ? (
-                    <ErrorState
-                        title="Gallery Downlink Disrupted"
-                        message={error}
-                        onRetry={fetchGallery}
-                    />
+                    // The vault is always a night-sky page, so render the error in its dark palette
+                    <div className="dark">
+                        <ErrorState
+                            title="Gallery Downlink Disrupted"
+                            message={error}
+                            onRetry={fetchGallery}
+                        />
+                    </div>
                 ) : mediaItems.length === 0 ? (
                     <EmptyState
                         icon={Camera}
@@ -231,7 +228,7 @@ export const GalleryPage = () => {
                             hidden: { opacity: 0 },
                             visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
                         }}
-                        className="grid grid-cols-2 md:grid-cols-4 auto-rows-[200px] gap-4 md:gap-6"
+                        className="grid grid-cols-2 md:grid-cols-4 auto-rows-[160px] sm:auto-rows-[200px] md:auto-rows-[220px] lg:auto-rows-[260px] gap-4 md:gap-6"
                     >
                         {mediaItems.map((media, i) => (
                             <motion.div
@@ -241,8 +238,11 @@ export const GalleryPage = () => {
                                     visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
                                 }}
                                 className={`relative rounded-3xl overflow-hidden cursor-pointer group ${getSpan(i)}`}
+                                data-cursor={media.type === 'video' ? 'play' : 'view'}
                                 onClick={() => setSelectedMedia(media)}
                             >
+                                {selectedMedia?._id !== media._id && (
+                                <motion.div layoutId={`vault-${media._id || i}`} className="absolute inset-0 overflow-hidden" style={{ borderRadius: 24 }}>
                                 {media.type === 'video' ? (
                                     <>
                                         <video
@@ -260,11 +260,14 @@ export const GalleryPage = () => {
                                         </div>
                                     </>
                                 ) : (
-                                    <img
+                                    <ImageWithSkeleton
                                         src={media.url}
                                         alt={media.title}
+                                        containerClassName="w-full h-full"
                                         className="w-full h-full object-cover filter brightness-50 group-hover:brightness-100 group-hover:scale-110 transition-all duration-1000"
                                     />
+                                )}
+                                </motion.div>
                                 )}
 
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -285,30 +288,40 @@ export const GalleryPage = () => {
             <AnimatePresence>
                 {selectedMedia && (
                     <motion.div
-                        initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
-                        exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-alpine-navy/90 dark:bg-black/90 p-4 md:p-12 cursor-pointer"
+                        initial={{ backgroundColor: 'rgba(2,4,8,0)' }}
+                        animate={{ backgroundColor: 'rgba(2,4,8,0.94)' }}
+                        exit={{ backgroundColor: 'rgba(2,4,8,0)' }}
+                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-12 py-[12vh] cursor-pointer"
                         onClick={() => setSelectedMedia(null)}
                     >
+                        {/* Projector: letterbox bars close in while the house lights go down */}
+                        <motion.div aria-hidden="true" className="absolute inset-x-0 top-0 h-[8vh] bg-black origin-top pointer-events-none" initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} exit={{ scaleY: 0 }} transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }} />
+                        <motion.div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[8vh] bg-black origin-bottom pointer-events-none" initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} exit={{ scaleY: 0 }} transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }} />
+                        <motion.div aria-hidden="true" className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(255,240,220,0.07),transparent_70%)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
                         <div className="absolute top-8 left-8 md:top-12 md:left-12 z-[60]">
                             <BackButton onBack={() => setSelectedMedia(null)} onHome={() => { setSelectedMedia(null); navigate('/'); }} />
                         </div>
 
                         <motion.div
-                            initial={{ scale: 0.9, y: 50 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            transition={{ type: "spring", damping: 20 }}
-                            className="relative w-full max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_100px_rgba(255,255,255,0.1)] cursor-default"
+                            layoutId={`vault-${selectedMedia._id || mediaItems.indexOf(selectedMedia)}`}
+                            transition={{ type: "spring", stiffness: 170, damping: 26 }}
+                            style={{ borderRadius: 12 }}
+                            className="relative w-full max-w-6xl max-h-full aspect-video overflow-hidden shadow-[0_0_120px_rgba(255,236,214,0.12)] cursor-default"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                             {selectedMedia.type === 'video' ? (
-                                <video src={selectedMedia.url} autoPlay loop controls className="w-full h-full object-contain bg-gray-100 dark:bg-black" />
+                                <video src={selectedMedia.url} autoPlay loop controls className="w-full h-full object-contain bg-black" />
                             ) : (
-                                <img src={selectedMedia.url} className="w-full h-full object-contain bg-gray-100 dark:bg-black" />
+                                <img src={selectedMedia.url} alt={selectedMedia.title} className="w-full h-full object-contain bg-black" />
                             )}
-                            <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-alpine-navy/90 via-alpine-navy/40 dark:from-black/90 dark:via-black/40 to-transparent pointer-events-none flex items-end justify-between">
+                            {/* Caption bar */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0, transition: { delay: 0.45, duration: 0.6 } }}
+                                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                                className="absolute bottom-0 inset-x-0 p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/45 to-transparent pointer-events-none flex flex-wrap gap-4 items-end justify-between"
+                            >
                                 <div>
                                     <h2 className="text-4xl font-serif text-white mb-2">{selectedMedia.title}</h2>
                                     <p className="text-white/60 font-medium">Uploaded by {selectedMedia.uploadedBy?.name}</p>
@@ -344,7 +357,7 @@ export const GalleryPage = () => {
                                         <span className="text-xs font-bold text-white drop-shadow-md">Download</span>
                                     </button>
                                 </div>
-                            </div>
+                            </motion.div>
                         </motion.div>
                     </motion.div>
                 )}

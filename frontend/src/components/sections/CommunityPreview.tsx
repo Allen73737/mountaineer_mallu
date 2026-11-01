@@ -3,16 +3,19 @@ import { motion, AnimatePresence, useInView, useAnimation, Variants } from 'fram
 import { Users, MapPin, ArrowRight, ShieldCheck, Compass, Mountain, Map, Snowflake } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ImageWithSkeleton } from '../ui/Skeleton';
+import { Magnetic } from '../ui/Magnetic';
+import { LineReveal } from '../ui/LineReveal';
 
 const GROUPS = [
     { 
         id: 1, 
-        name: 'Alpine Vanguards', 
+        name: 'Alpine Hikers', 
         region: 'Chamonix, FR', 
         members: 128, 
         desc: 'Technical ascents and mixed climbing focus. High altitude experience required.', 
         icon: ShieldCheck,
-        image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?q=80&w=1200&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1200&auto=format&fit=crop',
     },
     { 
         id: 2, 
@@ -104,7 +107,7 @@ export const CommunityPreview = () => {
         <section 
             id="community" 
             ref={sectionRef}
-            className="min-h-[100dvh] flex flex-col justify-center py-16 md:py-24 px-6 md:px-12 relative z-10 bg-alpine-navy/85 bg-gradient-to-b from-alpine-navy/90 via-[#0b2d54]/85 to-alpine-navy/90 backdrop-blur-md dark:bg-black/35 dark:bg-gradient-to-b dark:from-black/40 dark:via-black/20 dark:to-black/50 dark:backdrop-blur-md text-white overflow-hidden"
+            className="flashlight min-h-[100dvh] flex flex-col justify-center py-16 md:py-24 px-6 md:px-12 relative z-10 bg-alpine-navy/85 bg-gradient-to-b from-alpine-navy/90 via-[#0b2d54]/85 to-alpine-navy/90 dark:bg-black/35 dark:bg-gradient-to-b dark:from-black/40 dark:via-black/20 dark:to-black/50 text-white overflow-hidden"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onTouchStart={() => setIsHovered(true)}
@@ -124,10 +127,10 @@ export const CommunityPreview = () => {
                         className="max-w-2xl"
                     >
                         <p className="text-alpine-glacier dark:text-alpine-sunrise text-xs md:text-sm font-semibold tracking-[0.3em] uppercase mb-3">
-                            {t('community.join_brotherhood', 'Global Factions')}
+                            {t('community.join_brotherhood', 'Join the community')}
                         </p>
-                        <h2 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-white mb-4">
-                            {t('community.title', 'Community')}
+                        <h2 className="cine-title has-lines text-4xl md:text-6xl lg:text-7xl font-serif font-normal tracking-tight text-white mb-4">
+                            <LineReveal>{t('community.title', 'Community')}</LineReveal>
                         </h2>
                         <p className="text-white/60 font-light text-lg md:text-2xl leading-relaxed">
                             {t('community.subtitle', 'Join specialized factions. Coordinate expeditions, share intelligence, and find your ropemates.')}
@@ -139,13 +142,15 @@ export const CommunityPreview = () => {
                         initial="hidden"
                         animate={controls}
                     >
+                        <Magnetic className="hidden md:block" glow="rgba(163,201,226,0.5)">
                         <Link
                             to="/community"
-                            className="hidden md:flex items-center gap-4 group text-white hover:text-black bg-white/5 hover:bg-white transition-all duration-500 border border-white/20 hover:border-white px-8 py-4 rounded-full"
+                            className="flex items-center gap-4 group text-white hover:text-black bg-white/5 hover:bg-white transition-all duration-500 border border-white/20 hover:border-white px-8 py-4 rounded-full"
                         >
                             <span className="font-bold tracking-wide uppercase text-xs tracking-[0.2em]">Enter Hub</span>
                             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </Link>
+                        </Magnetic>
                     </motion.div>
                 </div>
 
@@ -154,12 +159,12 @@ export const CommunityPreview = () => {
                     variants={scaleIn}
                     initial="hidden"
                     animate={controls}
-                    className="w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-8 h-[450px] lg:h-[550px] relative"
+                    className="w-full flex flex-col lg:flex-row items-center gap-10 lg:gap-8 min-h-[660px] lg:min-h-0 lg:h-[550px] relative"
                 >
                     
                     {/* Left: 3D Text Cylinder */}
                     <div 
-                        className="w-full lg:w-3/5 h-full relative flex items-center justify-start overflow-hidden lg:overflow-visible mask-vertical-fade z-20"
+                        className="w-full lg:w-3/5 h-[260px] sm:h-[300px] lg:h-full relative flex items-center justify-start overflow-hidden lg:overflow-visible mask-vertical-fade z-20"
                         style={{ perspective: '1200px' }}
                     >
                         <div className="relative w-full h-[300px] flex items-center" style={{ transformStyle: 'preserve-3d' }}>
@@ -199,7 +204,7 @@ export const CommunityPreview = () => {
                                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                                 />
                                             )}
-                                            <h3 className={`text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-serif font-black tracking-tighter leading-none whitespace-nowrap transition-colors duration-500 ${isCenter ? 'text-white' : 'text-transparent webkit-text-stroke-1'}`}>
+                                            <h3 className={`text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-serif font-medium tracking-tight leading-none whitespace-nowrap transition-colors duration-500 ${isCenter ? 'text-white' : 'text-transparent webkit-text-stroke-1'}`}>
                                                 {group.name}
                                             </h3>
                                         </div>
@@ -210,7 +215,7 @@ export const CommunityPreview = () => {
                     </div>
 
                     {/* Right: The Cinematic Glassmorphic Portal */}
-                    <div className="w-full lg:w-2/5 h-[350px] lg:h-full relative flex items-center justify-center pointer-events-none z-10">
+                    <div className="w-full lg:w-2/5 h-[340px] sm:h-[380px] lg:h-full relative flex items-center justify-center pointer-events-none z-10">
                         <div className="w-full max-w-[450px] aspect-[4/5] lg:h-[90%] relative rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl border border-white/10 group pointer-events-auto">
                             
                             <AnimatePresence mode="wait">
@@ -222,9 +227,10 @@ export const CommunityPreview = () => {
                                     transition={{ duration: 0.8, ease: "easeInOut" }}
                                     className="absolute inset-0"
                                 >
-                                    <img 
+                                    <ImageWithSkeleton 
                                         src={activeGroup.image} 
                                         alt={activeGroup.name}
+                                        containerClassName="w-full h-full absolute inset-0"
                                         className="w-full h-full object-cover object-center brightness-75 group-hover:brightness-100 transition-all duration-700"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />

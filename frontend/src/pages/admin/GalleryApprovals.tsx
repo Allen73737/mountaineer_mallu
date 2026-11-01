@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Play, Loader2, Maximize2 } from 'lucide-react';
+import { Check, X, Play, Maximize2 } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { galleryApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -108,7 +109,7 @@ export const GalleryApprovals = () => {
                         initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
                         animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
                         exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-[100] flex items-center justify-center bg-black/90 p-4 md:p-12 cursor-pointer transition-all duration-300"
+                        className="fixed inset-y-0 right-0 left-[var(--sidebar-width,0px)] z-[100] flex items-center justify-center bg-black/90 p-4 md:p-12 cursor-pointer transition-[color,background-color,border-color,box-shadow] duration-300"
                         onClick={() => setSelectedMedia(null)}
                     >
                         <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-4 backdrop-blur-lg" onClick={() => setSelectedMedia(null)}>

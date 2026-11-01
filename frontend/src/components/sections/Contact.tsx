@@ -1,12 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Mail, MapPin, Phone, Instagram, Facebook, Youtube, ArrowRight, Send, ChevronUp, Check, ShieldCheck, Compass, MountainSnow, Sparkles } from 'lucide-react';
+import { Mail, MapPin, Phone, Instagram, ArrowRight, Send, ChevronUp, Check, ShieldCheck, Compass, MountainSnow, Sparkles } from 'lucide-react';
+import { Loader2 } from '../ui/BrandLoader';
 import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
 import { toast } from 'sonner';
 import SoftAurora from '../ui/SoftAurora';
 import { useLenis } from '../ui/SmoothScrollProvider';
+import { useSectionNavigator } from '../../lib/useSectionNavigator';
+import { contactApi } from '../../lib/api';
+import { Magnetic } from '../ui/Magnetic';
+import { EndCredits } from '../ui/EndCredits';
+import { SummitFinale } from '../ui/SummitFinale';
+import { todaysPeak, windLabel } from '../../lib/weather';
+import { LineReveal } from '../ui/LineReveal';
 
 export const Contact = () => {
     const { t } = useTranslation();
@@ -14,6 +23,8 @@ export const Contact = () => {
     const { theme, weather, weatherLoaded } = useStore();
     const [newsletterEmail, setNewsletterEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
+    const [subscribing, setSubscribing] = useState(false);
+    const goToSection = useSectionNavigator();
     const [showTermsModal, setShowTermsModal] = useState<string | null>(null);
     const [mousePos, setMousePos] = useState({ x: 200, y: 100 });
 
@@ -36,17 +47,39 @@ export const Contact = () => {
         e.currentTarget.style.setProperty('--y', `${y}px`);
     };
 
-    const handleNewsletterSubmit = (e: React.FormEvent) => {
+    const handleNewsletterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newsletterEmail || !newsletterEmail.includes('@')) {
+        const email = newsletterEmail.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
             toast.error(t('contact.invalid_email', 'Please enter a valid email address'));
             return;
         }
-        setSubscribed(true);
-        toast.success(t('contact.newsletter_subscribed', 'Expedition dispatch frequency synced!'));
-        setNewsletterEmail('');
-        setTimeout(() => setSubscribed(false), 5000);
+        setSubscribing(true);
+        try {
+            await contactApi.submit({
+                name: 'Newsletter subscriber',
+                email,
+                subject: 'Newsletter subscription',
+                message: `Please add ${email} to the Mountaineer Mallu dispatch list.`,
+            });
+            setSubscribed(true);
+            setNewsletterEmail('');
+            toast.success(t('contact.newsletter_subscribed', "You're on the list — see you in your inbox."));
+            setTimeout(() => setSubscribed(false), 5000);
+        } catch {
+            toast.error(t('contact.newsletter_failed', "We couldn't subscribe you right now. Please try again in a moment."));
+        } finally {
+            setSubscribing(false);
+        }
     };
+
+    // Close the legal modal with Escape
+    React.useEffect(() => {
+        if (!showTermsModal) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowTermsModal(null); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [showTermsModal]);
 
     const scrollToTop = () => {
         requestAnimationFrame(() => {
@@ -80,10 +113,10 @@ export const Contact = () => {
     };
 
     return (
-        <section ref={sectionRef} id="contact" className={`pt-24 pb-16 md:pt-32 md:pb-20 px-6 md:px-12 relative mt-24 z-10 border-t transition-colors duration-700 overflow-hidden ${
+        <section ref={sectionRef} id="contact" className={`flashlight pt-24 pb-16 md:pt-32 md:pb-20 px-6 md:px-12 relative z-10 border-t transition-colors duration-700 overflow-hidden ${
             isDark 
-                ? 'bg-black/35 bg-gradient-to-b from-black/40 via-black/20 to-black/50 backdrop-blur-md text-white border-zinc-800/80 shadow-[0_-20px_80px_rgba(0,0,0,0.8)]' 
-                : 'bg-alpine-navy/85 bg-gradient-to-b from-alpine-navy/90 via-[#0b2d54]/85 to-alpine-navy/90 backdrop-blur-md text-white border-blue-900/50 shadow-[0_-20px_80px_rgba(11,45,84,0.4)]'
+                ? 'bg-black/35 bg-gradient-to-b from-black/40 via-black/20 to-black/50 text-white border-zinc-800/80 shadow-[0_-20px_80px_rgba(0,0,0,0.8)]' 
+                : 'bg-alpine-navy/85 bg-gradient-to-b from-alpine-navy/90 via-[#0b2d54]/85 to-alpine-navy/90 text-white border-blue-900/50 shadow-[0_-20px_80px_rgba(11,45,84,0.4)]'
         }`}>
 
             {/* Ultra-Premium Glowing Divider & Section Badge */}
@@ -207,24 +240,26 @@ export const Contact = () => {
                             <span className="w-8 h-[1px] bg-alpine-sunrise" />
                             {t('contact.get_in_touch', 'ESTABLISH COMMUNICATIONS')}
                         </p>
-                        <h2 className="text-4xl sm:text-6xl lg:text-7xl font-serif font-bold leading-[0.95] text-white drop-shadow-lg mb-6">
-                            {t('contact.title_main', 'Base Camp Operations')}
+                        <h2 className="cine-title has-lines text-4xl sm:text-6xl lg:text-7xl font-serif font-normal leading-[0.95] text-white [text-shadow:0_10px_30px_rgba(0,0,0,0.35)] mb-6">
+                            <LineReveal>{t('contact.title_main', 'Plan your next climb with us')}</LineReveal>
                         </h2>
                         <p className="text-white/75 font-light text-base md:text-xl max-w-xl leading-relaxed mb-8">
                             {t('contact.description', 'Whether planning a technical ascent, joining high-altitude operations, or connecting with regional factions — base camp is operational 24/7.')}
                         </p>
 
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full max-w-md">
+                        <Magnetic className="w-full max-w-md" strength={0.18} glow="rgba(163,201,226,0.45)">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
                             <Link
                                 to="/contact"
                                 className="group flex items-center justify-between px-8 py-5 premium-card rounded-2xl border border-white/15 hover:border-alpine-glacier/60 transition-all duration-500 shadow-2xl cursor-pointer transform-gpu"
                             >
                                 <div className="text-base md:text-lg font-serif text-white group-hover:text-alpine-sunrise transition-colors font-medium">
-                                    {t('contact.open_communications', 'Launch Direct Transmission')}
+                                    {t('contact.open_communications', 'Get in touch')}
                                 </div>
                                 <ArrowRight size={22} className="text-alpine-glacier group-hover:translate-x-3 transition-transform duration-300" />
                             </Link>
                         </motion.div>
+                        </Magnetic>
                     </motion.div>
 
                     {/* Right: HQ Quick Info Cards */}
@@ -236,7 +271,7 @@ export const Contact = () => {
                             style={{
                                 background: `radial-gradient(350px circle at var(--x, 50%) var(--y, 50%), rgba(163,201,226,0.14), transparent 80%)`
                             }}
-                            className="flex-1 premium-card p-8 rounded-2xl md:rounded-3xl border border-white/10 hover:border-alpine-glacier/40 group flex flex-col justify-between min-h-[220px] transform-gpu transition-all duration-300 relative overflow-hidden"
+                            className="flex-1 premium-card p-8 rounded-2xl md:rounded-3xl border border-white/10 hover:border-alpine-glacier/40 group flex flex-col justify-between min-h-[220px] transform-gpu transition-[color,background-color,border-color,box-shadow] duration-300 relative overflow-hidden"
                         >
                             <div>
                                 <MapPin size={32} className="text-alpine-glacier mb-6 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300" />
@@ -257,17 +292,17 @@ export const Contact = () => {
                             style={{
                                 background: `radial-gradient(350px circle at var(--x, 50%) var(--y, 50%), rgba(226,160,113,0.14), transparent 80%)`
                             }}
-                            className="flex-1 premium-card p-8 rounded-2xl md:rounded-3xl border border-white/10 hover:border-alpine-sunrise/40 group flex flex-col justify-between min-h-[220px] transform-gpu transition-all duration-300 relative overflow-hidden"
+                            className="flex-1 premium-card p-8 rounded-2xl md:rounded-3xl border border-white/10 hover:border-alpine-sunrise/40 group flex flex-col justify-between min-h-[220px] transform-gpu transition-[color,background-color,border-color,box-shadow] duration-300 relative overflow-hidden"
                         >
                             <div>
                                 <Phone size={32} className="text-alpine-glacier mb-6 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300" />
-                                <h3 className="font-serif text-2xl font-medium mb-3 text-white">{t('contact.dispatch', 'Direct Frequency')}</h3>
+                                <h3 className="font-serif text-2xl font-medium mb-3 text-white">{t('contact.dispatch', 'Call us')}</h3>
                                 <p className="text-white/65 font-light text-sm md:text-base leading-relaxed mb-4">
-                                    +49 (0) 1520 1234567<br />
+                                    <a href="tel:+4915201234567" className="hover:text-white transition-colors">+49 (0) 1520 1234567</a><br />
                                     Mon-Fri, 09:00 - 18:00 CET
                                 </p>
                             </div>
-                            <p className="text-alpine-sunrise font-medium underline underline-offset-4 cursor-pointer text-xs md:text-sm">{t('contact.emergency_direct', 'Emergency Altitude Hotline →')}</p>
+                            <a href="tel:+4915201234567" className="self-start text-alpine-sunrise font-medium underline underline-offset-4 hover:text-white transition-colors text-xs md:text-sm">{t('contact.emergency_direct', 'Call now →')}</a>
                         </motion.div>
                     </motion.div>
 
@@ -280,11 +315,11 @@ export const Contact = () => {
                     <div className="flex flex-col gap-5">
                         <h4 className="text-xs font-semibold tracking-[0.3em] uppercase text-alpine-sunrise flex items-center gap-2 mb-2">
                             <Compass size={14} className="text-alpine-sunrise" />
-                            {t('footer.col1_title', 'Expeditions & Routes')}
+                            {t('footer.col1_title', 'Explore')}
                         </h4>
                         <ul className="flex flex-col gap-3 text-sm text-white/70">
                             <li>
-                                <a href="#mission" className="group hover:text-white hover:translate-x-2 transition-all duration-300 inline-flex items-center gap-2 transform-gpu">
+                                <a href="/#mission" onClick={e => goToSection('mission', e)} className="group hover:text-white hover:translate-x-2 transition-all duration-300 inline-flex items-center gap-2 transform-gpu">
                                     <span className="w-1.5 h-1.5 rounded-full bg-alpine-glacier/40 group-hover:bg-alpine-sunrise group-hover:scale-125 transition-all" />
                                     {t('nav.mission', 'Alpine Mission')}
                                 </a>
@@ -320,7 +355,7 @@ export const Contact = () => {
                     <div className="flex flex-col gap-5">
                         <h4 className="text-xs font-semibold tracking-[0.3em] uppercase text-alpine-sunrise flex items-center gap-2 mb-2">
                             <ShieldCheck size={14} className="text-alpine-sunrise" />
-                            {t('footer.col2_title', 'Resources & Access')}
+                            {t('footer.col2_title', 'Community')}
                         </h4>
                         <ul className="flex flex-col gap-3 text-sm text-white/70">
                             <li>
@@ -350,7 +385,7 @@ export const Contact = () => {
                             <li>
                                 <Link to="/login" className="group hover:text-white hover:translate-x-2 transition-all duration-300 inline-flex items-center gap-2 transform-gpu">
                                     <span className="w-1.5 h-1.5 rounded-full bg-alpine-glacier/40 group-hover:bg-alpine-sunrise group-hover:scale-125 transition-all" />
-                                    {t('footer.access_portal', 'Climber Portal Login')}
+                                    {t('footer.access_portal', 'Member login')}
                                 </Link>
                             </li>
                         </ul>
@@ -360,7 +395,7 @@ export const Contact = () => {
                     <div className="flex flex-col gap-5">
                         <h4 className="text-xs font-semibold tracking-[0.3em] uppercase text-alpine-sunrise flex items-center gap-2 mb-2">
                             <MountainSnow size={14} className="text-alpine-sunrise" />
-                            {t('footer.col3_title', 'Live Telemetry')}
+                            {t('footer.col3_title', 'Conditions today')}
                         </h4>
                         <motion.div 
                             whileHover={{ y: -4, scale: 1.02 }}
@@ -368,22 +403,24 @@ export const Contact = () => {
                             className="flex flex-col gap-4 p-5 glass rounded-2xl border border-white/10 text-xs text-white/80 transform-gpu shadow-xl"
                         >
                             <div className="flex justify-between items-center pb-3 border-b border-white/10">
-                                <span className="text-white/50">{t('footer.telemetry_weather', 'Current Climate')}:</span>
+                                <span className="text-white/50">{t('footer.telemetry_weather', 'Weather')}:</span>
                                 <span className="font-semibold text-alpine-glacier flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    {weatherLoaded ? (weather.temp !== null ? `${weather.temp}°C, ${weather.condition}` : 'Clear conditions') : 'Connecting...'}
+                                    {weatherLoaded ? (weather.temp !== null ? `${weather.temp}°C${weather.condition ? `, ${weather.condition}` : ''}` : 'Unavailable right now') : 'Loading…'}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center pb-3 border-b border-white/10">
-                                <span className="text-white/50">{t('footer.telemetry_peak', 'Featured Peak')}:</span>
-                                <span className="font-semibold text-white">Zugspitze (2,962 m)</span>
-                            </div>
+                            {windLabel(weather) && (
+                                <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                                    <span className="text-white/50">{t('footer.telemetry_wind', 'Wind')}:</span>
+                                    <span className="font-mono text-white/85">{windLabel(weather)?.replace('Wind ', '')}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center">
-                                <span className="text-white/50">{t('footer.telemetry_system', 'Interface Mode')}:</span>
-                                <span className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] uppercase font-bold text-alpine-sunrise border border-white/10">
-                                    {theme === 'system' ? 'System Sync' : `${theme} Mode`}
-                                </span>
+                                <span className="text-white/50">{t('footer.telemetry_peak_today', 'Peak of the day')}:</span>
+                                {/* The same daily peak the hero features and the weather reading above is measured at */}
+                                <span className="font-semibold text-white">{todaysPeak().name} ({todaysPeak().elevation.replace('m', ' m')})</span>
                             </div>
+                            
                         </motion.div>
                     </div>
 
@@ -391,16 +428,19 @@ export const Contact = () => {
                     <div className="flex flex-col gap-5">
                         <h4 className="text-xs font-semibold tracking-[0.3em] uppercase text-alpine-sunrise flex items-center gap-2 mb-2">
                             <Mail size={14} className="text-alpine-sunrise" />
-                            {t('footer.col4_title', 'Expedition Intelligence')}
+                            {t('footer.col4_title', 'Newsletter')}
                         </h4>
                         <p className="text-xs text-white/60 leading-relaxed">
-                            {t('footer.newsletter_desc', 'Subscribe to receive confidential route dispatches, emergency bulletins, and gear drops.')}
+                            {t('footer.newsletter_desc', 'New trips and stories from the community, about once a month. No spam.')}
                         </p>
 
                         <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-3">
                             <div className="relative flex items-center">
                                 <input
                                     type="email"
+                                    inputMode="email"
+                                    autoComplete="email"
+                                    aria-label={t('footer.email_placeholder', 'Your email')}
                                     value={newsletterEmail}
                                     onChange={(e) => setNewsletterEmail(e.target.value)}
                                     placeholder={t('footer.email_placeholder', 'Enter climber email...')}
@@ -410,29 +450,24 @@ export const Contact = () => {
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
                                     type="submit"
-                                    className="absolute right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                                    disabled={subscribing}
+                                    className="absolute right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-60"
                                     aria-label="Subscribe"
                                 >
-                                    {subscribed ? <Check size={14} className="text-emerald-400" /> : <Send size={14} />}
+                                    {subscribing ? <Loader2 size={14} className="animate-spin" /> : subscribed ? <Check size={14} className="text-emerald-400" /> : <Send size={14} />}
                                 </motion.button>
                             </div>
                             {subscribed && (
-                                <span className="text-[11px] text-emerald-400 font-medium animate-pulse">✓ Frequency synced successfully</span>
+                                <span role="status" className="text-[11px] text-emerald-400 font-medium">✓ Subscribed — thank you!</span>
                             )}
                         </form>
 
                         {/* Social Links */}
                         <div className="flex items-center gap-3 mt-2">
-                            <motion.a whileHover={{ y: -4, scale: 1.1 }} href="https://www.instagram.com/mountaineermallu/" target="_blank" rel="noreferrer" className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white transition-all transform-gpu shadow-lg" aria-label="Instagram">
+                            <motion.a whileHover={{ y: -4, scale: 1.1 }} href="https://www.instagram.com/mountaineermallu/" target="_blank" rel="noreferrer" className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white transition-[color,background-color,border-color,box-shadow] transform-gpu shadow-lg" aria-label="Instagram">
                                 <Instagram size={18} />
                             </motion.a>
-                            <motion.a whileHover={{ y: -4, scale: 1.1 }} href="#" className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white transition-all transform-gpu shadow-lg" aria-label="Facebook">
-                                <Facebook size={18} />
-                            </motion.a>
-                            <motion.a whileHover={{ y: -4, scale: 1.1 }} href="#" className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white transition-all transform-gpu shadow-lg" aria-label="YouTube">
-                                <Youtube size={18} />
-                            </motion.a>
-                            <motion.a whileHover={{ y: -4, scale: 1.1 }} href="mailto:info@mountaineermallu.com" className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white transition-all transform-gpu shadow-lg" aria-label="Email">
+                            <motion.a whileHover={{ y: -4, scale: 1.1 }} href="mailto:info@mountaineermallu.com" className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/70 hover:text-white transition-[color,background-color,border-color,box-shadow] transform-gpu shadow-lg" aria-label="Email">
                                 <Mail size={18} />
                             </motion.a>
                         </div>
@@ -440,33 +475,38 @@ export const Contact = () => {
 
                 </motion.div>
 
+                {/* ══ END CREDITS ══ */}
+                <EndCredits />
+
+                {/* ══ FINALE: stats, summit readout, wordmark rising from the ridge ══ */}
+                <SummitFinale />
+
                 {/* ══ SECTION 3: BOTTOM FOOTER BAR & MAGNETIC BACK-TO-TOP ══ */}
                 <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-center gap-6 pt-4">
 
                     {/* Copyright Notice */}
                     <div className="flex flex-col sm:flex-row items-center gap-4 text-center md:text-left">
                         <p className="text-white/40 text-xs tracking-[0.2em] uppercase font-semibold">
-                            © {new Date().getFullYear()} MOUNTAINEER MALLU. {t('contact.rights', 'ALL RIGHTS RESERVED.')}
+                            © {new Date().getFullYear()} Mountaineer Mallu. {t('footer.rights', 'All rights reserved.')}
                         </p>
                     </div>
 
                     {/* Legal Modal Links & Crafted Credit */}
-                    <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-white/50">
+                    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/50">
                         <button 
                             onClick={() => setShowTermsModal('privacy')} 
                             className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                         >
-                            Privacy Protocol
+                            Privacy
                         </button>
                         <span className="w-1 h-1 rounded-full bg-white/20" />
                         <button 
                             onClick={() => setShowTermsModal('terms')} 
                             className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                         >
-                            Terms of Operations
+                            Terms
                         </button>
-                        <span className="w-1 h-1 rounded-full bg-white/20" />
-                        <span className="font-serif italic text-alpine-glacier/90 flex items-center gap-1.5">
+                        <span className="basis-full font-serif italic text-alpine-glacier/90 flex items-center justify-center gap-1.5">
                             <Sparkles size={12} className="text-alpine-glacier" />
                             {t('contact.crafted_with_love', 'Crafted with Alpine Spirit')}
                         </span>
@@ -478,10 +518,10 @@ export const Contact = () => {
                         whileHover={{ scale: 1.08, y: -4 }}
                         whileTap={{ scale: 0.95 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        className="group flex items-center gap-3 px-5 py-3 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 hover:border-alpine-glacier/60 text-white text-xs font-semibold tracking-widest uppercase transition-all shadow-[0_0_25px_rgba(0,0,0,0.3)] hover:shadow-[0_0_30px_rgba(163,201,226,0.3)] cursor-pointer transform-gpu"
+                        className="group shrink-0 whitespace-nowrap md:mr-20 flex items-center gap-3 px-5 py-3 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 hover:border-alpine-glacier/60 text-white text-xs font-semibold tracking-widest uppercase transition-[color,background-color,border-color,box-shadow] shadow-[0_0_25px_rgba(0,0,0,0.3)] hover:shadow-[0_0_30px_rgba(163,201,226,0.3)] cursor-pointer transform-gpu"
                         aria-label="Back to Top"
                     >
-                        <span>Back to Summit</span>
+                        <span>Back to top</span>
                         <ChevronUp size={16} className="text-alpine-glacier group-hover:-translate-y-1 transition-transform duration-300" />
                     </motion.button>
 
@@ -489,15 +529,18 @@ export const Contact = () => {
 
             </motion.div>
 
-            {/* Legal Protocol Modal Overlay */}
-            <AnimatePresence>
+            {/* Legal Protocol Modal Overlay — portalled so section scroll transforms can't offset it */}
+            {createPortal(<AnimatePresence>
                 {showTermsModal && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setShowTermsModal(null)}
-                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6"
+                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={showTermsModal === 'privacy' ? 'Privacy policy' : 'Terms of service'}
                     >
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}
@@ -507,12 +550,12 @@ export const Contact = () => {
                             className="bg-[#0B0C10] border border-white/15 rounded-3xl p-8 max-w-xl w-full text-white shadow-2xl relative"
                         >
                             <h3 className="text-2xl font-serif mb-4 text-alpine-glacier">
-                                {showTermsModal === 'privacy' ? 'Privacy & Data Telemetry Protocol' : 'Standard Terms of Alpine Operations'}
+                                {showTermsModal === 'privacy' ? 'Privacy' : 'Terms'}
                             </h3>
                             <p className="text-sm text-white/70 leading-relaxed mb-6">
                                 {showTermsModal === 'privacy' 
-                                    ? 'Mountaineer Mallu respects climber data privacy. All telemetry, member location coordinates, and dispatch logs are stored under strict encrypted protocols and never transmitted to unauthorized third parties.'
-                                    : 'Participation in high-altitude expeditions, technical ascents, and regional faction activities requires strict compliance with safety guidelines, proper equipment verification, and environmental stewardship.'}
+                                    ? 'We only collect what we need to run the community — your account details and the things you choose to share. We never sell your data, and you can ask us to delete it at any time.'
+                                    : 'Joining a trip means following the trip leader’s safety guidance, bringing the right gear for the route, and leaving no trace. Mountains are serious — please be honest about your experience.'}
                             </p>
                             <button
                                 onClick={() => setShowTermsModal(null)}
@@ -523,7 +566,7 @@ export const Contact = () => {
                         </motion.div>
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>, document.body)}
         </section>
     );
 };

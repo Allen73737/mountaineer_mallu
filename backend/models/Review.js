@@ -33,5 +33,8 @@ const reviewSchema = new mongoose.Schema({
     timestamps: true
 });
 
+reviewSchema.index({ status: 1, createdAt: -1 });
+reviewSchema.index({ author: 1 });
+
 const Review = mongoose.model('Review', reviewSchema);
 export default Review;

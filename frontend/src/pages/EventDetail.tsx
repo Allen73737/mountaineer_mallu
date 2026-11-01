@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Clock, Mountain, AlertTriangle, Loader2, CheckCircle, MessageCircle, ShieldCheck, Users, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Clock, Mountain, AlertTriangle, CheckCircle, MessageCircle, ShieldCheck, Users, ArrowRight } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { eventsApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from '../components/ui/Toast';
@@ -9,6 +10,7 @@ import { BackButton } from '../components/ui/BackButton';
 import { ReadingProgressBar } from '../components/ui/ReadingProgressBar';
 import { EventDetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
+import { landMorph } from '../lib/morph';
 
 export const EventDetail = () => {
     const { id } = useParams<{ id: string }>();
@@ -67,7 +69,7 @@ export const EventDetail = () => {
                         title={error ? "Briefing Signal Lost" : "Expedition Not Found"}
                         message={error || 'This alpine expedition has concluded or is not listed in active rosters.'}
                         backLink="/events"
-                        backText="Back to Roster"
+                        backText="All trips"
                     />
                 </div>
             </div>
@@ -83,6 +85,8 @@ export const EventDetail = () => {
             <div className="relative h-[60vh] w-full overflow-hidden">
                 <img 
                     src={event.image} 
+                    alt={event.title}
+                    onLoad={landMorph}
                     className="w-full h-full object-cover filter brightness-[0.3] scale-105" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
@@ -102,7 +106,7 @@ export const EventDetail = () => {
                         <span className="inline-block px-4 py-1.5 rounded-full bg-alpine-sunrise/20 border border-alpine-sunrise/40 text-alpine-sunrise text-xs font-bold uppercase tracking-[0.2em] mb-6">
                             Expedition Briefing
                         </span>
-                        <h1 className="text-5xl md:text-8xl font-serif font-black text-white mb-8 drop-shadow-2xl">
+                        <h1 className="text-5xl md:text-8xl font-serif font-normal text-white mb-8 drop-shadow-2xl">
                             {event.title}
                         </h1>
                         <div className="flex flex-wrap justify-center gap-8 text-white/60">
@@ -207,7 +211,7 @@ export const EventDetail = () => {
                                         >
                                             {registering ? <Loader2 className="animate-spin" size={24} /> : "APPLY NOW"}
                                         </button>
-                                        <p className="text-[10px] text-white/30 uppercase tracking-widest text-center">Secure SSL Transmission Active</p>
+                                        <p className="text-[10px] text-white/30 uppercase tracking-widest text-center">Secure checkout</p>
                                     </div>
                                 )}
                             </div>

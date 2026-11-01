@@ -4,7 +4,7 @@ import { generateToken, setTokenCookie, clearTokenCookie } from '../middleware/a
 import { OAuth2Client } from 'google-auth-library';
 import otpGenerator from 'otp-generator';
 import bcrypt from 'bcryptjs';
-import { sendEmail, getOtpEmailTemplate } from '../utils/email.js';
+import { sendEmail, getOtpEmailTemplate } from '../services/email.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 

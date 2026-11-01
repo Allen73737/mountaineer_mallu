@@ -4,6 +4,7 @@ import { ShoppingBag, ArrowRight, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usersApi } from '../../lib/api';
+import { LineReveal } from '../ui/LineReveal';
 
 const PRODUCTS = [
     { id: 1, title: 'Ascent Pro Jacket', price: '€249', category: 'Outerwear', img: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=600&h=800&fit=crop' },
@@ -104,7 +105,21 @@ export const Merch = () => {
     }, [isInView, isHovered, rotateY]);
 
     const angleSlice = 360 / PRODUCTS.length;
-    const zRadius = 400;
+    const [zRadius, setZRadius] = useState(400);
+
+    useEffect(() => {
+        const updateRadius = () => {
+            const w = window.innerWidth;
+            if (w < 1024) {
+                setZRadius(Math.max(260, Math.min(340, w * 0.32)));
+            } else {
+                setZRadius(400);
+            }
+        };
+        updateRadius();
+        window.addEventListener('resize', updateRadius, { passive: true });
+        return () => window.removeEventListener('resize', updateRadius);
+    }, []);
 
     return (
         <section ref={sectionRef} id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-transparent dark:bg-transparent relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-screen">
@@ -115,7 +130,7 @@ export const Merch = () => {
                 whileInView={{ y: 0, opacity: 0.03 }}
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 2, ease: "easeOut" }}
-                className="absolute bottom-10 text-[8rem] md:text-[16rem] lg:text-[20rem] font-serif font-black text-alpine-navy dark:text-alpine-snow whitespace-nowrap pointer-events-none select-none z-0"
+                className="absolute bottom-10 text-[8rem] md:text-[16rem] lg:text-[20rem] font-serif font-normal text-alpine-navy dark:text-alpine-snow whitespace-nowrap pointer-events-none select-none z-0"
             >
                 PROVISIONS
             </motion.div>
@@ -137,9 +152,9 @@ export const Merch = () => {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 1 }}
-                            className="text-4xl md:text-6xl lg:text-7xl font-serif text-alpine-navy dark:text-alpine-snow"
+                            className="cine-title has-lines text-4xl md:text-6xl lg:text-7xl font-serif text-alpine-navy dark:text-alpine-snow"
                         >
-                            The Equipment
+                            <LineReveal>The Equipment</LineReveal>
                         </motion.h2>
                         <p className="text-alpine-navy/60 dark:text-alpine-snow/60 mt-3 md:mt-4 text-base md:text-xl max-w-md">Engineered for the extremes. Worn by the best.</p>
                     </div>
@@ -159,7 +174,7 @@ export const Merch = () => {
                     {PRODUCTS.map((product) => (
                         <div key={product.id} className="min-w-[240px] snap-start flex-shrink-0">
                             <TiltCard className="premium-card-light dark:premium-card rounded-2xl overflow-hidden border border-black/5 dark:border-white/[0.06] h-full shadow-lg group-hover:shadow-2xl">
-                                <div className="relative h-52 overflow-hidden">
+                                <div className="reveal-img relative h-52 overflow-hidden">
                                     <img src={product.img} alt={product.title} className="w-full h-full object-cover" />
                                     <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10">
                                         {product.category}

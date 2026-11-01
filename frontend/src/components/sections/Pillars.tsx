@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation, useInView, useScroll, useMotionValueEvent } from 'framer-motion';
-import { Quote, ArrowRight, Loader2 } from 'lucide-react';
+import { Quote, ArrowRight } from 'lucide-react';
+import { Loader2 } from '../ui/BrandLoader';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { pillarsApi } from '../../lib/api';
+import { LineReveal } from '../ui/LineReveal';
 
 const DEFAULT_LEADERS = [
     {
@@ -97,9 +99,9 @@ export const Pillars = () => {
                             hidden: { opacity: 0, x: -30 },
                             visible: { opacity: 1, x: 0, transition: { type: "spring", damping: 18 } }
                         }}
-                        className="text-4xl md:text-6xl lg:text-7xl font-serif mb-4 md:mb-6 leading-tight drop-shadow-sm"
+                        className="cine-title has-lines text-4xl md:text-6xl lg:text-7xl font-serif mb-4 md:mb-6 leading-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.12)]"
                     >
-                        {t('pillars.title', 'Pillars of the Community')}
+                        <LineReveal>{t('pillars.title', 'Pillars of the Community')}</LineReveal>
                     </motion.h2>
                     <motion.p
                         initial="hidden"
@@ -134,7 +136,7 @@ export const Pillars = () => {
                                 key={leader._id || i}
                                 onClick={() => setTopIndex(i)}
                                 aria-label={`View ${leader.name}`}
-                                className={`h-2.5 rounded-full transition-all duration-300 ${i === topIndex ? 'w-8 bg-alpine-blue dark:bg-alpine-sunrise' : 'w-2.5 bg-black/20 dark:bg-white/20 hover:bg-black/40 dark:hover:white/40'}`}
+                                className={`tap-dot h-2.5 rounded-full transition-all duration-300 ${i === topIndex ? 'w-8 bg-alpine-blue dark:bg-alpine-sunrise' : 'w-2.5 bg-black/20 dark:bg-white/20 hover:bg-black/40 dark:hover:bg-white/40'}`}
                             />
                         ))}
                         <span className="text-xs text-alpine-navy/50 dark:text-alpine-snow/50 font-mono ml-2">

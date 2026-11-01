@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Keyboard from 'react-simple-keyboard';
-import 'react-simple-keyboard/build/css/index.css';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Keyboard as KeyboardIcon, Languages, Type, X, Eye } from 'lucide-react';
 import { manglishToMalayalam } from '../../lib/manglishTransliterate';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const Keyboard = lazy(() => import('./VirtualKeyboard'));
 
 // We define basic custom layouts to ensure it renders correctly on screen
 const GERMAN_LAYOUT = {
@@ -249,14 +249,16 @@ export const LanguageInput: React.FC<LanguageInputProps> = ({
                                 </button>
                             </div>
                             <div className="virtual-keyboard-wrapper text-black">
-                                <Keyboard
-                                    keyboardRef={r => (keyboardRef.current = r)}
-                                    layoutName={layoutName}
-                                    layout={getLayout()}
-                                    onChange={handleKeyboardChange}
-                                    onKeyPress={onKeyPress}
-                                    theme="hg-theme-default custom-keyboard-theme"
-                                />
+                                <Suspense fallback={<div className="h-48 grid place-items-center text-xs text-black/40">Loading keyboard…</div>}>
+                                    <Keyboard
+                                        keyboardRef={r => (keyboardRef.current = r)}
+                                        layoutName={layoutName}
+                                        layout={getLayout()}
+                                        onChange={handleKeyboardChange}
+                                        onKeyPress={onKeyPress}
+                                        theme="hg-theme-default custom-keyboard-theme"
+                                    />
+                                </Suspense>
                             </div>
                         </div>
                     </motion.div>

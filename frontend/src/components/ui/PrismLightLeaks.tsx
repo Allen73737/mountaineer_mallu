@@ -15,74 +15,74 @@ interface PrismConfig {
 
 const PRISM_PALETTES: Record<string, PrismConfig> = {
     hero: {
-        primaryBeam: 'from-transparent via-[#38BDF8]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#A855F7]/15 via-white/60 via-[#34D399]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/15 via-white/60 via-[#34D399]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.12)',
         accentGlow: 'rgba(251, 191, 36, 0.15)'
     },
     mission: {
-        primaryBeam: 'from-transparent via-[#FB7185]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#38BDF8]/15 via-white/60 via-[#F43F5E]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#E2A071]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#7EAACB]/15 via-white/60 via-[#F43F5E]/20 to-transparent',
         causticTint: 'rgba(251, 113, 133, 0.14)',
         accentGlow: 'rgba(251, 191, 36, 0.16)'
     },
     stories: {
-        primaryBeam: 'from-transparent via-[#38BDF8]/25 via-white/80 via-[#818CF8]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#60A5FA]/20 via-white/60 via-[#C084FC]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/25 via-white/80 via-[#9C93B5]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#60A5FA]/20 via-white/60 via-[#9C93B5]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.15)',
         accentGlow: 'rgba(129, 140, 248, 0.15)'
     },
     events: {
-        primaryBeam: 'from-transparent via-[#34D399]/25 via-white/80 via-[#38BDF8]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#6EE7B7]/20 via-white/60 via-[#A855F7]/15 to-transparent',
+        primaryBeam: 'from-transparent via-[#34D399]/25 via-white/80 via-[#7EAACB]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#6EE7B7]/20 via-white/60 via-[#9C93B5]/15 to-transparent',
         causticTint: 'rgba(52, 211, 153, 0.15)',
         accentGlow: 'rgba(56, 189, 248, 0.15)'
     },
     gallery: {
-        primaryBeam: 'from-transparent via-[#00F2FE]/25 via-white/80 via-[#EC4899]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#A855F7]/20 via-white/60 via-[#38BDF8]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#A3C9E2]/25 via-white/80 via-[#EC4899]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/20 via-white/60 via-[#7EAACB]/20 to-transparent',
         causticTint: 'rgba(0, 242, 254, 0.16)',
         accentGlow: 'rgba(236, 72, 153, 0.15)'
     },
     community: {
-        primaryBeam: 'from-transparent via-[#38BDF8]/25 via-white/80 via-[#60A5FA]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#818CF8]/20 via-white/60 via-[#C084FC]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/25 via-white/80 via-[#60A5FA]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/20 via-white/60 via-[#9C93B5]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.16)',
         accentGlow: 'rgba(96, 165, 250, 0.15)'
     },
     team: {
-        primaryBeam: 'from-transparent via-[#FBBF24]/25 via-white/80 via-[#38BDF8]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#FBBF24]/25 via-white/80 via-[#7EAACB]/20 to-transparent',
         secondaryBeam: 'from-transparent via-[#F43F5E]/15 via-white/60 via-[#FBBF24]/20 to-transparent',
         causticTint: 'rgba(251, 191, 36, 0.15)',
         accentGlow: 'rgba(56, 189, 248, 0.14)'
     },
     reviews: {
         primaryBeam: 'from-transparent via-[#F43F5E]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#C084FC]/15 via-white/60 via-[#FB7185]/20 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/15 via-white/60 via-[#E2A071]/20 to-transparent',
         causticTint: 'rgba(244, 63, 94, 0.14)',
         accentGlow: 'rgba(192, 132, 252, 0.14)'
     },
     merch: {
-        primaryBeam: 'from-transparent via-[#FB7185]/25 via-white/80 via-[#FBBF24]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#34D399]/15 via-white/60 via-[#FB7185]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#E2A071]/25 via-white/80 via-[#FBBF24]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#34D399]/15 via-white/60 via-[#E2A071]/20 to-transparent',
         causticTint: 'rgba(251, 113, 133, 0.15)',
         accentGlow: 'rgba(251, 191, 36, 0.15)'
     },
     contact: {
-        primaryBeam: 'from-transparent via-[#38BDF8]/25 via-white/80 via-[#C084FC]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#818CF8]/20 via-white/60 via-[#38BDF8]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/25 via-white/80 via-[#9C93B5]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/20 via-white/60 via-[#7EAACB]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.16)',
         accentGlow: 'rgba(192, 132, 252, 0.15)'
     },
     dashboard: {
-        primaryBeam: 'from-transparent via-[#38BDF8]/25 via-white/80 via-[#818CF8]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#C084FC]/20 via-white/60 via-[#38BDF8]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/25 via-white/80 via-[#9C93B5]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/20 via-white/60 via-[#7EAACB]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.16)',
         accentGlow: 'rgba(129, 140, 248, 0.15)'
     },
     default: {
-        primaryBeam: 'from-transparent via-[#38BDF8]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
-        secondaryBeam: 'from-transparent via-[#A855F7]/15 via-white/60 via-[#34D399]/20 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        secondaryBeam: 'from-transparent via-[#9C93B5]/15 via-white/60 via-[#34D399]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.12)',
         accentGlow: 'rgba(251, 191, 36, 0.15)'
     }
@@ -194,7 +194,7 @@ export const PrismLightLeaks: React.FC<PrismLightLeaksProps> = React.memo(({ act
                     transform: 'translate3d(0,0,0)',
                     willChange: 'transform'
                 }}
-                className="absolute top-0 left-0 w-[28vw] h-[28vw] rounded-full bg-gradient-to-r from-white/90 via-[#BAE6FD]/40 to-transparent blur-[65px] opacity-65 mix-blend-normal pointer-events-none transform-gpu"
+                className="absolute top-0 left-0 w-[28vw] h-[28vw] rounded-full bg-gradient-to-r from-white/90 via-[#C6DDEC]/40 to-transparent blur-[65px] opacity-65 mix-blend-normal pointer-events-none transform-gpu"
             />
 
             {/* Delicate crystalline rainbow shimmer line */}
@@ -209,7 +209,7 @@ export const PrismLightLeaks: React.FC<PrismLightLeaksProps> = React.memo(({ act
                     ease: 'linear'
                 }}
                 style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
-                className="absolute left-[30%] w-[2px] h-[40vh] bg-gradient-to-b from-transparent via-[#00F2FE]/50 via-[#FEE140]/50 to-transparent blur-[2px] transform -rotate-12 opacity-30 transform-gpu"
+                className="absolute left-[30%] w-[2px] h-[40vh] bg-gradient-to-b from-transparent via-[#A3C9E2]/50 via-[#FEE140]/50 to-transparent blur-[2px] transform -rotate-12 opacity-30 transform-gpu"
             />
         </div>
     );

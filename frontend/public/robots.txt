@@ -1,0 +1,20 @@
+# Mountaineer Mallu — Production Robots Exclusion Directives
+User-agent: *
+Allow: /
+Allow: /stories
+Allow: /events
+Allow: /gallery
+Allow: /community
+Allow: /team
+Allow: /reviews
+Allow: /shop
+Allow: /contact
+
+# Disallow private user/admin zones
+Disallow: /summit-control-panel
+Disallow: /summit-control-panel/*
+Disallow: /dashboard
+Disallow: /profile-complete
+Disallow: /api/
+
+Sitemap: https://mountaineermallu.com/sitemap.xml

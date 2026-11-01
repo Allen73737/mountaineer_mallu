@@ -94,7 +94,7 @@ export const MotionGraphicsDemo: React.FC<MotionGraphicsDemoProps> = ({ onComple
         "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
         "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=800&q=80",
         "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80",
-        "https://images.unsplash.com/photo-1483728642387-6c3abe6c6b55?w=800&q=80",
+        "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=800&q=80",
         "https://images.unsplash.com/photo-1516655855035-d5215bcb5604?w=800&q=80"
     ];
 
@@ -120,7 +120,7 @@ export const MotionGraphicsDemo: React.FC<MotionGraphicsDemoProps> = ({ onComple
 
             <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/5 z-50">
                 <motion.div 
-                    className="h-full bg-gradient-to-r from-alpine-glacier via-[#64BEFF] to-alpine-glacier shadow-[0_0_15px_rgba(163,201,226,0.8)]"
+                    className="h-full bg-gradient-to-r from-alpine-glacier via-[#A3C9E2] to-alpine-glacier shadow-[0_0_15px_rgba(163,201,226,0.8)]"
                     style={{ width: `${progress}%` }}
                 />
             </div>

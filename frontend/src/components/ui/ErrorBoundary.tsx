@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { isChunkLoadError, reloadForNewVersion } from '../../lib/chunkRecovery';
 
 interface Props {
     children?: ReactNode;
@@ -21,6 +22,8 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        // Stale chunk after a deploy: one quiet reload picks up the new version instead of this screen
+        if (isChunkLoadError(error) && reloadForNewVersion()) return;
         console.error('Uncaught React Error:', error, errorInfo);
     }
 
@@ -41,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={() => window.location.reload()}
-                                className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#64BEFF] hover:bg-[#50A5E6] text-white rounded-xl font-medium transition-all active:scale-[0.98] shadow-lg shadow-[#64BEFF]/20"
+                                className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#A3C9E2] hover:bg-[#50A5E6] text-white rounded-xl font-medium transition-all active:scale-[0.98] shadow-lg shadow-[#A3C9E2]/20"
                             >
                                 <RefreshCw size={18} />
                                 Restart Expedition

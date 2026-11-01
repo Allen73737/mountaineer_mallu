@@ -3,11 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ReadingProgressBar } from '../components/ui/ReadingProgressBar';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, User, BookOpen, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, User, BookOpen } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { storiesApi } from '../lib/api';
 import { BackButton } from '../components/ui/BackButton';
 import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
+import { landMorph } from '../lib/morph';
 
 export const StoryDetail = () => {
     const { id } = useParams<{ id: string }>();
@@ -62,6 +64,7 @@ export const StoryDetail = () => {
                 <img 
                     src={story.image} 
                     alt={story.title}
+                    onLoad={landMorph}
                     className="w-full h-full object-cover filter brightness-50"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
@@ -87,7 +90,7 @@ export const StoryDetail = () => {
                                     <Calendar size={12} /> {story.date}
                                 </span>
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-8 leading-tight drop-shadow-2xl">
+                            <h1 className="text-5xl md:text-7xl font-serif font-normal text-white mb-8 leading-tight drop-shadow-2xl">
                                 {story.title}
                             </h1>
                             <div className="flex items-center gap-4 text-white/70">
@@ -125,7 +128,7 @@ export const StoryDetail = () => {
                             <p key={i} className="text-lg md:text-xl text-white/70 leading-relaxed font-light">
                                 {i === 0 && p.length > 1 ? (
                                     <>
-                                        <span className="float-left text-7xl font-serif font-bold text-alpine-glacier mr-4 mt-2 leading-[0.8]">{p[0]}</span>
+                                        <span className="float-left text-7xl font-serif font-normal text-alpine-glacier mr-4 mt-2 leading-[0.8]">{p[0]}</span>
                                         {p.slice(1)}
                                     </>
                                 ) : p}

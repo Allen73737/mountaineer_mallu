@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, MapPin, Phone, Instagram, Facebook, Twitter, Send, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, MapPin, Phone, Instagram, Facebook, Twitter, Send, CheckCircle } from 'lucide-react';
+import { Loader2 } from '../components/ui/BrandLoader';
 import { contactApi } from '../lib/api';
 import { BackButton } from '../components/ui/BackButton';
+import { CreditTitle } from '../components/ui/CreditTitle';
 
 export const ContactPage = () => {
     const [form, setForm] = useState({ name: '', email: '', subject: 'General Inquiry', message: '' });
@@ -29,15 +31,16 @@ export const ContactPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-alpine-navy text-alpine-snow pt-40 pb-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="flashlight min-h-screen bg-alpine-navy dark:bg-transparent text-alpine-snow pt-40 pb-24 px-6 md:px-12 relative overflow-hidden">
 
             {/* Background massive typography */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[15rem] md:text-[25rem] font-serif font-black text-white/5 whitespace-nowrap pointer-events-none select-none z-0">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[15rem] md:text-[25rem] font-serif font-normal text-white/5 whitespace-nowrap pointer-events-none select-none z-0">
                 DISPATCH
             </div>
 
             <div className="max-w-7xl mx-auto w-full relative z-50">
-                <BackButton />
+                {/* Night-sky page: render in the dark palette even in light mode */}
+                <div className="dark"><BackButton /></div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 50 }}
@@ -45,9 +48,7 @@ export const ContactPage = () => {
                     transition={{ duration: 1, type: "spring", damping: 15 }}
                     className="text-center mb-16"
                 >
-                    <h1 className="text-6xl md:text-8xl font-serif font-black mb-6 text-alpine-glacier drop-shadow-md">
-                        Mission Control
-                    </h1>
+                    <CreditTitle lines={['Mission Control']} align="center" creditClassName="text-alpine-sunrise" className="text-6xl md:text-8xl font-serif font-normal text-alpine-glacier drop-shadow-md" />
                     <p className="text-xl md:text-2xl font-light text-white/60 max-w-2xl mx-auto">
                         Ready to deploy? General inquiries, bespoke expedition planning, or media requests. We are online.
                     </p>
@@ -80,15 +81,15 @@ export const ContactPage = () => {
                                 Mon-Fri, 09:00 - 18:00 CET
                             </p>
                             <div className="text-alpine-sunrise font-bold uppercase tracking-widest text-sm flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-alpine-sunrise animate-pulse" /> Emergency Comms Active
+                                <div className="w-2 h-2 rounded-full bg-alpine-sunrise animate-pulse" /> We usually reply within a day
                             </div>
                         </div>
 
                         <div className="flex gap-4 pt-4">
-                            <a href="#" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Instagram size={24} /></a>
-                            <a href="#" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Facebook size={24} /></a>
-                            <a href="#" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Twitter size={24} /></a>
-                            <a href="#" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Mail size={24} /></a>
+                            <a href="https://instagram.com/mountaineermallu" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Instagram size={24} /></a>
+                            <a href="https://facebook.com/mountaineermallu" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Facebook size={24} /></a>
+                            <a href="https://twitter.com/mountaineermallu" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Twitter size={24} /></a>
+                            <a href="mailto:contact@mountaineermallu.com" aria-label="Email us" className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-alpine-sunrise hover:text-alpine-navy transition-all hover:scale-110 shadow-lg"><Mail size={24} /></a>
                         </div>
                     </motion.div>
 

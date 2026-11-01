@@ -55,7 +55,7 @@ export const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) 
                 {[...Array(5)].map((_, i) => (
                     <div key={i} className="h-full flex-1 rounded-full bg-white/5 overflow-hidden">
                         <motion.div
-                            className={`h-full w-full rounded-full transition-all duration-500 ${i < strength ? getColor(strength) : 'opacity-0'}`}
+                            className={`h-full w-full rounded-full transition-[color,background-color,border-color,box-shadow] duration-500 ${i < strength ? getColor(strength) : 'opacity-0'}`}
                             initial={{ scaleX: 0 }}
                             animate={{ scaleX: i < strength ? 1 : 0 }}
                             transition={{ duration: 0.4, ease: "easeOut" }}

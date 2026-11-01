@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Send, Loader2, Eye, Trash2, CheckCircle2, XCircle, Clock, Users, Wand2, Mail, Rocket, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Sparkles, Send, Eye, Trash2, CheckCircle2, XCircle, Clock, Users, Wand2, Mail, Rocket, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Loader2 } from '../../components/ui/BrandLoader';
 import { campaignApi } from '../../lib/api';
 
 type CampaignStatus = 'draft' | 'approved' | 'sending' | 'sent' | 'failed';
@@ -310,7 +311,7 @@ export const CampaignAutopilot = () => {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-white/[0.03] border border-white/5 rounded-xl hover:bg-white/[0.06] hover:border-white/10 transition-all group cursor-pointer"
+                                    className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-white/[0.03] border border-white/5 rounded-xl hover:bg-white/[0.06] hover:border-white/10 transition-[color,background-color,border-color,box-shadow] group cursor-pointer"
                                     onClick={() => setPreviewCampaign(campaign)}
                                 >
                                     <div className="flex-1 min-w-0">

@@ -228,7 +228,7 @@ export const UserGearVaultTab = () => {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 backdrop-blur-md cursor-pointer ${
+                                className={`group flex items-center justify-between p-4 rounded-2xl border transition-[color,background-color,border-color,box-shadow] duration-300 backdrop-blur-md cursor-pointer ${
                                     item.packed 
                                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
                                         : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10'
