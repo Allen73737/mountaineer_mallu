@@ -37,6 +37,7 @@ import { SafeBoundary } from './components/ui/SafeBoundary';
 import { ErrorState } from './components/ui/ErrorState';
 import { CommandPalette } from './components/site/CommandPalette';
 import { startNotificationSync } from './store/useNotifications';
+import { startDataPrefetch } from './lib/prefetchData';
 
 // Global overlays that only matter after the page is up (chat, guided tour with driver.js, demo lock):
 // split out of the main bundle so first load parses less JavaScript
@@ -157,6 +158,8 @@ function App() {
 
         // Live inbox: follows login/logout and listens on the socket
         const stopNotifications = startNotificationSync();
+        // Hovering a link to a main page starts loading its data
+        const stopPrefetch = startDataPrefetch();
 
         // If the API was down when the page opened (e.g. backend still connecting to the database),
         // pick up settings and the session as soon as it answers again — no manual refresh needed
@@ -165,7 +168,7 @@ function App() {
         };
         window.addEventListener('mm:server-status', onServerStatus);
 
-        return () => { stopNotifications(); disconnectSocket(); window.removeEventListener('mm:server-status', onServerStatus); };
+        return () => { stopNotifications(); stopPrefetch(); disconnectSocket(); window.removeEventListener('mm:server-status', onServerStatus); };
     }, []);
 
     // Once the intro is done and the browser is idle, fetch the code for the pages people open next,

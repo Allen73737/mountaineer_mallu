@@ -6,6 +6,7 @@ import { scrollToSectionId } from '../../lib/useSectionNavigator';
 import { readScroll, saveScroll, scrollToWhenReady } from '../../lib/scrollMemory';
 import { useIntro } from '../../lib/intro';
 import { useMorph } from '../../lib/morph';
+import { useTranslation } from 'react-i18next';
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 const EASE_IN = [0.4, 0, 1, 1] as const;
@@ -65,6 +66,7 @@ const VEIL_CONTOURS = Array.from({ length: 8 }, (_, k) => {
  */
 export const RouteTransition: React.FC<{ routeKey: string; children: React.ReactNode }> = ({ routeKey, children }) => {
     const { lenis } = useLenis();
+    const { t } = useTranslation();
     const location = useLocation();
     const navType = useNavigationType();
     const introDone = useIntro(s => s.introDone);
@@ -127,6 +129,8 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
     const restoreScroll = useCallback(() => {
         const { navType: nt, key: k } = navRef.current;
         shownKeyRef.current = k;
+        // Keyboard and screen-reader users continue from the top of the new page, not the old link
+        document.getElementById('page-content')?.focus({ preventScroll: true });
         const target = hashRef.current ? decodeURIComponent(hashRef.current.slice(1)) : '';
         if (target) {
             // The section may still be mounting (lazy route / content-visibility); retry briefly
@@ -161,6 +165,9 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
 
     return (
         <>
+            <a href="#page-content" className="skip-link" onClick={e => { e.preventDefault(); document.getElementById('page-content')?.focus(); }}>
+                {t('app.status.skip')}
+            </a>
             <AnimatePresence>
                 <motion.div
                     key={`progress-${routeKey}`}
@@ -236,6 +243,9 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
             <AnimatePresence mode="wait" initial={false} onExitComplete={restoreScroll}>
                 <motion.div
                     key={routeKey}
+                    id="page-content"
+                    tabIndex={-1}
+                    className="outline-none"
                     initial={{ opacity: 0, y: 40, scale: 0.985 }}
                     animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.8, delay: 0.4, ease: EASE_OUT_EXPO } }}
                     exit={{ opacity: 0, y: -16, scale: 0.99, transition: { duration: 0.3, ease: EASE_IN } }}

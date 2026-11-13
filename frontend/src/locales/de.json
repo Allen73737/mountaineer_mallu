@@ -263,6 +263,16 @@
       "training": "Training",
       "meetup": "Treffen",
       "cultural": "Kultur"
+    },
+    "status": {
+      "verifying": "Anmeldung wird geprüft",
+      "offline": "Du bist offline",
+      "offlineSub": "Gespeicherte Touren und Seiten werden angezeigt",
+      "serverDown": "Server nicht erreichbar",
+      "retrying": "Neuer Versuch läuft automatisch…",
+      "retry": "Erneut versuchen",
+      "back": "Wieder verbunden",
+      "skip": "Zum Inhalt springen"
     }
   }
 }

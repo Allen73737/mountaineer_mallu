@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { isChunkLoadError, reloadForNewVersion } from '../../lib/chunkRecovery';
+import { captureError } from '../../lib/monitoring';
 
 interface Props {
     children?: ReactNode;
@@ -25,6 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
         // Stale chunk after a deploy: one quiet reload picks up the new version instead of this screen
         if (isChunkLoadError(error) && reloadForNewVersion()) return;
         console.error('Uncaught React Error:', error, errorInfo);
+        captureError(error, { componentStack: errorInfo.componentStack });
     }
 
     public render() {

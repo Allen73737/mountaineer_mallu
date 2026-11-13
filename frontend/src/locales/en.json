@@ -263,6 +263,16 @@
       "training": "Training",
       "meetup": "Meetup",
       "cultural": "Cultural"
+    },
+    "status": {
+      "verifying": "Verifying credentials",
+      "offline": "You’re offline",
+      "offlineSub": "Showing saved trips and pages",
+      "serverDown": "Can’t reach the server",
+      "retrying": "Retrying automatically…",
+      "retry": "Retry",
+      "back": "Connected again",
+      "skip": "Skip to content"
     }
   }
 }

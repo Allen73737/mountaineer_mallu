@@ -28,7 +28,7 @@ export const listEvents = async (req, res, next) => {
 // GET /api/events/:id
 export const getEvent = async (req, res, next) => {
     try {
-        const event = await Event.findById(req.params.id).populate('participants', 'name avatar email');
+        const event = await Event.findById(req.params.id).populate('participants', 'name avatar'); // public endpoint: never expose participants' emails
         if (!event) return res.status(404).json({ error: 'Event not found.' });
         res.json({ event });
     } catch (error) {

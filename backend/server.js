@@ -79,15 +79,17 @@ if (isClusterEnabled && cluster.isPrimary) {
 
 } else {
     // Single-process mode or Worker process
-    import('./index.js').then(({ default: app, startServer }) => {
+    import('./utils/monitoring.js').then(m => m.initMonitoring()).then(() => import('./index.js')).then(({ default: app, startServer }) => {
         // A stray rejection (a failed email, an AI timeout, a Mongo blip) is logged, never fatal —
         // under `node --watch` a crashed process is not restarted, which left the API silently down.
         process.on('unhandledRejection', (reason) => {
             console.error(`[Process ${process.pid}] Unhandled rejection (kept running):`, reason);
+            import('./utils/monitoring.js').then(m => m.captureError(reason, { kind: 'unhandledRejection' }));
         });
 
         process.on('uncaughtException', (err) => {
             console.error(`[Process ${process.pid}] Uncaught exception:`, err);
+            import('./utils/monitoring.js').then(m => m.captureError(err, { kind: 'uncaughtException' }));
             // In production the cluster supervisor / platform restarts a clean worker; in development stay up
             if (process.env.NODE_ENV === 'production') setTimeout(() => process.exit(1), 1000);
         });

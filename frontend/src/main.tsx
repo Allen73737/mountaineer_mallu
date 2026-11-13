@@ -23,6 +23,10 @@ import './lib/i18n'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { reloadForNewVersion } from './lib/chunkRecovery';
+import { initMonitoring } from './lib/monitoring';
+
+// Error tracking and analytics: both off unless configured in .env (see lib/monitoring)
+initMonitoring();
 
 // Vite fires this when a lazy page's files can't be fetched — typically a tab left open across a deploy.
 // Reload once (guarded against loops) so the visitor lands on the new version instead of an error.

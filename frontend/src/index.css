@@ -2481,3 +2481,20 @@ html:not(.dark) .mm-console:not(.dark) { --mm-ink-3: rgba(8, 40, 76, 0.6); }
   /* Momentum scrolling and no scroll-chaining for horizontal strips (carousels, docks, tables) */
   .overflow-x-auto, .overflow-x-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 }
+
+/* ═══ ACCESSIBILITY ═══ */
+/* Skip link: hidden until a keyboard user tabs to it, then the first thing on screen */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10001;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: #0B0C10;
+  font: 600 13px/1 Inter Variable, Inter, system-ui, sans-serif;
+  transform: translateY(-160%);
+  transition: transform 0.2s ease;
+}
+.skip-link:focus-visible { transform: none; outline: 2px solid #8EC5E8; outline-offset: 2px; }

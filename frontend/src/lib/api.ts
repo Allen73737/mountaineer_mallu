@@ -25,7 +25,38 @@ const markServerReachable = (ok: boolean) => {
 };
 export const isServerReachable = () => serverReachable;
 
+// ─── Short-lived response cache for public lists ───────────────────────
+// Going back to a page seen a moment ago (or one prefetched on hover) answers instantly instead of
+// showing a skeleton. Any write (and login / logout) clears it, so nobody sees stale results after
+// their own change.
+const CACHEABLE = /^\/(events|stories|gallery|pillars|reviews|merchandise|community\/groups)(\/[a-f0-9]{24})?$/;
+const CACHE_TTL_MS = 60_000;
+const responseCache = new Map<string, { at: number; promise: Promise<unknown> }>();
+export const clearResponseCache = () => responseCache.clear();
+
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+    const method = (options.method || 'GET').toUpperCase();
+    if (method !== 'GET') { responseCache.clear(); return requestNetwork<T>(endpoint, options); }
+    if (!CACHEABLE.test(endpoint) || options.retries || options.signal) return requestNetwork<T>(endpoint, options);
+
+    const key = endpoint + JSON.stringify(options.params || {});
+    const hit = responseCache.get(key);
+    if (!hit || Date.now() - hit.at > CACHE_TTL_MS) {
+        const promise = requestNetwork<T>(endpoint, options);
+        responseCache.set(key, { at: Date.now(), promise });
+        promise.catch(() => { if (responseCache.get(key)?.promise === promise) responseCache.delete(key); });
+        return promise.then(d => structuredClone(d));
+    }
+    // Callers get their own copy, so one page sorting or editing a list can't change another's
+    return (hit.promise as Promise<T>).then(d => structuredClone(d));
+}
+
+/** Warm the cache for an endpoint (link hover / touch). Failures are ignored. */
+export const prefetchRequest = (endpoint: string, params?: Record<string, string | number>) => {
+    request(endpoint, { params }).catch(() => {});
+};
+
+async function requestNetwork<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const { params, retries = 0, timeoutMs, ...fetchOptions } = options;
 
     let url = `${API_URL}/api${endpoint}`;

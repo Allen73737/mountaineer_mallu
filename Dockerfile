@@ -10,6 +10,12 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
+# Vite bakes these into the bundle at build time (.env files are excluded from the image).
+# VITE_API_URL stays empty: the API is served from the same origin as the site.
+ARG VITE_GOOGLE_CLIENT_ID=""
+ARG VITE_SENTRY_DSN=""
+ARG VITE_ANALYTICS_DOMAIN=""
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_ANALYTICS_DOMAIN=$VITE_ANALYTICS_DOMAIN
 RUN npm run build
 
 # ── Stage 2: Install Production Backend Dependencies ─────────

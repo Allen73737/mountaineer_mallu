@@ -74,13 +74,17 @@ export const cacheMiddleware = (ttlSeconds = 300) => {
         const originalJson = res.json.bind(res);
         res.json = (body) => {
             if (res.statusCode >= 200 && res.statusCode < 300) {
-                // Populate L1
-                l1Cache.set(cacheKey, body, ttlSeconds);
+                try {
+                    // Cache the JSON the client receives, not live Mongoose documents: deep-cloning a
+                    // populated document crashed node-cache and turned the response into a 500
+                    const serialized = JSON.stringify(body);
+                    l1Cache.set(cacheKey, JSON.parse(serialized), ttlSeconds);
 
-                // Populate L2 Redis asynchronously
-                if (isRedisReady && redisClient?.isOpen) {
-                    redisClient.set(cacheKey, JSON.stringify(body), { EX: ttlSeconds }).catch(() => {});
-                }
+                    // Populate L2 Redis asynchronously
+                    if (isRedisReady && redisClient?.isOpen) {
+                        redisClient.set(cacheKey, serialized, { EX: ttlSeconds }).catch(() => {});
+                    }
+                } catch { /* uncacheable body: still send it */ }
             }
             res.setHeader('X-Cache', 'MISS');
             return originalJson(body);

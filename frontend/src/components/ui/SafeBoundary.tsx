@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { isChunkLoadError, reloadForNewVersion } from '../../lib/chunkRecovery';
+import { captureError } from '../../lib/monitoring';
 
 interface Props {
     children?: ReactNode;
@@ -28,6 +29,7 @@ export class SafeBoundary extends Component<Props, State> {
     public componentDidCatch(error: Error, info: ErrorInfo) {
         if (isChunkLoadError(error) && reloadForNewVersion()) return;
         console.error(`[${this.props.name ?? 'SafeBoundary'}] crashed:`, error, info.componentStack);
+        captureError(error, { boundary: this.props.name, componentStack: info.componentStack });
     }
 
     public componentDidUpdate(prev: Props) {

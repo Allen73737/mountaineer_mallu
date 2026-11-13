@@ -1,0 +1,58 @@
+# Render Blueprint: one web service that builds the Docker image (frontend + API in one container).
+# On render.com: New → Blueprint → pick this repository, then fill in the secrets it asks for.
+# Render restarts the service automatically if it crashes and watches /livez to decide it's healthy.
+services:
+  - type: web
+    name: mountaineer-mallu
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter            # the free plan sleeps after 15 min idle; starter stays awake
+    region: frankfurt        # closest to an Alpine/European audience
+    healthCheckPath: /livez
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # One worker keeps memory low on small plans; raise it on bigger ones
+      - key: WEB_CONCURRENCY
+        value: 1
+      - key: EVENT_TIMEZONE
+        value: Europe/Berlin
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: CLIENT_URL
+        sync: false          # e.g. https://mountaineermallu.com
+      - key: SITE_URL
+        sync: false          # same as CLIENT_URL; used in share links
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      # Must be the SAME values as in your current backend/.env, or existing encrypted user fields can't be read
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: SIGNING_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false          # optional error tracking
+      # Build-time values for the frontend bundle (passed to the Docker build as arguments)
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_SENTRY_DSN
+        sync: false
+      - key: VITE_ANALYTICS_DOMAIN
+        sync: false

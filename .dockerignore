@@ -18,3 +18,8 @@ crash.log
 debug.log
 .DS_Store
 Thumbs.db
+
+# Database backups hold user data and logs hold IPs/emails: never bake them into an image
+backend/backups
+backend/logs
+logs

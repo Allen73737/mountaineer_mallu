@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, Wifi, ServerOff, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { API_URL } from '../../lib/constants';
 
 /**
@@ -10,6 +11,7 @@ import { API_URL } from '../../lib/constants';
  *  - and a short "back online" confirmation when either recovers.
  */
 export const NetworkStatusToast: React.FC = () => {
+    const { t } = useTranslation();
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     const [serverDown, setServerDown] = useState(false);
     const [checking, setChecking] = useState(false);
@@ -75,8 +77,8 @@ export const NetworkStatusToast: React.FC = () => {
                         className={`${pill} border-[#E2A071]/35 bg-[#1B120C]/85`}>
                         <span className="p-2 rounded-xl bg-[#E2A071]/15 text-[#E8B48E]"><WifiOff size={16} /></span>
                         <span className="flex flex-col">
-                            <span className="text-xs font-semibold text-white">You’re offline</span>
-                            <span className="text-[11px] text-white/60">Showing saved trips and pages</span>
+                            <span className="text-xs font-semibold text-white">{t('app.status.offline')}</span>
+                            <span className="text-[11px] text-white/60">{t('app.status.offlineSub')}</span>
                         </span>
                     </motion.div>
                 ) : serverDown ? (
@@ -84,20 +86,20 @@ export const NetworkStatusToast: React.FC = () => {
                         className={`${pill} border-red-400/30 bg-[#1A0D10]/85`}>
                         <span className="p-2 rounded-xl bg-red-400/15 text-red-300"><ServerOff size={16} /></span>
                         <span className="flex flex-col min-w-0">
-                            <span className="text-xs font-semibold text-white">Can’t reach the server</span>
+                            <span className="text-xs font-semibold text-white">{t('app.status.serverDown')}</span>
                             <span className="text-[11px] text-white/60 truncate">
-                                {import.meta.env.DEV ? `Start the backend (${API_URL || 'same origin'})` : 'Retrying automatically…'}
+                                {import.meta.env.DEV ? `Start the backend (${API_URL || 'same origin'})` : t('app.status.retrying')}
                             </span>
                         </span>
                         <button onClick={probe} disabled={checking} className="ml-1 h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-colors">
-                            <RefreshCw size={12} className={checking ? 'animate-spin' : ''} /> Retry
+                            <RefreshCw size={12} className={checking ? 'animate-spin' : ''} /> {t('app.status.retry')}
                         </button>
                     </motion.div>
                 ) : showReconnectedToast ? (
                     <motion.div key="back" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
                         className={`${pill} border-emerald-400/30 bg-[#0B1A14]/85`}>
                         <span className="p-2 rounded-xl bg-emerald-400/15 text-emerald-300"><Wifi size={16} /></span>
-                        <span className="text-xs font-semibold text-white">Connected again</span>
+                        <span className="text-xs font-semibold text-white">{t('app.status.back')}</span>
                     </motion.div>
                 ) : null}
             </AnimatePresence>

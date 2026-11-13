@@ -48,6 +48,7 @@ import merchandiseRoutes from './routes/merchandiseRoutes.js';
 import aiRoutes from './routes/ai.js';
 import socialRoutes from './routes/social.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { renderSharePage } from './utils/sharePreview.js';
 import { startCronJobs } from './services/cron.js';
 import { attachRealtime } from './services/notify.js';
 import notificationRoutes from './routes/notifications.js';
@@ -147,7 +148,8 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com"],
+            // plausible.io: optional cookie-free analytics (only loaded when VITE_ANALYTICS_DOMAIN is set)
+            scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com", "https://plausible.io"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: [
                 "'self'", 
@@ -164,6 +166,11 @@ app.use(helmet({
                 ...CLIENT_URL, 
                 "https://accounts.google.com", 
                 "https://api.open-meteo.com",
+                // Optional error tracking and analytics (see frontend/src/lib/monitoring.ts)
+                "https://*.ingest.sentry.io",
+                "https://*.ingest.de.sentry.io",
+                "https://*.ingest.us.sentry.io",
+                "https://plausible.io",
                 "ws:",
                 "wss:"
             ],
@@ -349,9 +356,16 @@ if (fs.existsSync(frontendDistPath)) {
     }));
 
     // Client-side SPA routing fallback for all non-API GET requests
-    app.get('*', (req, res, next) => {
+    app.get('*', async (req, res, next) => {
         if (req.path.startsWith('/api') || req.path.startsWith('/healthz') || req.path.startsWith('/livez')) {
             return next();
+        }
+        // Single event / story links get their own share card (title, summary, photo)
+        const siteUrl = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+        const html = await renderSharePage(path.join(frontendDistPath, 'index.html'), req.path, siteUrl);
+        if (html) {
+            res.setHeader('Cache-Control', 'no-cache');
+            return res.type('html').send(html);
         }
         res.sendFile(path.join(frontendDistPath, 'index.html'));
     });

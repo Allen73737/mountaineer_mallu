@@ -13,7 +13,13 @@ export const verifyCsrf = (req, res, next) => {
         return res.status(403).json({ error: 'CSRF Protection: Missing Origin header.' });
     }
 
-    const originMatches = allowedOrigins.some(allowed => origin.startsWith(allowed));
+    // Compare exact origins (scheme + host + port). A prefix test let look-alike hosts such as
+    // http://localhost:5174.evil.com through, and the Referer fallback carries a full URL.
+    let requestOrigin;
+    try { requestOrigin = new URL(origin).origin; } catch { requestOrigin = null; }
+    const originMatches = !!requestOrigin && allowedOrigins.some(allowed => {
+        try { return new URL(allowed.trim()).origin === requestOrigin; } catch { return false; }
+    });
 
     if (!originMatches) {
         return res.status(403).json({ error: 'CSRF Protection: Origin mismatch.' });

@@ -9,7 +9,7 @@ import { parseEventStart, isUpcoming } from '../utils/eventDate.js';
 import { analyzeSecurityLogs } from '../services/aiInsightsService.js';
 
 // GET /api/admin/overview
-export const getOverview = async (req, res, next) => {
+const buildOverview = async (req, res, next) => {
     try {
         const DAY = 24 * 60 * 60 * 1000;
         const today = new Date();
@@ -192,7 +192,7 @@ export const revokeAdmin = async (req, res, next) => {
 };
 
 // GET /api/admin/security-digest — AI-analyzed security logs
-export const getSecurityDigest = async (req, res, next) => {
+const buildSecurityDigest = async (req, res, next) => {
     try {
         const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -264,3 +264,21 @@ export const getAuditLog = async (req, res, next) => {
         next(error);
     }
 };
+
+// The overview runs a dozen counts and the digest asks the AI model; both are the same for every admin.
+// Serve the last answer for a short while so opening and re-opening the panel stays instant.
+const memoJson = (handler, ttlMs) => {
+    let body = null;
+    let at = 0;
+    return (req, res, next) => {
+        if (body && Date.now() - at < ttlMs) return res.json(body);
+        const json = res.json.bind(res);
+        res.json = (data) => {
+            if (res.statusCode === 200) { body = data; at = Date.now(); }
+            return json(data);
+        };
+        return handler(req, res, next);
+    };
+};
+export const getOverview = memoJson(buildOverview, 20_000);
+export const getSecurityDigest = memoJson(buildSecurityDigest, 60_000);

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, Role, Permissions } from '../../store/useAuthStore';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -28,6 +29,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     requireProfileComplete = true
 }) => {
     const { isLoggedIn, user, isLoading } = useAuthStore();
+    const { t } = useTranslation();
     const location = useLocation();
 
     // Show loading only while the session is first verified from the cookie. Later store actions
@@ -36,7 +38,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return (
             <div className="min-h-svh flex flex-col items-center justify-center gap-5 bg-[#05080D]" role="status" aria-live="polite">
                 <div className="w-9 h-9 border border-alpine-glacier/20 border-t-alpine-glacier rounded-full animate-spin" />
-                <p className="font-mono text-[10px] tracking-[0.32em] uppercase text-white/40">Verifying credentials</p>
+                <p className="font-mono text-[10px] tracking-[0.32em] uppercase text-white/40">{t('app.status.verifying')}</p>
             </div>
         );
     }

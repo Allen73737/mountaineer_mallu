@@ -1,3 +1,5 @@
+import { captureError } from '../utils/monitoring.js';
+
 export const errorHandler = (err, req, res, next) => {
     console.error('Error:', err);
 
@@ -30,6 +32,7 @@ export const errorHandler = (err, req, res, next) => {
 
     // Default server error
     const statusCode = err.statusCode || 500;
+    if (statusCode >= 500) captureError(err, { method: req.method, path: req.originalUrl?.split('?')[0] });
     const message = err.statusCode ? err.message : 'Internal server error.';
 
     res.status(statusCode).json({ error: message });
