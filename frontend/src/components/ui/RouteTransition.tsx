@@ -10,7 +10,9 @@ import { useMorph } from '../../lib/morph';
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 const EASE_IN = [0.4, 0, 1, 1] as const;
 const EASE_IN_OUT_QUART = [0.76, 0, 0.24, 1] as const;
-const VEIL_S = 1.35;
+// Whole scene change: cover, a short beat on the destination name, lift. Kept under a second so
+// navigation feels immediate while the veil still reads as a deliberate cut.
+const VEIL_S = 0.95;
 
 // Destination name shown on the veil while the scene changes
 const ROUTE_TITLES: Record<string, [string, string]> = {
@@ -24,8 +26,8 @@ const ROUTE_TITLES: Record<string, [string, string]> = {
     '/shop': ['Provisions', 'Shop'],
     '/contact': ['Mission Control', 'Contact'],
     '/auth': ['Welcome back', 'Account'],
-    '/dashboard': ['Your basecamp', 'Dashboard'],
-    '/portal': ['Your basecamp', 'Dashboard'],
+    '/summit-control-panel': ['Summit control', 'Admin'],
+    '/portal': ['Explorer portal', 'Your account'],
 };
 const titleFor = (key: string): [string, string] => {
     if (ROUTE_TITLES[key]) return ROUTE_TITLES[key];
@@ -180,7 +182,7 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
                     // Parked 140% away so the 22vh ridge edges never hang into the window at rest
                     animate={{ y: ['140%', '0%', '0%', '-140%'] }}
                     exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                    transition={{ duration: VEIL_S, times: [0, 0.34, 0.52, 1], ease: EASE_IN_OUT_QUART }}
+                    transition={{ duration: VEIL_S, times: [0, 0.36, 0.5, 1], ease: EASE_IN_OUT_QUART }}
                     aria-hidden="true"
                 >
                     <svg className="route-veil__topo" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
@@ -196,10 +198,10 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
                         ))}
                     </svg>
                     <svg className="route-veil__edge route-veil__edge--top" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <motion.path initial={{ d: EDGE_TOP.curved }} animate={{ d: [EDGE_TOP.curved, EDGE_TOP.flat, EDGE_TOP.flat] }} transition={{ duration: VEIL_S, times: [0, 0.34, 1], ease: EASE_IN_OUT_QUART }} />
+                        <motion.path initial={{ d: EDGE_TOP.curved }} animate={{ d: [EDGE_TOP.curved, EDGE_TOP.flat, EDGE_TOP.flat] }} transition={{ duration: VEIL_S, times: [0, 0.36, 1], ease: EASE_IN_OUT_QUART }} />
                     </svg>
                     <svg className="route-veil__edge route-veil__edge--bottom" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <motion.path initial={{ d: EDGE_BOTTOM.flat }} animate={{ d: [EDGE_BOTTOM.flat, EDGE_BOTTOM.flat, EDGE_BOTTOM.curved] }} transition={{ duration: VEIL_S, times: [0, 0.52, 1], ease: EASE_IN_OUT_QUART }} />
+                        <motion.path initial={{ d: EDGE_BOTTOM.flat }} animate={{ d: [EDGE_BOTTOM.flat, EDGE_BOTTOM.flat, EDGE_BOTTOM.curved] }} transition={{ duration: VEIL_S, times: [0, 0.5, 1], ease: EASE_IN_OUT_QUART }} />
                     </svg>
 
                     <div className="route-veil__content">
@@ -234,9 +236,9 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
             <AnimatePresence mode="wait" initial={false} onExitComplete={restoreScroll}>
                 <motion.div
                     key={routeKey}
-                    initial={{ opacity: 0, y: 60, scale: 0.985 }}
-                    animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 1.1, delay: 0.62, ease: EASE_OUT_EXPO } }}
-                    exit={{ opacity: 0, y: -24, scale: 0.99, transition: { duration: 0.42, ease: EASE_IN } }}
+                    initial={{ opacity: 0, y: 40, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.8, delay: 0.4, ease: EASE_OUT_EXPO } }}
+                    exit={{ opacity: 0, y: -16, scale: 0.99, transition: { duration: 0.3, ease: EASE_IN } }}
                 >
                     {children}
                 </motion.div>

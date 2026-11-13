@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -151,6 +151,9 @@ export const AdminDashboard = () => {
     });
     const { user, logoutAsync } = useAuthStore();
     const location = useLocation();
+    // Each section opens at its top: the content pane scrolls on its own, so the browser won't reset it
+    const scrollRef = useRef<HTMLDivElement>(null);
+    useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [location.pathname]);
     const navigate = useNavigate();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -365,7 +368,7 @@ export const AdminDashboard = () => {
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto mm-scroll" data-lenis-prevent>
+                <div ref={scrollRef} className="flex-1 overflow-y-auto mm-scroll" data-lenis-prevent>
                     {/* Keyed wrapper replays a short rise on each section — no exit wait, so navigation feels instant */}
                     <div key={location.pathname} className="mm-rise max-w-[1600px] w-full mx-auto px-4 py-6 md:px-8 md:py-10">
                         {/* Local boundary: switching sections keeps the shell and only swaps this area */}

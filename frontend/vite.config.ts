@@ -42,6 +42,11 @@ export default defineConfig({
   server: {
     host: true,
     port: 5174,
+    // Compile the shell and the two dashboards in the background at startup, so the first visit to the
+    // portal or the admin panel doesn't stall for seconds while Vite transforms them on demand
+    warmup: {
+      clientFiles: ['./src/App.tsx', './src/pages/Home.tsx', './src/pages/user/UserDashboard.tsx', './src/pages/admin/AdminDashboard.tsx'],
+    },
   },
   // three.js is only reached through a lazy import (the expedition route scene); pre-bundle it so the
   // dev server doesn't discover it mid-visit and force a full page reload

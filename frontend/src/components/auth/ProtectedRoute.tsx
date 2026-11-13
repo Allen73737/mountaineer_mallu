@@ -30,8 +30,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const { isLoggedIn, user, isLoading } = useAuthStore();
     const location = useLocation();
 
-    // Show loading while auth is being verified from cookie
-    if (isLoading) {
+    // Show loading only while the session is first verified from the cookie. Later store actions
+    // (profile save, silent re-checks) also flip isLoading, but must not unmount the page underneath.
+    if (isLoading && !user) {
         return (
             <div className="min-h-svh flex flex-col items-center justify-center gap-5 bg-[#05080D]" role="status" aria-live="polite">
                 <div className="w-9 h-9 border border-alpine-glacier/20 border-t-alpine-glacier rounded-full animate-spin" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -49,7 +49,7 @@ const DOCK_IDS = ['home', 'expeditions', 'write', 'passport'];
 /** Welcome card — once per browser session, short, and dismissible with a click */
 const WelcomeIntro = ({ name, onDone }: { name: string; onDone: () => void }) => {
     useEffect(() => {
-        const t = setTimeout(onDone, 1700);
+        const t = setTimeout(onDone, 1200);
         return () => clearTimeout(t);
     }, [onDone]);
     return (
@@ -113,7 +113,9 @@ export const UserDashboard = () => {
     const current = navItems.find(i => i.path === path) || navItems[0];
     const dockItems = navItems.filter(i => DOCK_IDS.includes(i.id)).slice(0, 4);
     const inMore = !!current && !dockItems.includes(current);
-    useEffect(() => { setMoreOpen(false); }, [location.pathname]);
+    // Each tab opens at its top: the content pane scrolls on its own, so the browser won't reset it
+    const scrollRef = useRef<HTMLElement>(null);
+    useEffect(() => { setMoreOpen(false); scrollRef.current?.scrollTo({ top: 0 }); }, [location.pathname]);
     const groups = ['Basecamp', 'Create'].map(g => ({ label: g, items: navItems.filter(i => i.group === g) })).filter(g => g.items.length);
 
     const confirmLogout = async () => {
@@ -201,7 +203,7 @@ export const UserDashboard = () => {
                 </aside>
 
                 {/* Content */}
-                <main id="tour-main-content" className="flex-1 min-w-0 relative z-10 h-full overflow-y-auto mm-scroll pt-14 pb-28 lg:pt-0 lg:pb-0" data-lenis-prevent>
+                <main ref={scrollRef} id="tour-main-content" className="flex-1 min-w-0 relative z-10 h-full overflow-y-auto mm-scroll pt-14 pb-28 lg:pt-0 lg:pb-0" data-lenis-prevent>
                     {/* Desktop utilities: search and inbox, top-right of the content */}
                     <div className="hidden lg:flex sticky top-0 z-20 justify-end gap-2 px-12 pt-6 -mb-14 pointer-events-none">
                         <SearchTrigger className="pointer-events-auto mm-btn mm-btn--ghost !h-10 backdrop-blur-xl" />

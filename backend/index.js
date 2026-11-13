@@ -362,6 +362,19 @@ app.use(errorHandler);
 
 // ─── Database Connection & Server Start ────────────────────────────────
 export const startServer = async () => {
+    // `node --watch` restarts faster than Windows releases the port, and an unhandled 'error' event here
+    // left the process alive but not listening (the API "turned off"). Retry the bind instead.
+    let bindAttempts = 0;
+    httpServer.on('error', (err) => {
+        if (err.code === 'EADDRINUSE' && bindAttempts < 20) {
+            bindAttempts++;
+            console.warn(`⚠️ Port ${PORT} is still in use — retrying (${bindAttempts}/20)...`);
+            setTimeout(() => httpServer.listen(PORT), 1000);
+            return;
+        }
+        console.error(`❌ HTTP server error: ${err.message}`);
+        if (err.code === 'EADDRINUSE') process.exit(1);
+    });
     httpServer.listen(PORT, () => {
         console.log(`🏔️  Worker ${process.pid} running API on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
         startCronJobs();
@@ -380,7 +393,10 @@ export const startServer = async () => {
             await mongoose.connect(process.env.MONGODB_URI, {
                 dbName: 'mountaineer-mallu',
                 serverSelectionTimeoutMS: 8000,
-                socketTimeoutMS: 45000,
+                // Sockets that died while the machine slept fail fast and the read is retried on a fresh one,
+                // instead of a request hanging for most of a minute
+                socketTimeoutMS: 20000,
+                connectTimeoutMS: 10000,
                 maxPoolSize,
                 minPoolSize,
                 w: 'majority',
@@ -403,6 +419,13 @@ export const startServer = async () => {
     mongoose.connection.on('reconnected', () => logger.info('[MongoDB] Reconnected successfully.'));
 
     await connectMongo();
+
+    // Keep the pool warm: a tiny ping every 30 s stops idle connections going stale (Atlas, laptop sleep),
+    // which is what made the first admin / settings request after a pause take 3-8 s
+    setInterval(() => {
+        if (mongoose.connection.readyState !== 1) return;
+        mongoose.connection.db.admin().command({ ping: 1 }).catch(() => {});
+    }, 30000).unref();
 };
 
 // ─── Graceful Shutdown Handler (Docker, K8s, Render, Railway, AWS) ────

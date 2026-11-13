@@ -3,8 +3,8 @@ import { motion, useAnimationControls } from 'framer-motion';
 import { useMorph } from '../../lib/morph';
 
 const EASE = [0.76, 0, 0.24, 1] as const;
-// The destination page fades in ~1 s after navigation (RouteTransition); hold the image at least that long
-const MIN_HOLD_MS = 1300;
+// The destination page fades in ~0.7 s after navigation (RouteTransition); hold the image at least that long
+const MIN_HOLD_MS = 1000;
 const MAX_HOLD_MS = 3200;
 
 /**

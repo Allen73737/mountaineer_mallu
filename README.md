@@ -63,11 +63,14 @@
 
 Crafted under an aesthetic philosophy blending the austere editorial minimalism of **Aman Resorts**, the kinetic fluid elegance of **Apple**, and the precision-calibrated ergonomics of **Porsche Design**, the platform delivers an uncompromising alpine operating environment:
 
-* **Expedition Logging & Topographic Profiles**: High-precision GPS tracking, route waypoints, and altitude-stamped summit logs across European 4,000m massifs.
+* **Alpine Climber Passport & Summit Credentials**: Official verified ascents, summit stamps, altitude certifications, medical ICE emergency cards, and custom gear checklists.
+* **Expedition Logging & Topographic Profiles**: High-precision GPS tracking, route waypoints, GPX file exports, and altitude-stamped summit logs across European 4,000m massifs.
 * **Cinematic Story Chronicles**: Rich markdown chronicles with EXIF camera metadata extraction, elevation profiles, and ambient audio backdrops.
 * **Live High-Altitude Telemetry**: Synchronous meteorological feeds pulling real-time barometric pressure, wind chill vectors, freeze lines, and avalanche advisory levels via Open-Meteo.
-* **AI Summit Companion**: Multi-lingual conversational intelligence powered by Groq & LLaMA 3.3 70B with English and Malayalam transliteration (`indic-transliterator`).
-* **Summit Control Room (Admin Suite)**: Role-based access control (RBAC), media vault moderation pipelines, and live socket broadcast channels.
+* **Universal Alpine Command Palette**: Instant keyboard-driven fuzzy search (Cmd/Ctrl + K) indexing expeditions, stories, peaks, and portal settings.
+* **Real-time Notifications Pipeline**: In-app event dispatches, unread badges, and calendar exports (.ics / Google / Apple Calendar) for upcoming ascents.
+* **AI Summit Companion**: Multi-lingual conversational intelligence powered by Groq & LLaMA 3.3 70B with English and Malayalam transliteration.
+* **Summit Control Room & Audit Trail**: Role-based access control (RBAC), media vault moderation pipelines, and tamper-evident administrative audit logs.
 
 ---
 
@@ -188,8 +191,10 @@ Every motion curve in Mountaineer Mallu is calibrated to feel frictionless, orga
 
 ### 🎬 Core Engine Components
 
+* **`RouteTerrain` & Web Worker Simplex Engine**: Offloads CPU-intensive procedural 3D alpine geometry generation (`terrainWorker.ts`, `terrainMath.ts`) entirely to background Web Workers, preventing main UI thread blocking during high-speed scrolling.
 * **`StarfieldCanvas` (Pre-Rendered Sprites)**: Generates layered starlight and shooting stars without performance penalty. Pre-renders offscreen canvas sprites to eliminate over **40,000 per-second canvas arc calls**.
 * **`SoftAurora` (WebGL Fragment Shaders)**: Generates dynamic, multi-octave auroras shifting between purple (`#A855F7`), cyan (`#22D3EE`), and alpenglow (`#E2A071`) based on viewport scroll depth.
+* **`Dynamic Quality Adaptation`**: Real-time GPU benchmarking (`quality.ts`) dynamically tiers rendering fidelity (high, medium, low) to preserve 120 FPS on high-refresh ProMotion screens and lock solid 60 FPS on integrated GPUs.
 * **`CustomCursor` (Inertial Spring Pointer)**: Hardware-accelerated pointer with spring dampening (`stiffness: 400`, `damping: 28`) that magnetically locks to summits, buttons, and expedition cards.
 * **`Circling Orbit Border Beams`**: CSS `conic-gradient` animation with hardware layer isolation (`will-change: transform`), providing the signature rotating border glow seen across hero buttons and summit badges.
 * **`Binaural Audio Synthesizer`**: Web Audio API ambient wind generator with dynamic high-shelf filters that sweep frequency response based on peak elevation.
@@ -347,13 +352,16 @@ Engineered from the byte level to eliminate layout shifts, render blocking, and 
 | **Session Hijacking** | JWT stored in `HttpOnly`, `Secure`, `SameSite: Strict` encrypted cookies | 🛡️ Immune |
 | **Denial of Service (DoS/DDoS)** | Distributed Redis leaky-bucket rate limiting + Express slow-down throttle | 🛡️ Mitigated |
 | **Clickjacking & MIME-Sniffing** | Helmet.js sets `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff` | 🛡️ Immune |
+| **Administrative Actions Abuse** | Immutable audit log records IP, user agent, actor ID, and exact state delta | 🛡️ Traceable |
 | **Uncaught Worker Crash** | Multi-worker cluster respawns failed workers within 50ms without dropping requests | 🛡️ 99.99% Uptime |
 
 ---
 
-### 🩺 Health & Liveness Orchestration Probes
+### 🩺 Health, Liveness & Resilience Architecture
 
-Native health endpoints provide comprehensive diagnostics for Kubernetes probes, AWS ALB target groups, and Docker healthchecks:
+* **Zero-Downtime EADDRINUSE Port Retries**: When file watchers (`node --watch` / hot-reloads) restart faster than the OS frees socket descriptors, the server gracefully backs off and retries port binding up to 20 times instead of crashing.
+* **Atlas Pool Keep-Warm Pings**: An unreferenced 30-second ping command (`ping: 1`) keeps MongoDB pool connections warm through machine sleep cycles and proxy timeouts, eliminating 3-8s cold-start latencies.
+* **Tiered Settings Caching**: In-memory caching (`SETTINGS_TTL_MS = 60s`) serves global UI layout states instantly, bypassing redundant database read round-trips.
 
 ```bash
 # Liveness Probe
@@ -409,13 +417,21 @@ curl http://localhost:5000/healthz
 | `POST` | `/api/auth/login` | Authenticate climber and set HttpOnly JWT cookie | Public | 10 req / 15m |
 | `POST` | `/api/auth/logout` | Revoke session token and clear authentication cookie | Bearer / Cookie | None |
 | `GET` | `/api/auth/me` | Retrieve authenticated climber profile and stats | Climber | 60 req / min |
+| `GET` | `/api/passport` | Retrieve user's alpine passport, summit stamps, and ICE info | Climber | 60 req / min |
+| `PUT` | `/api/passport` | Update alpine credentials, gear checklist, and medical notes | Climber | 30 req / min |
+| `GET` | `/api/notifications` | Fetch user notification stream with unread badges | Climber | 60 req / min |
+| `PATCH` | `/api/notifications/:id/read` | Mark individual notification as read | Climber | 60 req / min |
 | `GET` | `/api/stories` | Paginated list of alpine chronicles and summit tales | Public | 120 req / min |
 | `POST` | `/api/stories` | Create and publish a new high-altitude chronicle | Climber | 10 req / min |
 | `GET` | `/api/expeditions` | Browse upcoming European mountaineering treks | Public | 120 req / min |
 | `POST` | `/api/expeditions/join` | Register for an alpine summit rope team | Climber | 20 req / min |
+| `GET` | `/api/search` | Multi-entity indexed search across peaks, stories & events | Public | 60 req / min |
+| `GET` | `/api/seo` | Dynamic OpenGraph metadata, structured JSON-LD & sitemaps | Public | 120 req / min |
+| `GET` | `/api/settings` | In-memory cached site visibility & section toggles | Public | 120 req / min |
 | `GET` | `/api/weather/:peakId` | Live meteorological telemetry for targeted alpine peak | Public | 60 req / min |
 | `POST` | `/api/ai/summit-guide` | Conversational route intelligence via Groq LLaMA 3.3 | Climber | 15 req / min |
 | `GET` | `/api/admin/metrics` | Summit Control Panel aggregated telemetry & metrics | SuperAdmin | 60 req / min |
+| `GET` | `/api/admin/audit` | Query immutable administrative audit trail logs | SuperAdmin | 60 req / min |
 
 </details>
 

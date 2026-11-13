@@ -54,11 +54,17 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     error: null,
 
     checkAuth: async () => {
+        // Re-checks (reconnect, profile save) run silently: a known user keeps their page on screen
+        // instead of being swapped for the full-screen "Verifying credentials" spinner
+        const known = !!get().user;
         try {
-            set({ isLoading: true });
+            if (!known) set({ isLoading: true });
             const { user } = await authApi.getMe();
             set({ user, isLoggedIn: true, isLoading: false, error: null });
-        } catch {
+        } catch (err: any) {
+            // Only an explicit 401/403 ends the session. A network blip, timeout or 5xx while the
+            // backend restarts must not log the visitor out and bounce them to /login.
+            if (known && !(err?.status === 401 || err?.status === 403)) { set({ isLoading: false }); return; }
             set({ user: null, isLoggedIn: false, isLoading: false, error: null });
         }
     },

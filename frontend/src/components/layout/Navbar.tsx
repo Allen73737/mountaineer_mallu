@@ -348,7 +348,7 @@ export const Navbar: React.FC = () => {
                                     type="button"
                                     aria-label="Open your dashboard"
                                     whileTap={{ scale: 0.97 }}
-                                    onClick={() => navigate('/portal')}
+                                    onClick={() => navigate(user?.role === 'Admin' || user?.role === 'SuperAdmin' ? '/summit-control-panel' : '/portal')}
                                     className={`tap-dot ${pillClass} h-9 md:h-10 pl-1 pr-1 md:pr-4 flex items-center gap-2.5 cursor-pointer`}
                                 >
                                     {user?.avatar ? (

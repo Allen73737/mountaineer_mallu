@@ -1,10 +1,20 @@
 import SiteSettings from '../models/SiteSettings.js';
 
+// Every page load asks for settings; keep the last answer in memory so it never waits on the database.
+// Refreshed after 60 s, and replaced immediately when an admin saves.
+let cached = null;
+let cachedAt = 0;
+const SETTINGS_TTL_MS = 60_000;
+
 // GET /api/settings — public
 export const getSettings = async (req, res, next) => {
     try {
-        const settings = await SiteSettings.getInstance();
-        res.json({ settings: { sections: settings.sections, maintenance: settings.maintenance } });
+        if (!cached || Date.now() - cachedAt > SETTINGS_TTL_MS) {
+            const settings = await SiteSettings.getInstance();
+            cached = { sections: settings.sections, maintenance: settings.maintenance };
+            cachedAt = Date.now();
+        }
+        res.json({ settings: cached });
     } catch (error) {
         next(error);
     }
@@ -31,6 +41,8 @@ export const updateSettings = async (req, res, next) => {
         }
 
         await settings.save();
+        cached = { sections: settings.sections, maintenance: settings.maintenance };
+        cachedAt = Date.now();
 
         // Emit real-time update to all connected clients
         const io = req.app.get('io');
