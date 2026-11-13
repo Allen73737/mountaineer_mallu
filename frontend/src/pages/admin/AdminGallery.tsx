@@ -9,13 +9,11 @@ export const AdminGallery = () => {
 
     return (
         <div className="space-y-8">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <header className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <ImageIcon className="text-alpine-glacier" size={28} />
-                        <h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Gallery</h1>
-                    </div>
-                    <p className="text-white/50 text-sm">Manage the visual vault and review community submissions</p>
+                    <p className="mm-eyebrow mb-3">Content · Visual vault</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">The <em>gallery</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage the visual vault and review community submissions</p>
                 </div>
             </header>
 

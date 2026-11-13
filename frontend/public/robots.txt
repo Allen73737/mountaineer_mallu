@@ -14,6 +14,7 @@ Allow: /contact
 Disallow: /summit-control-panel
 Disallow: /summit-control-panel/*
 Disallow: /dashboard
+Disallow: /portal
 Disallow: /profile-complete
 Disallow: /api/
 

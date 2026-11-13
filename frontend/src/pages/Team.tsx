@@ -7,6 +7,7 @@ import { pillarsApi } from '../lib/api';
 import { toast } from 'sonner';
 import { CreditTitle } from '../components/ui/CreditTitle';
 
+import { usePageMeta } from '../lib/usePageMeta';
 interface TeamMember {
     id: string | number;
     _id?: string;
@@ -86,6 +87,7 @@ const DEFAULT_TEAM: TeamMember[] = [
 const ROLES = ['All', 'Guides', 'Medical & Safety', 'Community & Media'];
 
 export const TeamPage = () => {
+    usePageMeta({ title: 'The Team', description: 'Meet the guides, medics and organisers who lead Mountaineer Mallu expeditions.' });
     const [team, setTeam] = useState<TeamMember[]>(DEFAULT_TEAM);
     const [selectedRole, setSelectedRole] = useState('All');
     const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -133,7 +135,7 @@ export const TeamPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
             {/* Ambient Lighting */}
             <div className="absolute top-24 right-1/4 w-[500px] h-[500px] bg-alpine-blue/5 dark:bg-alpine-sunrise/5 rounded-full blur-[140px] pointer-events-none -z-10" />
 
@@ -304,7 +306,7 @@ export const TeamPage = () => {
                                 </button>
 
                                 <div className="flex flex-col sm:flex-row gap-6 items-start mb-6">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                         src={selectedMember.image}
                                         alt={selectedMember.name}
                                         className="w-24 h-24 md:w-28 md:h-28 rounded-2xl object-cover shadow-lg border border-black/10 dark:border-white/10"

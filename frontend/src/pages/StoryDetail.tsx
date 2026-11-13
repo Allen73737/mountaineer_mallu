@@ -11,9 +11,26 @@ import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { landMorph } from '../lib/morph';
 
+import { usePageMeta } from '../lib/usePageMeta';
+import { RouteMap } from '../components/site/RouteMap';
+import { Share2 } from 'lucide-react';
+import { shareLink, shareUrlFor } from '../components/site/AddToCalendar';
 export const StoryDetail = () => {
     const { id } = useParams<{ id: string }>();
     const [story, setStory] = useState<any>(null);
+    usePageMeta({
+        title: story?.title,
+        description: story?.excerpt,
+        image: story?.image,
+        type: 'article',
+        jsonLd: story ? {
+            '@context': 'https://schema.org', '@type': 'Article',
+            headline: story.title, description: story.excerpt, image: [story.image],
+            author: { '@type': 'Person', name: story.author },
+            datePublished: story.createdAt,
+            publisher: { '@type': 'Organization', name: 'Mountaineer Mallu' },
+        } : null,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +55,7 @@ export const StoryDetail = () => {
 
     if (error || !story) {
         return (
-            <div className="min-h-screen bg-alpine-snow dark:bg-[#0B0C10] flex items-center justify-center p-6 text-alpine-navy dark:text-alpine-snow pt-24">
+            <div className="min-h-svh bg-alpine-snow dark:bg-[#0B0C10] flex items-center justify-center p-6 text-alpine-navy dark:text-alpine-snow pt-24">
                 <div className="max-w-md w-full">
                     <ErrorState
                         statusCode={error ? 500 : 404}
@@ -55,13 +72,13 @@ export const StoryDetail = () => {
     const paragraphs = story.content?.split(/\n\n+/).filter((p: string) => p.trim()) || [];
 
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-[#0B0C10] text-[#0B0C10] dark:text-white pt-24 pb-20">
+        <div className="min-h-svh bg-alpine-snow dark:bg-[#0B0C10] text-[#0B0C10] dark:text-white pt-24 pb-20">
             <ReadingProgressBar />
             
             {/* Ambient Background Orbs */}
             {/* Hero Section */}
             <div className="relative h-[70vh] w-full overflow-hidden">
-                <img 
+                <img loading="lazy" decoding="async" 
                     src={story.image} 
                     alt={story.title}
                     onLoad={landMorph}
@@ -144,6 +161,10 @@ export const StoryDetail = () => {
                     )}
                 </motion.div>
 
+                {story.route?.points?.length > 1 && (
+                    <RouteMap route={story.route} className="mt-20 -mx-2 md:-mx-16" />
+                )}
+
                 {/* Footer Actions */}
                 <div className="mt-24 pt-12 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="flex items-center gap-4">
@@ -155,12 +176,21 @@ export const StoryDetail = () => {
                             <p className="text-sm text-white/40">Mountaineer Mallu Community</p>
                         </div>
                     </div>
-                    <Link 
-                        to="/stories" 
-                        className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white font-bold transition-all"
-                    >
-                        Explore More Chronicles
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            type="button"
+                            onClick={() => shareLink(story.title, shareUrlFor('stories', story._id), 'Link copied')}
+                            className="h-12 px-6 rounded-full bg-white text-alpine-navy font-semibold text-sm flex items-center gap-2 hover:bg-alpine-glacier transition-colors"
+                        >
+                            <Share2 size={16} /> Share story
+                        </button>
+                        <Link
+                            to="/stories"
+                            className="h-12 px-6 rounded-full border border-white/15 hover:border-white/35 text-white/80 hover:text-white font-semibold text-sm flex items-center transition-colors"
+                        >
+                            More stories
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

@@ -167,7 +167,7 @@ export const MotionGraphicsDemo: React.FC<MotionGraphicsDemoProps> = ({ onComple
                             <div className="grid grid-cols-2 gap-8">
                                 {[1, 2, 3, 4].map((i) => (
                                     <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.2 }} className="glass-premium p-6 rounded-2xl flex gap-6 items-center">
-                                        <img src={images[i]} className="w-24 h-24 rounded-xl object-cover" />
+                                        <img loading="lazy" decoding="async" alt="" src={images[i]} className="w-24 h-24 rounded-xl object-cover" />
                                         <div>
                                             <h3 className="font-bold text-lg mb-1">Ascent of Peak {i}</h3>
                                             <p className="text-white/50 text-sm">"The most gruelling climb of my life, but worth every step."</p>
@@ -252,7 +252,7 @@ export const MotionGraphicsDemo: React.FC<MotionGraphicsDemoProps> = ({ onComple
                                         {[1,2,3].map((i) => (
                                             <motion.div key={i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2 + (i * 0.5) }} className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-alpine-glacier/50 transition-colors cursor-pointer">
                                                 <div className="h-24 bg-white/10 rounded-lg mb-3 overflow-hidden">
-                                                    <img src={images[i]} className="w-full h-full object-cover opacity-60" />
+                                                    <img loading="lazy" decoding="async" alt="" src={images[i]} className="w-full h-full object-cover opacity-60" />
                                                 </div>
                                                 <div className="text-xs text-white/60">Suggested Cover Image</div>
                                             </motion.div>
@@ -279,7 +279,7 @@ export const MotionGraphicsDemo: React.FC<MotionGraphicsDemoProps> = ({ onComple
                                         transition={{ delay: i * 0.2, type: "spring", stiffness: 100 }}
                                         className={`rounded-3xl overflow-hidden relative group ${i % 2 === 0 ? 'h-full' : 'h-3/4 mt-auto'}`}
                                     >
-                                        <img src={src} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" />
+                                        <img loading="lazy" decoding="async" alt="" src={src} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
                                             <div className="flex justify-between w-full items-center">
                                                 <div className="flex gap-2">
@@ -326,7 +326,7 @@ export const MotionGraphicsDemo: React.FC<MotionGraphicsDemoProps> = ({ onComple
                                 </motion.div>
 
                                 <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.8 }} className="glass-premium rounded-3xl border border-white/10 overflow-hidden relative">
-                                    <img src="https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=800&q=80" className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />
+                                    <img loading="lazy" decoding="async" alt="" src="https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=800&q=80" className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D14] to-transparent" />
                                     <div className="absolute bottom-0 left-0 p-8">
                                         <span className="px-4 py-1 bg-red-500 text-white text-xs font-bold uppercase tracking-widest rounded-full mb-4 inline-block">Live Event</span>

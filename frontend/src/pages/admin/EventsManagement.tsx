@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar as CalendarIcon, Plus, Edit2, Trash2, Save, Users, MapPin, Maximize2, X, Minimize2, Eye, EyeOff, Clock, Mountain, AlertTriangle, ArrowRight, UploadCloud, Wand2, CheckCircle } from 'lucide-react';
 import { Loader2 } from '../../components/ui/BrandLoader';
-import { eventsApi, aiApi } from '../../lib/api';
+import { eventsApi, aiApi, eventAdminApi } from '../../lib/api';
+import { Megaphone, FileDown } from 'lucide-react';
+import { MessageParticipants } from '../../components/admin/MessageParticipants';
 import { useToast } from '../../components/ui/Toast';
 import { TableRowSkeleton } from '../../components/ui/Skeleton';
 import { useAdminAction } from '../../store/useAdminAction';
@@ -41,7 +43,7 @@ const EventPreviewCard = ({ form, imageFile, unsplashUrl }: { form: any; imageFi
                         {/* Image */}
                         <div className="w-full aspect-video rounded-2xl overflow-hidden relative">
                             {previewUrl ? (
-                                <img src={previewUrl} className="w-full h-full object-cover filter brightness-75" />
+                                <img loading="lazy" decoding="async" alt="" src={previewUrl} className="w-full h-full object-cover filter brightness-75" />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-alpine-navy/80 to-black flex items-center justify-center">
                                     <ImageIcon size={48} className="text-white/10" />
@@ -118,7 +120,8 @@ export const EventsManagement = () => {
     const [saving, setSaving] = useState(false);
     const [isModalFullscreen, setIsModalFullscreen] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
-    const [form, setForm] = useState({ title: '', date: '', time: '', location: '', difficulty: 'Beginner', totalSlots: '10', type: '', description: '', image: '', whatsappGroupUrl: '', ticketUrl: '' });
+    const [messaging, setMessaging] = useState<any | null>(null);
+    const [form, setForm] = useState({ title: '', date: '', time: '', location: '', difficulty: 'Beginner', totalSlots: '10', type: '', description: '', image: '', whatsappGroupUrl: '', ticketUrl: '', category: 'expedition' });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     
@@ -159,7 +162,7 @@ export const EventsManagement = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ title: '', date: '', time: '', location: '', difficulty: 'Beginner', totalSlots: '10', type: '', description: '', image: '', whatsappGroupUrl: '', ticketUrl: '' });
+        setForm({ title: '', date: '', time: '', location: '', difficulty: 'Beginner', totalSlots: '10', type: '', description: '', image: '', whatsappGroupUrl: '', ticketUrl: '', category: 'expedition' });
         setImageFile(null);
         setUnsplashUrl(null);
         setShowPreview(false);
@@ -168,7 +171,7 @@ export const EventsManagement = () => {
 
     const openEdit = (evt: any) => {
         setEditing(evt);
-        setForm({ title: evt.title, date: evt.date, time: evt.time, location: evt.location, difficulty: evt.difficulty, totalSlots: String(evt.totalSlots), type: evt.type, description: evt.description || '', image: evt.image, whatsappGroupUrl: evt.whatsappGroupUrl || '', ticketUrl: evt.ticketUrl || '' });
+        setForm({ title: evt.title, date: evt.date, time: evt.time, location: evt.location, difficulty: evt.difficulty, totalSlots: String(evt.totalSlots), type: evt.type, description: evt.description || '', image: evt.image, whatsappGroupUrl: evt.whatsappGroupUrl || '', ticketUrl: evt.ticketUrl || '', category: evt.category || 'expedition' });
         setImageFile(null);
         setUnsplashUrl(null);
         setShowPreview(false);
@@ -231,13 +234,15 @@ export const EventsManagement = () => {
     return (
         <div className="space-y-8">
             {ToastComponent}
+            <MessageParticipants event={messaging} onClose={() => setMessaging(null)} />
 
-            <header className="flex justify-between items-end">
+            <header className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2"><CalendarIcon className="text-alpine-glacier" size={28} /><h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Events Management</h1></div>
-                    <p className="text-white/50 text-sm">Create and manage expeditions</p>
+                    <p className="mm-eyebrow mb-3">Content · Expeditions</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Expedition <em>roster</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Create and manage expeditions</p>
                 </div>
-                <button onClick={openCreate} className="py-2.5 px-5 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium"><Plus size={18} /><span>New Event</span></button>
+                <button onClick={openCreate} className="mm-btn mm-btn--primary"><Plus size={18} /><span>New Event</span></button>
             </header>
 
             <div className="rounded-2xl overflow-hidden premium-card">
@@ -248,13 +253,15 @@ export const EventsManagement = () => {
                     <tbody className="divide-y divide-white/5">
                         {loading ? [1,2,3].map(i => <TableRowSkeleton key={i} />) : events.map(evt => (
                             <tr key={evt._id} className="hover:bg-white/5 transition-colors">
-                                <td className="p-5"><div className="flex items-center gap-4"><div className="relative group cursor-pointer" onClick={() => setSelectedImage(evt.image)}><img src={evt.image} className="w-12 h-12 rounded-lg object-cover" /><div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"><Maximize2 size={12} className="text-white" /></div></div><div><span className="font-bold text-white">{evt.title}</span><p className="text-xs text-white/40">{evt.type}</p></div></div></td>
+                                <td className="p-5"><div className="flex items-center gap-4"><div className="relative group cursor-pointer" onClick={() => setSelectedImage(evt.image)}><img loading="lazy" decoding="async" alt={evt.title} src={evt.image} className="w-12 h-12 rounded-lg object-cover" /><div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"><Maximize2 size={12} className="text-white" /></div></div><div><span className="font-bold text-white">{evt.title}</span><p className="text-xs text-white/40">{evt.type}{evt.category && evt.category !== 'expedition' && <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${evt.category === 'cultural' ? 'bg-alpine-sunrise/15 text-alpine-sunrise' : 'bg-alpine-glacier/10 text-alpine-glacier'}`}>{evt.category}</span>}</p></div></div></td>
                                 <td className="p-5 text-white/70 text-sm">{evt.date} {evt.time}</td>
                                 <td className="p-5 text-white/60 text-sm flex items-center gap-1"><MapPin size={14} /> {evt.location}</td>
                                 <td className="p-5"><span className={`px-3 py-1 rounded-full text-xs font-bold ${evt.difficulty === 'Expert' ? 'bg-red-500/20 text-red-400' : evt.difficulty === 'Advanced' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{evt.difficulty}</span></td>
                                 <td className="p-5"><span className="flex items-center gap-1 text-white/60 text-sm"><Users size={14} /> {evt.participants?.length || 0}/{evt.totalSlots}</span></td>
                                 <td className="p-5 text-right"><div className="flex justify-end gap-2">
-                                    <button onClick={() => openEdit(evt)} className="p-2 text-alpine-glacier hover:bg-alpine-glacier/10 rounded-lg transition-colors"><Edit2 size={16} /></button>
+                                    <button onClick={() => setMessaging(evt)} disabled={!evt.participants?.length} title={evt.participants?.length ? 'Message participants' : 'Nobody registered yet'} aria-label="Message participants" className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-25 disabled:pointer-events-none"><Megaphone size={16} /></button>
+                                    <a href={eventAdminApi.participantsCsvUrl(evt._id)} title="Download participants (CSV)" aria-label="Download participants as CSV" className={`p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors ${evt.participants?.length ? '' : 'opacity-25 pointer-events-none'}`}><FileDown size={16} /></a>
+                                    <button onClick={() => openEdit(evt)} aria-label="Edit" className="p-2 text-alpine-glacier hover:bg-alpine-glacier/10 rounded-lg transition-colors"><Edit2 size={16} /></button>
                                     <button onClick={() => handleDelete(evt._id)} className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 size={16} /></button>
                                 </div></td>
                             </tr>
@@ -306,6 +313,15 @@ export const EventsManagement = () => {
                                             </select>
                                             <input placeholder="Total Slots" type="number" value={form.totalSlots} onChange={e => setForm({...form, totalSlots: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-alpine-glacier/50" />
                                             <input placeholder="Type" value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-alpine-glacier/50" />
+                                        </div>
+                                        {/* Category drives the public filter chips and passport badges (Cultural → "Home in the Hills") */}
+                                        <div role="radiogroup" aria-label="Category" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            {[['expedition', 'Expedition'], ['training', 'Training'], ['meetup', 'Meetup'], ['cultural', 'Cultural']].map(([value, label]) => (
+                                                <button key={value} type="button" role="radio" aria-checked={form.category === value} onClick={() => setForm({ ...form, category: value })}
+                                                    className={`h-11 rounded-xl border text-sm font-medium transition-colors ${form.category === value ? (value === 'cultural' ? 'border-alpine-sunrise/60 bg-alpine-sunrise/15 text-white' : 'border-alpine-glacier/50 bg-alpine-glacier/15 text-white') : 'border-white/10 text-white/55 hover:text-white'}`}>
+                                                    {label}
+                                                </button>
+                                            ))}
                                         </div>
                                         <textarea placeholder="Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={showPreview ? 4 : 3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-alpine-glacier/50 resize-none" />
                                         <input placeholder="WhatsApp Group Link (Optional)" value={form.whatsappGroupUrl} onChange={e => setForm({...form, whatsappGroupUrl: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-alpine-glacier/50" />
@@ -367,7 +383,7 @@ export const EventsManagement = () => {
                                     </div>
                                     <div className="flex gap-3 mt-6">
                                         <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all">Cancel</button>
-                                        <button onClick={handleSave} disabled={saving} className="flex-1 py-3 rounded-xl bg-alpine-glacier text-alpine-navy font-bold btn-premium flex items-center justify-center gap-2">{saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={16} /> Save</>}</button>
+                                        <button onClick={handleSave} disabled={saving} className="flex-1 mm-btn mm-btn--primary !h-12">{saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={16} /> Save</>}</button>
                                     </div>
                                 </div>
 
@@ -410,7 +426,7 @@ export const EventsManagement = () => {
                             className="relative w-full max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(255,255,255,0.1)] cursor-default flex items-center justify-center bg-black"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
-                            <img src={selectedImage} className="max-w-full max-h-full object-contain" />
+                            <img loading="lazy" decoding="async" alt="" src={selectedImage} className="max-w-full max-h-full object-contain" />
                         </motion.div>
                     </motion.div>
                 )}
@@ -456,7 +472,7 @@ export const EventsManagement = () => {
                                                 setImageModalOpen(false);
                                             }}
                                         >
-                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <img loading="lazy" decoding="async" src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                                 <span className="text-white text-xs font-medium truncate">Photo by {img.authorName}</span>
                                                 <div className="mt-2 text-alpine-glacier flex items-center gap-1 text-sm font-semibold">

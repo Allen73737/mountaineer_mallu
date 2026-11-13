@@ -2,12 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
+import { LogOut, User, PenTool, Layers, Archive, Upload, Calendar, Compass, Heart, Backpack, ArrowUpRight, Award, Home, MoreHorizontal, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Home, LogOut, User, PenTool, Layers, Archive, Upload, Menu, X, Calendar, Compass, Heart, Backpack } from 'lucide-react';
+import { SearchTrigger } from '../../components/site/CommandPalette';
+import { NotificationBell } from '../../components/site/NotificationBell';
+import { UserPassportTab } from './UserPassportTab';
+import { UserBasecampTab } from './UserBasecampTab';
 import { DynamicLogo } from '../../components/ui/DynamicLogo';
 import { useSiteSettings } from '../../store/useSiteSettings';
-import { useAdaptiveTheme } from '../../store/useAdaptiveTheme';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { timeGreeting } from '../../components/console/ConsoleKit';
 
 import { UserProfileTab } from './UserProfileTab';
 import { UserStoryEditorTab } from './UserStoryEditorTab';
@@ -19,59 +23,63 @@ import { UserCommunitiesTab } from './UserCommunitiesTab';
 import { UserWishlistTab } from './UserWishlistTab';
 import { UserGearVaultTab } from './UserGearVaultTab';
 
-const RouteWrapper = ({ children }: { children: React.ReactNode }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="w-full h-full"
-        >
-            {children}
-        </motion.div>
-    );
-};
-
 /**
  * Each nav item can optionally declare a `sectionKey`.
  * If the admin sets that section to 'hidden' or 'coming_soon',
  * the tab is automatically removed from the user portal.
  */
+// Labels come from app.portal.<id> / app.portal.short.<id> in the locale files
 const allNavItems = [
-    { id: 'profile', path: '/portal', label: 'My Profile', icon: User },
-    { id: 'expeditions', path: '/portal/expeditions', label: 'My Expeditions', icon: Calendar, sectionKey: 'events' },
-    { id: 'communities', path: '/portal/communities', label: 'My Factions', icon: Compass, sectionKey: 'community' },
-    { id: 'gear', path: '/portal/gear', label: 'Gear Vault', icon: Backpack },
-    { id: 'wishlist', path: '/portal/wishlist', label: 'My Wishlist', icon: Heart, sectionKey: 'shop' },
-    { id: 'write', path: '/portal/write', label: 'Write Story', icon: PenTool, sectionKey: 'stories' },
-    { id: 'upload', path: '/portal/upload', label: 'Upload Media', icon: Upload },
-    { id: 'submissions', path: '/portal/submissions', label: 'My Submissions', icon: Layers },
-    { id: 'collections', path: '/portal/collections', label: 'Collections & Downloads', icon: Archive },
+    { id: 'home', path: '/portal', icon: Home, group: 'Basecamp' },
+    { id: 'profile', path: '/portal/profile', icon: User, group: 'Basecamp' },
+    { id: 'passport', path: '/portal/passport', icon: Award, group: 'Basecamp' },
+    { id: 'expeditions', path: '/portal/expeditions', icon: Calendar, sectionKey: 'events', group: 'Basecamp' },
+    { id: 'communities', path: '/portal/communities', icon: Compass, sectionKey: 'community', group: 'Basecamp' },
+    { id: 'gear', path: '/portal/gear', icon: Backpack, group: 'Basecamp' },
+    { id: 'wishlist', path: '/portal/wishlist', icon: Heart, sectionKey: 'shop', group: 'Basecamp' },
+    { id: 'write', path: '/portal/write', icon: PenTool, sectionKey: 'stories', group: 'Create' },
+    { id: 'upload', path: '/portal/upload', icon: Upload, group: 'Create' },
+    { id: 'submissions', path: '/portal/submissions', icon: Layers, group: 'Create' },
+    { id: 'collections', path: '/portal/collections', icon: Archive, group: 'Create' },
 ];
 
-const InteractiveBackground = () => {
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+// The phone dock keeps four destinations; everything else lives in the "More" sheet
+const DOCK_IDS = ['home', 'expeditions', 'write', 'passport'];
 
+/** Welcome card — once per browser session, short, and dismissible with a click */
+const WelcomeIntro = ({ name, onDone }: { name: string; onDone: () => void }) => {
     useEffect(() => {
-        const updateMousePosition = (ev: MouseEvent) => {
-            setMousePosition({ x: ev.clientX, y: ev.clientY });
-        };
-        window.addEventListener('mousemove', updateMousePosition);
-        return () => window.removeEventListener('mousemove', updateMousePosition);
-    }, []);
-
+        const t = setTimeout(onDone, 1700);
+        return () => clearTimeout(t);
+    }, [onDone]);
     return (
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-transparent dark:bg-transparent">
-            <motion.div 
-                className="absolute inset-0 transition-opacity duration-300"
-                style={{
-                    background: `radial-gradient(circle 800px at ${mousePosition.x}px ${mousePosition.y}px, rgba(67,176,241,0.08), transparent 80%)`
-                }}
-            />
-            {/* Subtle topographic / tactical grid pattern */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#43B0F1 1px, transparent 1px), linear-gradient(90deg, #43B0F1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        </div>
+        <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }}
+            onClick={onDone}
+            className="fixed inset-0 z-[70] grid place-items-center bg-alpine-snow dark:bg-[#05080D] cursor-pointer"
+        >
+            <div className="text-center px-6">
+                <motion.p
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
+                    className="font-mono text-[10.5px] tracking-[0.35em] uppercase text-alpine-navy/50 dark:text-white/40 mb-5"
+                >
+                    {timeGreeting()}
+                </motion.p>
+                <motion.h1
+                    initial={{ opacity: 0, y: 24, clipPath: 'inset(0 0 100% 0)' }}
+                    animate={{ opacity: 1, y: 0, clipPath: 'inset(0 0 0% 0)' }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                    className="font-serif text-5xl sm:text-7xl md:text-8xl text-alpine-navy dark:text-alpine-snow leading-none"
+                >
+                    Welcome back, <em className="text-alpine-blue dark:text-alpine-glacier">{name}</em>
+                </motion.h1>
+                <motion.div
+                    initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
+                    className="mx-auto mt-8 h-px w-40 origin-left bg-gradient-to-r from-transparent via-alpine-glacier to-transparent"
+                />
+            </div>
+        </motion.div>
     );
 };
 
@@ -79,46 +87,34 @@ export const UserDashboard = () => {
     const { user, logoutAsync } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
-    const { t } = useTranslation();
-    const [showIntro, setShowIntro] = useState(true);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [showIntro, setShowIntro] = useState(() => {
+        try { return !sessionStorage.getItem('mm-portal-welcomed'); } catch { return false; }
+    });
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [moreOpen, setMoreOpen] = useState(false);
     const { settings } = useSiteSettings();
-    const { theme } = useAdaptiveTheme();
+    const { t } = useTranslation();
+    const label = (id: string) => t(`app.portal.${id}`);
+    const short = (id: string) => t(`app.portal.short.${id}`);
 
-    const themeStyle = theme ? {
-        '--adaptive-primary': theme.primary,
-        '--adaptive-glow': theme.glow,
-        '--adaptive-accent': theme.accent,
-        '--adaptive-bg-from': theme.bgGradientFrom,
-        '--adaptive-bg-to': theme.bgGradientTo,
-    } as React.CSSProperties : {};
-
-    // Filter nav items based on admin section visibility
-    const navItems = useMemo(() => {
-        return allNavItems.filter(item => {
-            if (!item.sectionKey) return true; // Always show tabs without a section key (Profile, Upload, etc.)
-            const config = settings.sections[item.sectionKey];
-            return config && config.status === 'visible';
-        });
-    }, [settings]);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setShowIntro(false);
-        }, 3000);
-        return () => clearTimeout(timer);
+    const finishIntro = React.useCallback(() => {
+        try { sessionStorage.setItem('mm-portal-welcomed', '1'); } catch { /* storage blocked */ }
+        setShowIntro(false);
     }, []);
 
-    // Close mobile menu on navigation
-    useEffect(() => {
-        setMobileMenuOpen(false);
-    }, [location.pathname]);
+    // Filter nav items based on admin section visibility
+    const navItems = useMemo(() => allNavItems.filter(item => {
+        if (!item.sectionKey) return true;
+        const config = settings.sections[item.sectionKey];
+        return config && config.status === 'visible';
+    }), [settings]);
 
-    const handleLogoutClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        setShowLogoutConfirm(true);
-    };
+    const path = location.pathname.replace(/\/$/, '') || '/portal';
+    const current = navItems.find(i => i.path === path) || navItems[0];
+    const dockItems = navItems.filter(i => DOCK_IDS.includes(i.id)).slice(0, 4);
+    const inMore = !!current && !dockItems.includes(current);
+    useEffect(() => { setMoreOpen(false); }, [location.pathname]);
+    const groups = ['Basecamp', 'Create'].map(g => ({ label: g, items: navItems.filter(i => i.group === g) })).filter(g => g.items.length);
 
     const confirmLogout = async () => {
         await logoutAsync();
@@ -126,198 +122,194 @@ export const UserDashboard = () => {
         navigate('/');
     };
 
+    const firstName = user?.name?.split(' ')[0] || 'Explorer';
+
     return (
         <>
             <AnimatePresence>
-                {showIntro && (
-                    <motion.div
-                        initial={{ opacity: 1 }}
-                        exit={{ opacity: 0, filter: "blur(20px)" }}
-                        transition={{ duration: 1.2, ease: "easeInOut" }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-alpine-snow dark:bg-[#050505]"
-                    >
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-alpine-blue/10 via-alpine-snow dark:via-black to-alpine-snow dark:to-black opacity-100" />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, letterSpacing: "0px" }}
-                            animate={{ opacity: 1, scale: 1, letterSpacing: "12px" }}
-                            transition={{ duration: 2, ease: "easeOut", delay: 0.2 }}
-                            className="relative z-10 flex flex-col items-center px-4"
-                        >
-                            <div className="w-px h-16 sm:h-24 bg-gradient-to-b from-transparent via-alpine-glacier to-transparent mb-6 sm:mb-8 animate-pulse" />
-                            <h1 className="text-3xl sm:text-4xl md:text-7xl font-serif text-alpine-navy dark:text-white font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] drop-shadow-[0_0_40px_rgba(163,201,226,0.3)] glow-text text-center ml-[12px]">
-                                Welcome
-                            </h1>
-                            <motion.h2 
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, delay: 1 }}
-                                className="text-2xl sm:text-3xl md:text-5xl text-gradient-glacier font-serif italic mt-4 sm:mt-6"
-                            >
-                                {user?.name}
-                            </motion.h2>
-                            <div className="w-px h-16 sm:h-24 bg-gradient-to-t from-transparent via-alpine-glacier to-transparent mt-6 sm:mt-8 animate-pulse" />
-                        </motion.div>
-                    </motion.div>
-                )}
+                {showIntro && <WelcomeIntro key="intro" name={firstName} onDone={finishIntro} />}
             </AnimatePresence>
 
-            <div 
-                className="min-h-screen bg-transparent text-alpine-navy dark:text-white flex overflow-hidden font-sans selection:bg-alpine-glacier/30 relative"
-                style={themeStyle}
-            >
-                <InteractiveBackground />
+            <div className="mm-console relative min-h-svh h-[100dvh] flex overflow-hidden text-[var(--mm-ink)] selection:bg-alpine-glacier/30">
+                <div className="mm-backdrop" aria-hidden="true" />
 
-                {/* Mobile Header Bar */}
-                <div className="fixed top-0 left-0 right-0 h-14 bg-white/80 dark:bg-[#0A0D14]/90 backdrop-blur-xl border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 z-30 lg:hidden">
-                    <DynamicLogo className="h-7" showText={true} />
-                    <button
-                        onClick={handleLogoutClick}
-                        className="p-2 rounded-xl bg-red-400/10 text-red-500 hover:bg-red-400/20 transition-colors"
-                    >
-                        <LogOut size={18} />
-                    </button>
-                </div>
+                {/* Mobile top bar */}
+                <header className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center justify-between px-4 border-b border-[var(--mm-line)] bg-alpine-snow/80 dark:bg-[#05080D]/80 backdrop-blur-xl">
+                    <Link to="/" aria-label="Back to the main site"><DynamicLogo className="h-7" showText={true} /></Link>
+                    <span className="font-mono text-[10px] tracking-[0.25em] uppercase mm-faint truncate">{current && label(current.id)}</span>
+                    <div className="flex items-center gap-1 -mr-2">
+                        <SearchTrigger compact className="p-2 mm-faint hover:text-[var(--mm-ink)] transition-colors" />
+                        <NotificationBell className="p-2 mm-faint hover:text-[var(--mm-ink)] transition-colors" />
+                        <button onClick={() => setShowLogoutConfirm(true)} className="p-2 mm-faint hover:text-red-400 transition-colors" aria-label={t('app.portal.logout')}>
+                            <LogOut size={18} />
+                        </button>
+                    </div>
+                </header>
 
-                {/* Sidebar - Tactical Glass Dock (Desktop Only) */}
-                <motion.aside 
+                {/* Desktop rail */}
+                <aside
                     id="tour-sidebar"
-                    className="hidden lg:flex relative top-0 left-0 h-[calc(100vh-2rem)] w-80 bg-white/60 dark:bg-[#0A0D14]/60 m-4 rounded-3xl border border-black/5 dark:border-white/10 flex-col z-40 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+                    className="hidden lg:flex relative z-20 m-4 mr-0 w-[272px] shrink-0 flex-col mm-panel !rounded-[1.75rem] overflow-hidden"
                 >
-                    {/* Brand Area */}
-                    <div id="tour-user-info" className="p-6 sm:p-8 border-b border-black/5 dark:border-white/5 relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-alpine-blue/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                        <DynamicLogo className="h-8 mb-4 sm:mb-6" showText={true} />
-                        <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+                    <div id="tour-user-info" className="px-6 pt-6 pb-5 border-b border-[var(--mm-line)]">
+                        <Link to="/" className="inline-block mb-6" aria-label="Back to the main site"><DynamicLogo className="h-8" showText={true} /></Link>
+                        <div className="flex items-center gap-3.5">
                             {user?.avatar ? (
-                                <img src={user.avatar} alt="Avatar" className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover shadow-lg border border-black/10 dark:border-white/10" />
+                                <img loading="lazy" decoding="async" src={user.avatar} alt="" className="w-12 h-12 rounded-full object-cover ring-1 ring-[var(--mm-line-strong)]" />
                             ) : (
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-alpine-navy/10 dark:bg-alpine-navy/50 flex items-center justify-center text-base sm:text-lg font-bold border border-black/10 dark:border-white/10">
-                                    {user?.name.charAt(0)}
+                                <div className="w-12 h-12 rounded-full grid place-items-center bg-gradient-to-br from-alpine-blue to-alpine-navy text-white font-serif text-xl ring-1 ring-[var(--mm-line-strong)]">
+                                    {user?.name?.charAt(0)}
                                 </div>
                             )}
-                            <div>
-                                <h3 className="font-bold text-sm text-alpine-navy/90 dark:text-white/90 truncate w-32 sm:w-36">{user?.name}</h3>
-                                <p className="text-xs sm:text-sm text-alpine-glacier font-medium tracking-wide uppercase mt-1">Explorer</p>
+                            <div className="min-w-0">
+                                <p className="mm-title text-xl truncate">{user?.name}</p>
+                                <p className="font-mono text-[9.5px] tracking-[0.28em] uppercase text-[var(--mm-glacier)] mt-1">{t('app.portal.explorer')}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Navigation Menu */}
-                    <nav className="flex-1 py-6 sm:py-8 px-3 sm:px-4 flex flex-col gap-1.5 sm:gap-2 relative z-10 overflow-y-auto">
-                        <p className="px-4 text-xs font-bold tracking-[0.2em] text-alpine-navy/40 dark:text-white/30 uppercase mb-2">Portal Menu</p>
-                        
-                        {navItems.map((item) => {
-                            const isActive = location.pathname === item.path;
-                            return (
-                                <Link key={item.id} to={item.path} className="relative block">
-                                    <motion.div
-                                        whileHover={{ x: 4 }}
-                                        className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-[color,background-color,border-color,box-shadow] duration-300 ${
-                                            isActive 
-                                                ? 'bg-black/5 dark:bg-white/10 text-alpine-navy dark:text-white shadow-inner' 
-                                                : 'text-alpine-navy/60 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
-                                        }`}
-                                    >
-                                        {isActive && (
-                                            <motion.div 
-                                                layoutId="activeTabIndicator"
-                                                className="absolute left-0 top-0 bottom-0 w-1 bg-alpine-glacier rounded-r-full"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ duration: 0.3 }}
-                                            />
-                                        )}
-                                        <item.icon size={18} className={isActive ? 'text-alpine-glacier' : ''} />
-                                        <span className="font-semibold text-sm sm:text-base tracking-wide">{item.label}</span>
-                                    </motion.div>
-                                </Link>
-                            );
-                        })}
+                    <nav className="flex-1 overflow-y-auto mm-scroll px-3 py-4" aria-label="Portal">
+                        {groups.map(group => (
+                            <div key={group.label} className="mb-4 last:mb-0">
+                                <p className="px-3 mb-1.5 font-mono text-[9.5px] tracking-[0.3em] uppercase mm-faint">{t(`app.portal.group${group.label}`)}</p>
+                                <div className="space-y-0.5">
+                                    {group.items.map(item => {
+                                        const active = current?.id === item.id;
+                                        return (
+                                            <Link key={item.id} to={item.path} aria-current={active ? 'page' : undefined} className="mm-nav-item">
+                                                {active && <motion.span layoutId="portal-nav-pill" className="mm-nav-pill" transition={{ type: 'spring', stiffness: 520, damping: 42 }} />}
+                                                <item.icon size={17} strokeWidth={1.75} className="shrink-0" />
+                                                <span className="truncate">{label(item.id)}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
                     </nav>
 
-                    {/* Bottom Actions */}
-                    <div className="p-3 sm:p-4 border-t border-black/5 dark:border-white/5 flex flex-col gap-1.5 sm:gap-2 bg-white/80 dark:bg-[#0A0D14]/80 backdrop-blur-md relative z-10">
-                        <Link to="/">
-                            <motion.button 
-                                whileHover={{ x: 4 }}
-                                className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-alpine-navy/60 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-[color,background-color,border-color,box-shadow] duration-300"
-                            >
-                                <Home size={18} />
-                                <span className="font-semibold text-sm sm:text-base tracking-wide">Return to Main Site</span>
-                            </motion.button>
+                    <div className="p-3 border-t border-[var(--mm-line)] space-y-0.5">
+                        <Link to="/" className="mm-nav-item">
+                            <ArrowUpRight size={17} strokeWidth={1.75} />
+                            <span>{t('app.portal.mainSite')}</span>
                         </Link>
-                        <motion.button 
-                            whileHover={{ x: 4 }}
-                            onClick={handleLogoutClick}
-                            className="relative z-[70] w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-[color,background-color,border-color,box-shadow] duration-300"
-                        >
-                            <LogOut size={18} />
-                            <span className="font-semibold text-sm sm:text-base tracking-wide">Secure Logout</span>
-                        </motion.button>
+                        <button onClick={() => setShowLogoutConfirm(true)} className="mm-nav-item w-full hover:!text-red-400 hover:!bg-red-400/[0.07]">
+                            <LogOut size={17} strokeWidth={1.75} />
+                            <span>{t('app.portal.logout')}</span>
+                        </button>
                     </div>
-                    
-                    {/* Background ambient light */}
-                    <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-alpine-blue/5 to-transparent pointer-events-none lg:rounded-b-3xl" />
-                </motion.aside>
+                </aside>
 
-                {/* Main Content Area */}
-                <main id="tour-main-content" className="flex-1 relative h-screen overflow-y-auto custom-scrollbar pt-14 pb-24 lg:pt-0 lg:pb-0 z-10 lg:pl-4">
-                    {/* Premium Background Elements */}
-                    <div 
-                        className="fixed top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] pointer-events-none transition-colors duration-1000 ease-in-out" 
-                        style={{ backgroundColor: theme ? 'var(--adaptive-glow)' : 'rgba(100, 190, 255, 0.05)', opacity: theme ? 0.3 : 1 }}
-                    />
-                    <div 
-                        className="fixed bottom-[-20%] left-[20%] w-[50%] h-[50%] rounded-full blur-[100px] pointer-events-none transition-colors duration-1000 ease-in-out"
-                        style={{ backgroundColor: theme ? 'var(--adaptive-primary)' : 'rgba(8, 16, 28, 0.05)', opacity: theme ? 0.2 : 1 }}
-                    />
-                    
-                    <div className="relative z-10 p-4 sm:p-8 md:p-12 lg:py-16 lg:px-12 max-w-[1600px] mx-auto min-h-full">
-                        <AnimatePresence mode="wait">
-                            <Routes location={location} key={location.pathname}>
-                                <Route index element={<RouteWrapper><UserProfileTab /></RouteWrapper>} />
-                                <Route path="expeditions" element={<RouteWrapper><UserExpeditionsTab /></RouteWrapper>} />
-                                <Route path="gear" element={<RouteWrapper><UserGearVaultTab /></RouteWrapper>} />
-                                <Route path="communities" element={<RouteWrapper><UserCommunitiesTab /></RouteWrapper>} />
-                                <Route path="wishlist" element={<RouteWrapper><UserWishlistTab /></RouteWrapper>} />
-                                <Route path="write" element={<RouteWrapper><UserStoryEditorTab /></RouteWrapper>} />
-                                <Route path="upload" element={<RouteWrapper><UserMediaUploadTab /></RouteWrapper>} />
-                                <Route path="submissions" element={<RouteWrapper><UserSubmissionsTab /></RouteWrapper>} />
-                                <Route path="collections" element={<RouteWrapper><UserCollectionsTab /></RouteWrapper>} />
-                            </Routes>
-                        </AnimatePresence>
+                {/* Content */}
+                <main id="tour-main-content" className="flex-1 min-w-0 relative z-10 h-full overflow-y-auto mm-scroll pt-14 pb-28 lg:pt-0 lg:pb-0" data-lenis-prevent>
+                    {/* Desktop utilities: search and inbox, top-right of the content */}
+                    <div className="hidden lg:flex sticky top-0 z-20 justify-end gap-2 px-12 pt-6 -mb-14 pointer-events-none">
+                        <SearchTrigger className="pointer-events-auto mm-btn mm-btn--ghost !h-10 backdrop-blur-xl" />
+                        <NotificationBell className="pointer-events-auto mm-btn mm-btn--ghost !h-10 !w-10 !px-0 backdrop-blur-xl" />
+                    </div>
+                    <div key={location.pathname} className="mm-rise relative max-w-[1400px] mx-auto px-4 py-6 sm:px-6 md:px-10 lg:px-12 lg:py-12 min-h-full">
+                        <Routes location={location}>
+                            <Route index element={<UserBasecampTab />} />
+                            <Route path="profile" element={<UserProfileTab />} />
+                            <Route path="passport" element={<UserPassportTab />} />
+                            <Route path="expeditions" element={<UserExpeditionsTab />} />
+                            <Route path="gear" element={<UserGearVaultTab />} />
+                            <Route path="communities" element={<UserCommunitiesTab />} />
+                            <Route path="wishlist" element={<UserWishlistTab />} />
+                            <Route path="write" element={<UserStoryEditorTab />} />
+                            <Route path="upload" element={<UserMediaUploadTab />} />
+                            <Route path="submissions" element={<UserSubmissionsTab />} />
+                            <Route path="collections" element={<UserCollectionsTab />} />
+                        </Routes>
                     </div>
                 </main>
 
-                {/* Mobile Bottom Dock */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#0A0D14]/90 backdrop-blur-2xl border-t border-black/5 dark:border-white/5 flex lg:hidden items-center px-4 py-3 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] overflow-x-auto hide-scrollbar gap-6" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                    {navItems.map((item) => {
-                        const isActive = location.pathname === item.path;
+                {/* Mobile dock: four destinations and a sheet for the rest */}
+                <nav
+                    aria-label="Portal"
+                    className="lg:hidden fixed bottom-3 inset-x-3 z-40 mm-panel !rounded-[1.4rem] !bg-alpine-snow/95 dark:!bg-[#070B12]/95 grid grid-cols-5 px-1.5 py-1.5"
+                    style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+                >
+                    {dockItems.map(item => {
+                        const active = current?.id === item.id;
                         return (
-                            <Link key={item.id} to={item.path} className="flex flex-col items-center gap-1 min-w-[3.5rem] shrink-0">
-                                <motion.div
-                                    whileTap={{ scale: 0.9 }}
-                                    className={`p-2.5 rounded-2xl transition-colors ${
-                                        isActive ? 'bg-alpine-glacier text-alpine-navy shadow-[0_0_15px_rgba(163,201,226,0.4)]' : 'text-alpine-navy/50 dark:text-white/40 hover:text-alpine-navy dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
-                                    }`}
-                                >
-                                    <item.icon size={20} />
-                                </motion.div>
-                                <span className={`text-[9px] font-bold tracking-wider uppercase text-center truncate w-full ${isActive ? 'text-alpine-glacier' : 'text-alpine-navy/50 dark:text-white/40'}`}>
-                                    {item.label.split(' ')[0]}
-                                </span>
+                            <Link
+                                key={item.id}
+                                to={item.path}
+                                aria-current={active ? 'page' : undefined}
+                                className={`relative flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-colors ${active ? 'text-[var(--mm-ink)]' : 'mm-faint'}`}
+                            >
+                                {active && <motion.span layoutId="portal-dock-pill" className="absolute inset-0 rounded-2xl bg-alpine-glacier/15 border border-alpine-glacier/25" transition={{ type: 'spring', stiffness: 520, damping: 42 }} />}
+                                <item.icon size={19} strokeWidth={1.75} className={`relative ${active ? 'text-[var(--mm-glacier)]' : ''}`} />
+                                <span className="relative text-[9.5px] font-semibold tracking-[0.12em] uppercase">{short(item.id)}</span>
                             </Link>
                         );
                     })}
-                </div>
+                    <button
+                        onClick={() => setMoreOpen(true)}
+                        aria-expanded={moreOpen}
+                        className={`relative flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-colors ${inMore ? 'text-[var(--mm-ink)]' : 'mm-faint'}`}
+                    >
+                        {inMore && <motion.span layoutId="portal-dock-pill" className="absolute inset-0 rounded-2xl bg-alpine-glacier/15 border border-alpine-glacier/25" transition={{ type: 'spring', stiffness: 520, damping: 42 }} />}
+                        <MoreHorizontal size={19} strokeWidth={1.75} className={`relative ${inMore ? 'text-[var(--mm-glacier)]' : ''}`} />
+                        <span className="relative text-[9.5px] font-semibold tracking-[0.12em] uppercase">{t('app.portal.more')}</span>
+                    </button>
+                </nav>
+
+                <AnimatePresence>
+                    {moreOpen && (
+                        <React.Fragment key="more">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMoreOpen(false)} className="lg:hidden fixed inset-0 z-[45] bg-black/50" />
+                            <motion.div
+                                role="dialog"
+                                aria-label={t('app.portal.more')}
+                                initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                                transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+                                className="lg:hidden fixed bottom-0 inset-x-0 z-[46] rounded-t-[1.75rem] border-t border-[var(--mm-line-strong)] bg-alpine-snow dark:bg-[#0A0F18] px-4 pt-3"
+                                style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+                            >
+                                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--mm-line-strong)]" />
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                    <p className="mm-title text-2xl">{t('app.portal.more')}</p>
+                                    <button onClick={() => setMoreOpen(false)} aria-label="Close" className="grid place-items-center w-9 h-9 rounded-full border border-[var(--mm-line)] mm-muted"><X size={16} /></button>
+                                </div>
+                                {groups.map(group => {
+                                    const items = group.items.filter(i => !dockItems.includes(i));
+                                    if (!items.length) return null;
+                                    return (
+                                        <div key={group.label} className="mb-4">
+                                            <p className="px-1 mb-2 font-mono text-[9.5px] tracking-[0.3em] uppercase mm-faint">{t(`app.portal.group${group.label}`)}</p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {items.map(item => {
+                                                    const active = current?.id === item.id;
+                                                    return (
+                                                        <Link key={item.id} to={item.path} aria-current={active ? 'page' : undefined}
+                                                            className={`flex flex-col items-center gap-2 py-4 rounded-2xl border text-center transition-colors ${active ? 'border-alpine-glacier/40 bg-alpine-glacier/10 text-[var(--mm-ink)]' : 'border-[var(--mm-line)] mm-muted'}`}>
+                                                            <item.icon size={20} strokeWidth={1.75} className={active ? 'text-[var(--mm-glacier)]' : ''} />
+                                                            <span className="text-[11px] font-semibold leading-tight px-1">{label(item.id)}</span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--mm-line)]">
+                                    <Link to="/" className="mm-btn mm-btn--ghost justify-center"><ArrowUpRight size={15} /> {t('app.portal.mainSite')}</Link>
+                                    <button onClick={() => { setMoreOpen(false); setShowLogoutConfirm(true); }} className="mm-btn mm-btn--ghost justify-center hover:!text-red-400"><LogOut size={15} /> {t('app.portal.logout')}</button>
+                                </div>
+                            </motion.div>
+                        </React.Fragment>
+                    )}
+                </AnimatePresence>
             </div>
 
-            <ConfirmDialog 
+            <ConfirmDialog
                 isOpen={showLogoutConfirm}
-                title="Disconnect from Basecamp"
-                description="Are you sure you want to end your active session? Your progress is saved."
-                confirmText="Log Out"
-                cancelText="Cancel"
+                title="Leave basecamp?"
+                description="You'll be signed out on this device. Your drafts and progress are saved."
+                confirmText="Log out"
+                cancelText="Stay"
                 icon="logout"
                 onConfirm={confirmLogout}
                 onCancel={() => setShowLogoutConfirm(false)}

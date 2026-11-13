@@ -142,7 +142,7 @@ const AltitudeStrengthMeter: React.FC<{ strength: number; checks: Record<string,
                                 style={{
                                     transform: `scaleX(${i < strength ? 1 : 0})`,
                                     transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-                                    background: strength === 5 ? 'linear-gradient(90deg,#E2A071,#C9A96E)' : '#4A6A8C',
+                                    background: strength === 5 ? 'linear-gradient(90deg,#E2A071,#D4775A)' : '#4A6A8C',
                                 }}
                             />
                         </div>
@@ -682,7 +682,7 @@ export const AuthHub: React.FC<AuthHubProps> = ({ initialMode }) => {
                             ? 'bg-alpine-navy/10 text-alpine-navy/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
                             : isSuccess
                                 ? 'bg-emerald-600 text-white dark:bg-emerald-400 dark:text-alpine-navy shadow-[0_14px_40px_-12px_rgba(16,185,129,0.6)]'
-                                : 'bg-alpine-navy text-white shadow-[0_14px_34px_-14px_rgba(8,40,76,0.7)] hover:shadow-[0_18px_44px_-14px_rgba(8,40,76,0.8)] dark:bg-gradient-to-r dark:from-[#E2A071] dark:via-[#D9A88C] dark:to-[#C9A96E] dark:text-alpine-navy dark:shadow-[0_14px_40px_-12px_rgba(226,160,113,0.6)] disabled:opacity-80'
+                                : 'bg-alpine-navy text-white shadow-[0_14px_34px_-14px_rgba(8,40,76,0.7)] hover:shadow-[0_18px_44px_-14px_rgba(8,40,76,0.8)] dark:bg-gradient-to-r dark:from-[#E2A071] dark:via-[#D9A88C] dark:to-[#D4775A] dark:text-alpine-navy dark:shadow-[0_14px_40px_-12px_rgba(226,160,113,0.6)] disabled:opacity-80'
                     }`}
                 >
                     <AnimatePresence mode="wait" initial={false}>
@@ -743,15 +743,15 @@ export const AuthHub: React.FC<AuthHubProps> = ({ initialMode }) => {
     );
 
     return (
-        <div className="atelier relative min-h-screen w-full bg-[#F7F4EF] dark:bg-[#070B12] text-alpine-navy dark:text-alpine-snow selection:bg-alpine-sunrise/30">
+        <div className="atelier relative min-h-svh w-full bg-[#F7F4EF] dark:bg-[#070B12] text-alpine-navy dark:text-alpine-snow selection:bg-alpine-sunrise/30">
             {isDesktop ? (
-                <div className="grid grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] min-h-screen">
+                <div className="grid grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] min-h-svh">
                     {/* ═══ LEFT: CINEMATIC PANEL ═══ */}
                     <motion.aside
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.8 }}
-                        className="sticky top-0 h-screen p-3"
+                        className="sticky top-0 h-svh p-3"
                     >
                         <div className="relative h-full rounded-[1.75rem] overflow-hidden">
                             <AuthPhoto slides={slides} showProgress />
@@ -797,7 +797,7 @@ export const AuthHub: React.FC<AuthHubProps> = ({ initialMode }) => {
                     </motion.aside>
 
                     {/* ═══ RIGHT: FORM SURFACE ═══ */}
-                    <main className="relative min-w-0 flex flex-col min-h-screen px-10 xl:px-16 py-8 overflow-hidden">
+                    <main className="relative min-w-0 flex flex-col min-h-svh px-10 xl:px-16 py-8 overflow-hidden">
                         <div className="atelier-glow" aria-hidden="true" />
                         <div className="relative flex items-center justify-between">
                             <button
@@ -816,7 +816,7 @@ export const AuthHub: React.FC<AuthHubProps> = ({ initialMode }) => {
                 </div>
             ) : (
                 /* ═══ MOBILE / TABLET: photo header + rising sheet ═══ */
-                <div className="relative min-h-screen">
+                <div className="relative min-h-svh">
                     <div className="relative h-[34vh] min-h-[240px] sm:h-[38vh]">
                         <AuthPhoto slides={slides} />
                         <div className="relative h-full flex flex-col justify-between px-5 sm:px-8 pt-5 pb-14 text-white">

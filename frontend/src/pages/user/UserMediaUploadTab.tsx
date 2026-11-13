@@ -98,9 +98,10 @@ export const UserMediaUploadTab = () => {
             exit={{ opacity: 0, y: -20 }}
             className="max-w-3xl mx-auto h-full flex flex-col"
         >
-            <div className="mb-6 sm:mb-10 text-center">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-alpine-navy dark:text-white mb-3 sm:mb-4 tracking-wide">Contribute to Vault</h1>
-                <p className="text-alpine-navy/60 dark:text-white/60 text-base sm:text-lg font-light px-2">Submit your raw footage and captures to the community gallery.</p>
+            <div className="mb-8 sm:mb-10">
+                <p className="mm-eyebrow mb-3">Create · Contribute</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Contribute to the <em>vault</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Submit your raw footage and captures to the community gallery.</p>
             </div>
 
             {error && (
@@ -146,7 +147,7 @@ export const UserMediaUploadTab = () => {
                             className="border-2 border-dashed border-black/10 dark:border-white/10 rounded-xl sm:rounded-2xl p-6 sm:p-12 text-center cursor-pointer hover:border-alpine-glacier/50 hover:bg-black/5 dark:hover:bg-white/5 transition-all bg-black/[0.02] dark:bg-black/30 group relative"
                         >
                             {uploadPreview || unsplashUrl ? (
-                                <img src={uploadPreview || unsplashUrl || ''} className="max-h-48 sm:max-h-64 mx-auto rounded-xl object-contain shadow-2xl" alt="Preview" />
+                                <img loading="lazy" decoding="async" src={uploadPreview || unsplashUrl || ''} className="max-h-48 sm:max-h-64 mx-auto rounded-xl object-contain shadow-2xl" alt="Preview" />
                             ) : uploadFile ? (
                                 <div className="flex flex-col items-center">
                                     {uploadFile.type.startsWith('video') ? <Video size={36} className="sm:w-12 sm:h-12 text-alpine-glacier mb-3 sm:mb-4" /> : <ImageIcon size={36} className="sm:w-12 sm:h-12 text-alpine-glacier mb-3 sm:mb-4" />}
@@ -237,7 +238,7 @@ export const UserMediaUploadTab = () => {
                                                 setImageModalOpen(false);
                                             }}
                                         >
-                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                            <img loading="lazy" decoding="async" src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-5">
                                                 <span className="text-white text-sm font-medium tracking-wide">Photo by {img.authorName}</span>
                                                 <div className="mt-3 py-2 px-4 bg-alpine-glacier text-[#0A0D14] rounded-xl flex items-center justify-center gap-2 text-sm font-bold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">

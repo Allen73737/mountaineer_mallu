@@ -1,23 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, Calendar, Image as ImageIcon,
     Users, Settings, Menu, X, Shield, LogOut,
-    Clock, Globe, Layers, UserCircle, Star, ShoppingBag, ExternalLink, Sparkles
+    Layers, UserCircle, Star, ShoppingBag, ArrowUpRight, Sparkles, PanelLeftClose, PanelLeftOpen, Mountain, ScrollText, type LucideIcon
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DynamicLogo } from '../../components/ui/DynamicLogo';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useAdminAction } from '../../store/useAdminAction';
+import { SearchTrigger } from '../../components/site/CommandPalette';
+import { NotificationBell } from '../../components/site/NotificationBell';
 
 const GlobalAdminUI = () => {
-    const { confirmDialog, closeDialog, undoQueue, redoQueue, triggerUndo, triggerRedo } = useAdminAction();
+    const { confirmDialog, closeDialog, undoQueue, triggerUndo, triggerRedo } = useAdminAction();
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Leave native undo alone while typing in a field
+            const t = e.target as HTMLElement;
+            if (t.closest('input, textarea, [contenteditable="true"]')) return;
             // Ctrl+Z for Undo
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
                 e.preventDefault();
                 triggerUndo();
             }
@@ -48,16 +53,13 @@ const GlobalAdminUI = () => {
                     {undoQueue.map(item => (
                         <motion.div
                             key={item.id}
-                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            initial={{ opacity: 0, y: 20, scale: 0.96 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                            className="bg-black/80 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto"
+                            exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
+                            className="mm-panel !rounded-full pl-5 pr-2 py-2 flex items-center gap-4 pointer-events-auto"
                         >
-                            <span className="text-sm font-medium text-white">{item.message}</span>
-                            <button
-                                onClick={() => triggerUndo(item.id)}
-                                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
-                            >
+                            <span className="text-sm text-[var(--mm-ink)]">{item.message}</span>
+                            <button onClick={() => triggerUndo(item.id)} className="mm-btn mm-btn--primary !h-8 !px-4 !text-xs">
                                 Undo
                             </button>
                         </motion.div>
@@ -68,41 +70,119 @@ const GlobalAdminUI = () => {
     );
 };
 
-/** Live clock hook – updates every second */
-const useLiveClock = () => {
-    const [now, setNow] = useState(new Date());
+/** Live clock — only the clock re-renders each second, not the whole shell */
+const LiveClock = () => {
+    const [now, setNow] = useState(() => new Date());
     useEffect(() => {
         const id = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(id);
     }, []);
-    return now;
+    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const date = now.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' });
+    const tz = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || '';
+    return (
+        <div className="hidden md:flex items-baseline gap-3 font-mono text-[11px] tracking-[0.18em] uppercase">
+            <span className="mm-faint">{date}</span>
+            <span className="text-[var(--mm-ink)] tabular-nums text-xs">{time}</span>
+            <span className="text-[var(--mm-glacier)] opacity-70">{tz}</span>
+        </div>
+    );
 };
 
+type NavItem = {
+    path: string;
+    name: string;
+    icon: LucideIcon;
+    permission?: string;
+    role?: string;
+    alwaysVisible?: boolean;
+    publicPath?: string;
+};
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+    { label: 'Command', items: [
+        { path: '', name: 'Overview', icon: LayoutDashboard, alwaysVisible: true },
+    ]},
+    { label: 'Content', items: [
+        { path: 'stories', name: 'Stories', icon: BookOpen, permission: 'manageStories', publicPath: '/stories' },
+        { path: 'events', name: 'Expeditions', icon: Calendar, permission: 'manageEvents', publicPath: '/events' },
+        { path: 'gallery', name: 'Gallery', icon: ImageIcon, permission: 'manageGallery', publicPath: '/gallery' },
+        { path: 'reviews', name: 'Reviews', icon: Star, permission: 'manageUsers', publicPath: '/reviews' },
+    ]},
+    { label: 'People', items: [
+        { path: 'community', name: 'Community', icon: Users, permission: 'manageCommunity', publicPath: '/community' },
+        { path: 'pillars', name: 'Team', icon: Mountain, permission: 'manageUsers', publicPath: '/team' },
+        { path: 'users', name: 'Explorers', icon: UserCircle, permission: 'manageUsers' },
+    ]},
+    { label: 'Platform', items: [
+        { path: 'merchandise', name: 'Merchandise', icon: ShoppingBag, role: 'SuperAdmin', publicPath: '/shop' },
+        { path: 'sections', name: 'Section Control', icon: Layers, role: 'SuperAdmin' },
+        { path: 'admins', name: 'Administrators', icon: Shield, role: 'SuperAdmin' },
+        { path: 'audit', name: 'Audit Log', icon: ScrollText },
+        { path: 'campaigns', name: 'Campaign Autopilot', icon: Sparkles, role: 'SuperAdmin' },
+    ]},
+    { label: 'Account', items: [
+        { path: 'profile', name: 'Profile & Security', icon: Settings, alwaysVisible: true },
+    ]},
+];
+
+const BASE = '/summit-control-panel';
+
+const SectionSkeleton = () => (
+    <div className="skeleton-delay space-y-6" aria-busy="true">
+        <div className="space-y-3"><div className="skeleton-shimmer h-3 w-40 !rounded-full" /><div className="skeleton-shimmer h-14 w-80 max-w-full" /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="skeleton-shimmer h-40 !rounded-[1.25rem]" />)}</div>
+        <div className="skeleton-shimmer h-80 !rounded-[1.25rem]" />
+    </div>
+);
+
+// Warm every admin section in the background once the panel is open, so switching is instant
+const prefetchAdminSections = () => [
+    () => import('./AdminOverview'), () => import('./StoriesManagement'), () => import('./EventsManagement'),
+    () => import('./AdminGallery'), () => import('./ReviewsManagement'), () => import('./CommunityManagement'),
+    () => import('./PillarsManagement'), () => import('./UsersManagement'), () => import('./AuditLog'), () => import('./AdminProfile'),
+].forEach((load, i) => setTimeout(() => { load().catch(() => {}); }, 300 + i * 120));
+
 export const AdminDashboard = () => {
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => {
+        try { return localStorage.getItem('mm-admin-rail') === 'collapsed'; } catch { return false; }
+    });
     const { user, logoutAsync } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const now = useLiveClock();
 
     useEffect(() => {
-        const handleResize = () => {
-            const mobile = window.innerWidth < 768;
-            setIsMobile(mobile);
-            if (!mobile) setIsSidebarOpen(true);
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        const mq = window.matchMedia('(max-width: 1023px)');
+        const sync = () => { setIsMobile(mq.matches); if (!mq.matches) setDrawerOpen(false); };
+        sync();
+        mq.addEventListener('change', sync);
+        return () => mq.removeEventListener('change', sync);
     }, []);
 
-    if (!user) return null;
+    useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+    useEffect(() => {
+        const idle = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 600));
+        if (!import.meta.env.DEV) idle(prefetchAdminSections);
+    }, []);
 
-    const handleLogoutClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        setShowLogoutConfirm(true);
-    };
+    // Lock page scroll behind the mobile drawer; Esc closes it
+    useEffect(() => {
+        if (!drawerOpen) return;
+        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawerOpen(false);
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [drawerOpen]);
+
+    const toggleRail = () => setCollapsed(c => {
+        const next = !c;
+        try { localStorage.setItem('mm-admin-rail', next ? 'collapsed' : 'open'); } catch { /* storage blocked */ }
+        return next;
+    });
+
+    if (!user) return null;
 
     const confirmLogout = async () => {
         await logoutAsync();
@@ -110,218 +190,199 @@ export const AdminDashboard = () => {
         navigate('/');
     };
 
-    const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-    const formattedDate = now.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone?.split('/').pop()?.replace(/_/g, ' ') || '';
-    const tzAbbr = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || '';
-
-    const navItems = [
-        { path: '', name: 'Overview', icon: <LayoutDashboard size={20} />, alwaysVisible: true },
-        { path: 'stories', name: 'Stories Management', icon: <BookOpen size={20} />, permission: 'manageStories', publicPath: '/#stories' },
-        { path: 'events', name: 'Events Management', icon: <Calendar size={20} />, permission: 'manageEvents', publicPath: '/#events' },
-        { path: 'gallery', name: 'Gallery', icon: <ImageIcon size={20} />, permission: 'manageGallery', publicPath: '/#gallery' },
-        { path: 'reviews', name: 'Review Moderation', icon: <Star size={20} />, permission: 'manageUsers', publicPath: '/#reviews' },
-        { path: 'community', name: 'Community Groups', icon: <Users size={20} />, permission: 'manageCommunity', publicPath: '/#community' },
-        { path: 'pillars', name: 'Team Members', icon: <Users size={20} />, permission: 'manageUsers', publicPath: '/#team' },
-        { path: 'merchandise', name: 'Merchandise', icon: <ShoppingBag size={20} />, role: 'SuperAdmin', publicPath: '/#shop' },
-        { path: 'users', name: 'Users', icon: <UserCircle size={20} />, permission: 'manageUsers' },
-        { path: 'sections', name: 'Section Control', icon: <Layers size={20} />, role: 'SuperAdmin' },
-        { path: 'management', name: 'Admin Management', icon: <Shield size={20} />, role: 'SuperAdmin' },
-        { path: 'campaigns', name: 'Campaign Autopilot', icon: <Sparkles size={20} />, role: 'SuperAdmin' },
-        { path: 'profile', name: 'Profile & Security', icon: <Settings size={20} />, alwaysVisible: true },
-    ];
-
-    const visibleItems = navItems.filter(item => {
+    const canSee = (item: NavItem) => {
         if (item.alwaysVisible) return true;
         if (item.role && user.role !== item.role) return false;
-        if (item.permission && user.role === 'Admin' && !(user.permissions as any)[item.permission]) return false;
+        if (item.permission && user.role === 'Admin' && !(user.permissions as any)?.[item.permission]) return false;
         return true;
-    });
+    };
+    const groups = navGroups
+        .map(g => ({ ...g, items: g.items.filter(canSee) }))
+        .filter(g => g.items.length);
 
-    return (
-        <div 
-            className="dark min-h-screen bg-black text-white flex overflow-hidden selection:bg-alpine-glacier/30 film-grain transition-colors duration-500"
-            style={{ '--sidebar-width': isMobile ? '0px' : (isSidebarOpen ? '280px' : '80px') } as React.CSSProperties}
-        >
-            {/* Rich layered background */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-br from-white dark:from-black via-alpine-navy/5 dark:via-alpine-navy/40 to-white dark:to-black" />
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-alpine-glacier/[0.03] rounded-full blur-[120px]" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/[0.02] rounded-full blur-[100px]" />
+    const isActive = (path: string) => path === ''
+        ? location.pathname === BASE || location.pathname === `${BASE}/` || location.pathname === `${BASE}/overview`
+        : location.pathname.startsWith(`${BASE}/${path}`);
+    const current = groups.flatMap(g => g.items).find(i => isActive(i.path));
+
+    const rail = !isMobile && collapsed;
+
+    const sidebar = (
+        <div className="h-full flex flex-col">
+            {/* Brand */}
+            <div className={`h-20 flex items-center shrink-0 ${rail ? 'justify-center px-0' : 'justify-between px-5'}`}>
+                <Link to={BASE} className="flex items-center gap-3 min-w-0">
+                    <DynamicLogo className="h-8" showText={false} />
+                    {!rail && (
+                        <div className="leading-none min-w-0">
+                            <p className="mm-title text-xl truncate">Summit <em>Control</em></p>
+                            <p className="font-mono text-[9px] tracking-[0.3em] uppercase mm-faint mt-1">Mountaineer Mallu</p>
+                        </div>
+                    )}
+                </Link>
+                {isMobile && (
+                    <button onClick={() => setDrawerOpen(false)} className="p-2 -mr-2 mm-muted hover:text-[var(--mm-ink)]" aria-label="Close menu">
+                        <X size={20} />
+                    </button>
+                )}
             </div>
 
-            {/* Mobile Overlay */}
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto mm-scroll px-3 pb-4" aria-label="Admin">
+                {groups.map(group => (
+                    <div key={group.label} className="mt-4 first:mt-1">
+                        {rail
+                            ? <div className="mx-auto my-3 w-5 h-px bg-[var(--mm-line)]" />
+                            : <p className="px-3 mb-1.5 font-mono text-[9.5px] tracking-[0.3em] uppercase mm-faint">{group.label}</p>}
+                        <div className="space-y-0.5">
+                            {group.items.map(item => {
+                                const active = isActive(item.path);
+                                const Icon = item.icon;
+                                return (
+                                    <div key={item.path} className="group relative">
+                                        <Link
+                                            to={item.path ? `${BASE}/${item.path}` : BASE}
+                                            aria-current={active ? 'page' : undefined}
+                                            title={rail ? item.name : undefined}
+                                            className={`mm-nav-item ${rail ? 'justify-center !px-0' : ''}`}
+                                        >
+                                            {active && <motion.span layoutId="admin-nav-pill" className="mm-nav-pill" transition={{ type: 'spring', stiffness: 520, damping: 42 }} />}
+                                            <Icon size={17} strokeWidth={1.75} className="shrink-0" />
+                                            {!rail && <span className="truncate flex-1">{item.name}</span>}
+                                        </Link>
+                                        {!rail && item.publicPath && (
+                                            <a
+                                                href={item.publicPath}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title={`Open the live ${item.name} page`}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md mm-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-[var(--mm-glacier)] transition-opacity"
+                                            >
+                                                <ArrowUpRight size={14} />
+                                            </a>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
+            </nav>
+
+            {/* Identity */}
+            <div className="p-3 shrink-0 border-t border-[var(--mm-line)]">
+                <div className={`flex items-center gap-3 rounded-2xl p-2 ${rail ? 'justify-center' : ''}`}>
+                    {user.avatar ? (
+                        <img loading="lazy" decoding="async" src={user.avatar} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-[var(--mm-line-strong)] shrink-0" />
+                    ) : (
+                        <div className="w-9 h-9 rounded-full grid place-items-center shrink-0 bg-gradient-to-br from-alpine-blue to-alpine-navy ring-1 ring-[var(--mm-line-strong)] font-serif text-lg text-white">
+                            {user.name.charAt(0)}
+                        </div>
+                    )}
+                    {!rail && (
+                        <>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate text-[var(--mm-ink)]">{user.name}</p>
+                                <p className="font-mono text-[9.5px] tracking-[0.25em] uppercase text-[var(--mm-glacier)] opacity-80">{user.role}</p>
+                            </div>
+                            <button onClick={() => setShowLogoutConfirm(true)} className="p-2 rounded-full mm-faint hover:text-red-300 hover:bg-red-400/10 transition-colors" title="Log out" aria-label="Log out">
+                                <LogOut size={16} />
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="mm-console dark min-h-svh h-[100dvh] flex overflow-hidden text-[var(--mm-ink)] selection:bg-alpine-glacier/30">
+            <div className="mm-backdrop" aria-hidden="true" />
+
+            {/* Desktop rail */}
+            {!isMobile && (
+                <aside
+                    className="relative z-20 h-full shrink-0 border-r border-[var(--mm-line)] bg-[#05080D]/60 backdrop-blur-xl transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                    style={{ width: collapsed ? 76 : 264 }}
+                >
+                    {sidebar}
+                </aside>
+            )}
+
+            {/* Mobile drawer */}
             <AnimatePresence>
-                {isMobile && isSidebarOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setIsSidebarOpen(false)}
-                        className="fixed inset-0 bg-black/60 z-30 backdrop-blur-sm md:hidden"
-                    />
+                {isMobile && drawerOpen && (
+                    <>
+                        <motion.div
+                            key="scrim"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setDrawerOpen(false)}
+                            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.aside
+                            key="drawer"
+                            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 40 }}
+                            className="fixed inset-y-0 left-0 z-50 w-[min(86vw,300px)] bg-[#070B12]/95 backdrop-blur-xl border-r border-[var(--mm-line)]"
+                        >
+                            {sidebar}
+                        </motion.aside>
+                    </>
                 )}
             </AnimatePresence>
 
-            {/* Sidebar */}
-            <motion.aside
-                initial={false}
-                animate={{ 
-                    width: isMobile ? 280 : (isSidebarOpen ? 280 : 80),
-                    x: isMobile ? (isSidebarOpen ? 0 : -280) : 0
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed md:relative top-0 left-0 h-screen z-40 md:z-20 flex-shrink-0 bg-white/95 dark:bg-black/90 md:bg-white/50 md:dark:bg-black/50 backdrop-blur-xl md:backdrop-blur-md border-r border-black/10 dark:border-white/10 flex flex-col"
-            >
-                {/* Header */}
-                <div className="h-16 md:h-20 flex items-center justify-between px-4 md:px-6 border-b border-black/10 dark:border-white/10 shrink-0">
-                    <AnimatePresence mode="wait">
-                        {(isSidebarOpen || isMobile) && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-hidden whitespace-nowrap">
-                                <span className="font-serif text-lg font-bold tracking-widest text-gradient-glacier uppercase glow-text">Summit Control</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <button
-                        onClick={() => requestAnimationFrame(() => setIsSidebarOpen(!isSidebarOpen))}
-                        className="text-alpine-navy/50 dark:text-white/50 hover:text-alpine-navy dark:hover:text-white transition-colors cursor-pointer"
-                    >
-                        {isMobile ? <X size={24} /> : (isSidebarOpen ? <X size={24} /> : <Menu size={24} />)}
-                    </button>
-                </div>
-
-                {/* Navigation */}
-                <div className="flex-1 overflow-y-auto py-4 md:py-6 px-3 md:px-4 space-y-1 md:space-y-2 custom-scrollbar">
-                    {visibleItems.map((item) => {
-                        const isExact = item.path === '';
-                        const isActive = isExact
-                            ? location.pathname === '/summit-control-panel'
-                            : location.pathname.includes(`/summit-control-panel/${item.path}`);
-
-                        return (
-                            <Link
-                                key={item.name}
-                                to={item.path}
-                                onClick={() => isMobile && setIsSidebarOpen(false)}
-                                className={`flex items-center gap-3 md:gap-4 px-3 py-2.5 md:py-3 rounded-xl transition-all duration-300 relative group overflow-hidden ${isActive
-                                        ? 'bg-alpine-glacier/20 text-alpine-navy dark:text-white shadow-inner border border-alpine-glacier/30'
-                                        : 'text-alpine-navy/60 dark:text-white/50 hover:bg-black/5 dark:hover:bg-white/5 hover:text-alpine-navy dark:hover:text-white border border-transparent'
-                                    }`}
-                            >
-                                {isActive && (
-                                    <motion.div layoutId="active-nav" className="absolute left-0 top-0 bottom-0 w-1 bg-alpine-glacier rounded-r-full" />
-                                )}
-                                <div className={`shrink-0 ${isActive ? 'text-alpine-glacier' : 'group-hover:text-alpine-glacier'}`}>
-                                    {React.cloneElement(item.icon as React.ReactElement<any>, { size: isMobile ? 18 : 20 })}
-                                </div>
-                                <AnimatePresence>
-                                    {(isSidebarOpen || isMobile) && (
-                                        <>
-                                            <motion.span
-                                                initial={{ opacity: 0, width: 0 }}
-                                                animate={{ opacity: 1, width: 'auto' }}
-                                                exit={{ opacity: 0, width: 0 }}
-                                                className="font-medium text-[13px] md:text-sm tracking-wide whitespace-nowrap flex-1"
-                                            >
-                                                {item.name}
-                                            </motion.span>
-                                            {item.publicPath && (
-                                                <a 
-                                                    href={item.publicPath} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    title={`View live ${item.name} page`}
-                                                    className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-alpine-navy/40 dark:text-white/40 hover:text-alpine-glacier transition-all"
-                                                >
-                                                    <ExternalLink size={14} />
-                                                </a>
-                                            )}
-                                        </>
-                                    )}
-                                </AnimatePresence>
-                            </Link>
-                        );
-                    })}
-                </div>
-
-                {/* Footer User Info */}
-                <div className="p-3 md:p-4 border-t border-black/10 dark:border-white/10 shrink-0">
-                    <div className={`flex items-center gap-2 md:gap-3 ${(!isSidebarOpen && !isMobile) && 'justify-center'} px-2 py-2 md:py-3 rounded-xl bg-black/5 dark:bg-black/40 border border-black/5 dark:border-white/10 shadow-inner`}>
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-alpine-glacier/80 to-alpine-navy flex items-center justify-center font-bold text-white shrink-0 shadow-lg ring-2 ring-alpine-glacier/20 text-xs md:text-sm">
-                            {user.name.charAt(0)}
-                        </div>
-                        {(isSidebarOpen || isMobile) && (
-                            <div className="flex-1 min-w-0 pr-2">
-                                <p className="text-[13px] md:text-sm font-bold truncate tracking-wide">{user.name}</p>
-                                <p className="text-[10px] md:text-[11px] text-alpine-glacier/60 uppercase tracking-widest">{user.role}</p>
-                            </div>
-                        )}
-                        {(isSidebarOpen || isMobile) && (
-                            <button onClick={handleLogoutClick} className="p-2 text-white/40 hover:text-red-400 transition-colors" title="Logout">
-                                <LogOut size={16} />
+            {/* Main */}
+            <main className="flex-1 min-w-0 relative z-10 flex flex-col">
+                <header className="h-16 md:h-20 shrink-0 flex items-center justify-between gap-4 px-4 md:px-8 border-b border-[var(--mm-line)] bg-[#05080D]/40 backdrop-blur-xl">
+                    <div className="flex items-center gap-3 min-w-0">
+                        {isMobile ? (
+                            <button onClick={() => setDrawerOpen(true)} className="p-2 -ml-2 mm-muted hover:text-[var(--mm-ink)]" aria-label="Open menu">
+                                <Menu size={22} />
+                            </button>
+                        ) : (
+                            <button onClick={toggleRail} className="p-2 -ml-2 rounded-lg mm-faint hover:text-[var(--mm-ink)] hover:bg-white/5 transition-colors" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+                                {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
                             </button>
                         )}
-                    </div>
-                </div>
-            </motion.aside>
-
-            {/* Main Content Area */}
-            <main className="flex-1 z-10 relative flex flex-col overflow-hidden w-full">
-                <header className="h-16 md:h-20 flex items-center justify-between px-4 md:px-8 border-b border-black/[0.06] dark:border-white/[0.06] bg-white/30 dark:bg-black/30 backdrop-blur-xl shrink-0">
-                    <div className="flex items-center gap-3">
-                        <button 
-                            className="md:hidden p-2 text-alpine-navy/80 dark:text-white/80 hover:text-alpine-navy dark:hover:text-white transition-colors"
-                            onClick={() => setIsSidebarOpen(true)}
-                        >
-                            <Menu size={24} />
-                        </button>
-                        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
-                            <DynamicLogo className="h-6" showText={false} />
-                            <span className="hidden sm:inline-block text-base font-medium text-alpine-navy/50 dark:text-white/50 group-hover:text-alpine-navy/80 dark:group-hover:text-white/80 tracking-wide uppercase transition-colors">Main Site</span>
-                        </Link>
+                        <nav aria-label="Breadcrumb" className="flex items-center gap-2 font-mono text-[10.5px] tracking-[0.24em] uppercase min-w-0">
+                            <Link to={BASE} className="mm-faint hover:text-[var(--mm-ink)] transition-colors hidden sm:inline">Summit Control</Link>
+                            <span className="mm-faint hidden sm:inline">/</span>
+                            <span className="text-[var(--mm-ink)] truncate">{current?.name || 'Overview'}</span>
+                        </nav>
                     </div>
 
                     <div className="flex items-center gap-3 md:gap-5">
-                        {/* Live Clock & Date */}
-                        <div className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06]">
-                            <Clock size={14} className="text-alpine-glacier/70" />
-                            <div className="flex flex-col items-end leading-tight">
-                                <span className="text-sm md:text-base font-mono font-semibold text-alpine-navy/80 dark:text-white/80 tracking-wider">{formattedTime} <span className="hidden md:inline text-alpine-glacier/60 text-sm">{tzAbbr}</span></span>
-                                <span className="hidden md:block text-xs font-mono text-alpine-navy/40 dark:text-white/35 tracking-widest uppercase">{formattedDate}</span>
-                            </div>
+                        <LiveClock />
+                        <SearchTrigger className="mm-btn mm-btn--ghost !h-9 !px-3" />
+                        <NotificationBell className="mm-btn mm-btn--ghost !h-9 !w-9 !px-0" />
+                        <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] tracking-[0.24em] uppercase text-emerald-300/80">
+                            <span className="mm-live" /> Online
                         </div>
-
-                        {/* System Status Indicator */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                            <span className="text-[10px] md:text-xs font-mono text-emerald-400/80 tracking-widest uppercase">Online</span>
-                        </div>
+                        <Link to="/" className="mm-btn mm-btn--ghost !h-9">
+                            <span className="hidden sm:inline">View site</span>
+                            <ArrowUpRight size={15} />
+                        </Link>
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-3 md:p-8 custom-scrollbar">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={location.pathname}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.3 }}
-                            className="max-w-[1800px] w-full mx-auto"
-                        >
+                <div className="flex-1 overflow-y-auto mm-scroll" data-lenis-prevent>
+                    {/* Keyed wrapper replays a short rise on each section — no exit wait, so navigation feels instant */}
+                    <div key={location.pathname} className="mm-rise max-w-[1600px] w-full mx-auto px-4 py-6 md:px-8 md:py-10">
+                        {/* Local boundary: switching sections keeps the shell and only swaps this area */}
+                        <Suspense fallback={<SectionSkeleton />}>
                             <Outlet />
-                        </motion.div>
-                    </AnimatePresence>
+                        </Suspense>
+                    </div>
                 </div>
             </main>
+
             <GlobalAdminUI />
-            <ConfirmDialog 
+            <ConfirmDialog
                 isOpen={showLogoutConfirm}
-                title="Disconnect from Mission Control"
-                description="Are you sure you want to log out of the admin panel?"
-                confirmText="Log Out"
-                cancelText="Cancel"
+                title="Leave Summit Control?"
+                description="You'll be signed out of the admin panel on this device."
+                confirmText="Log out"
+                cancelText="Stay"
                 icon="logout"
                 onConfirm={confirmLogout}
                 onCancel={() => setShowLogoutConfirm(false)}
@@ -329,5 +390,3 @@ export const AdminDashboard = () => {
         </div>
     );
 };
-
-

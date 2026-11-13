@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { LogIn, UserPlus, Clock, Globe, AlertCircle, X, ChevronDown } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { SearchTrigger } from '../site/CommandPalette';
+import { NotificationBell } from '../site/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
@@ -74,6 +77,21 @@ export const Navbar: React.FC = () => {
     const [hoveredLink, setHoveredLink] = useState<string | null>(null);
     const [langMenuOpen, setLangMenuOpen] = useState(false);
     const [pendingLang, setPendingLang] = useState<string | null>(null);
+    const langBtnRef = useRef<HTMLButtonElement>(null);
+    const [langPos, setLangPos] = useState({ top: 72, right: 16 });
+    // Anchor the portalled language menu under its button (and keep it there on resize)
+    useEffect(() => {
+        if (!langMenuOpen) return;
+        const place = () => {
+            const r = langBtnRef.current?.getBoundingClientRect();
+            if (r) setLangPos({ top: r.bottom + 12, right: Math.max(12, window.innerWidth - r.right) });
+        };
+        place();
+        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setLangMenuOpen(false);
+        window.addEventListener('resize', place);
+        window.addEventListener('keydown', onKey);
+        return () => { window.removeEventListener('resize', place); window.removeEventListener('keydown', onKey); };
+    }, [langMenuOpen]);
 
     const { toggleSidebar, isSidebarOpen } = useStore();
     const { isLoggedIn, user } = useAuthStore();
@@ -270,12 +288,17 @@ export const Navbar: React.FC = () => {
 
                         {/* Actions */}
                         <div className="flex items-center gap-1.5 sm:gap-2 relative z-50">
+                            {/* Search (⌘K) and the notification inbox */}
+                            <SearchTrigger className={`tap-dot ${pillClass} hidden sm:flex h-9 md:h-10 w-9 md:w-auto md:px-3.5 items-center justify-center gap-2 cursor-pointer`} />
+                            <NotificationBell className={`tap-dot ${pillClass} h-9 w-9 md:h-10 md:w-10 grid place-items-center cursor-pointer`} />
+
                             {/* Day / night */}
                             <ThemeToggle className="tap-dot rounded-full! bg-white/[0.04]! hover:bg-white/[0.1]! border-white/15! shadow-none! w-9! h-9! md:w-10! md:h-10!" />
 
                             {/* Language */}
                             <div className="relative">
                                 <motion.button
+                                    ref={langBtnRef}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setLangMenuOpen(!langMenuOpen)}
                                     aria-label="Change language"
@@ -286,21 +309,26 @@ export const Navbar: React.FC = () => {
                                     <span className="hidden md:inline font-mono text-[11px] uppercase tracking-[0.2em]">{i18n.language.split('-')[0]}</span>
                                 </motion.button>
 
-                                <AnimatePresence>
+                                {/* Portalled: the bar clips overflow and its slide-away transform would trap fixed children */}
+                                {createPortal(<AnimatePresence>
                                     {langMenuOpen && (
                                         <>
-                                            <div className="fixed inset-0 z-40" onClick={() => setLangMenuOpen(false)} />
+                                            <div className="fixed inset-0 z-[90]" onClick={() => setLangMenuOpen(false)} />
                                             <motion.div
+                                                role="menu"
+                                                aria-label="Choose language"
                                                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.97 }}
                                                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                                                style={{ backgroundColor: `rgba(${tint},0.96)` }}
-                                                className="absolute right-0 top-full mt-3 w-44 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.55)] border border-white/10 overflow-hidden z-50 flex flex-col p-1.5"
+                                                style={{ backgroundColor: `rgba(${tint},0.96)`, top: langPos.top, right: langPos.right }}
+                                                className="fixed w-44 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.55)] border border-white/10 overflow-hidden z-[91] flex flex-col p-1.5"
                                             >
                                                 {([['en', 'English'], ['ml', 'മലയാളം'], ['de', 'Deutsch']] as const).map(([code, name], i) => (
                                                     <button
                                                         key={code}
+                                                        role="menuitem"
+                                                        lang={code}
                                                         onClick={() => initiateLanguageChange(code)}
                                                         className={`flex items-baseline gap-3 px-3 py-2 text-left rounded-xl transition-colors cursor-pointer ${i18n.language.startsWith(code) ? 'bg-white/[0.08] text-alpine-sunrise' : 'text-white/75 hover:bg-white/[0.05] hover:text-white'}`}
                                                     >
@@ -311,7 +339,7 @@ export const Navbar: React.FC = () => {
                                             </motion.div>
                                         </>
                                     )}
-                                </AnimatePresence>
+                                </AnimatePresence>, document.body)}
                             </div>
 
                             {/* Profile / auth */}
@@ -423,13 +451,13 @@ export const Navbar: React.FC = () => {
                 className="absolute bottom-0 left-0 right-0 h-px origin-left z-50"
                 style={{
                     scaleX: scrollYProgress,
-                    background: 'linear-gradient(90deg, rgba(163,201,226,0.7) 0%, rgba(226,160,113,0.85) 50%, rgba(201,169,110,0.7) 100%)',
+                    background: 'linear-gradient(90deg, rgba(163,201,226,0.7) 0%, rgba(226,160,113,0.85) 50%, rgba(185,204,220,0.7) 100%)',
                     opacity: scrolled ? 1 : 0,
                 }}
             />
 
-            {/* Language Change Confirmation Dialogue */}
-            <AnimatePresence>
+            {/* Language Change Confirmation Dialogue — portalled so it covers the screen, not just the header */}
+            {createPortal(<AnimatePresence>
                 {pendingLang && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div 
@@ -487,7 +515,7 @@ export const Navbar: React.FC = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>, document.body)}
         </header>
     );
 };

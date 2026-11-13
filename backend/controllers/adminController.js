@@ -4,30 +4,87 @@ import Event from '../models/Event.js';
 import GalleryItem from '../models/GalleryItem.js';
 import Group from '../models/Group.js';
 import SecurityLog from '../models/SecurityLog.js';
+import Review from '../models/Review.js';
+import { parseEventStart, isUpcoming } from '../utils/eventDate.js';
 import { analyzeSecurityLogs } from '../services/aiInsightsService.js';
 
 // GET /api/admin/overview
 export const getOverview = async (req, res, next) => {
     try {
-        const [totalUsers, totalEvents, pendingMedia, activeGroups, recentUsers] = await Promise.all([
+        const DAY = 24 * 60 * 60 * 1000;
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const trendStart = new Date(today.getTime() - 13 * DAY);
+        const weekAgo = new Date(Date.now() - 7 * DAY);
+        const twoWeeksAgo = new Date(Date.now() - 14 * DAY);
+
+        const [
+            totalUsers, totalEvents, pendingMedia, activeGroups, recentUsers,
+            publishedStories, pendingStories, pendingReviews,
+            usersThisWeek, usersLastWeek, signupBuckets, allEvents
+        ] = await Promise.all([
             User.countDocuments(),
             Event.countDocuments(),
             GalleryItem.countDocuments({ status: 'pending' }),
             Group.countDocuments(),
-            User.find().sort({ createdAt: -1 }).limit(5).select('name email createdAt role')
+            User.find().sort({ createdAt: -1 }).limit(5).select('name email createdAt role avatar'),
+            Story.countDocuments({ status: 'approved' }),
+            Story.countDocuments({ status: 'pending' }),
+            Review.countDocuments({ status: 'pending' }),
+            User.countDocuments({ createdAt: { $gte: weekAgo } }),
+            User.countDocuments({ createdAt: { $gte: twoWeeksAgo, $lt: weekAgo } }),
+            User.aggregate([
+                { $match: { createdAt: { $gte: trendStart } } },
+                { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } }
+            ]),
+            Event.find().select('title date time location totalSlots participants category').lean()
         ]);
+
+        // Dates are free text, so filter and sort after parsing them
+        const upcomingEvents = allEvents
+            .map(e => ({ ...e, start: parseEventStart(e.date, e.time) }))
+            .filter(e => e.start && isUpcoming(e))
+            .sort((a, b) => a.start - b.start)
+            .slice(0, 4);
+
+        // Fill every day of the 14-day window so the sparkline has no gaps
+        const bucketMap = new Map(signupBuckets.map(b => [b._id, b.count]));
+        const signupTrend = Array.from({ length: 14 }, (_, i) => {
+            const day = new Date(trendStart.getTime() + i * DAY).toISOString().slice(0, 10);
+            return { date: day, count: bucketMap.get(day) || 0 };
+        });
 
         res.json({
             stats: {
                 totalUsers,
                 totalEvents,
                 pendingMedia,
-                activeGroups
+                activeGroups,
+                publishedStories,
+                usersThisWeek,
+                usersLastWeek
             },
+            moderation: {
+                stories: pendingStories,
+                media: pendingMedia,
+                reviews: pendingReviews
+            },
+            signupTrend,
+            upcomingEvents: upcomingEvents.map(e => ({
+                id: e._id,
+                title: e.title,
+                date: e.start.toISOString(),
+                location: e.location,
+                category: e.category,
+                totalSlots: e.totalSlots,
+                filled: e.participants?.length || 0
+            })),
             recentUsers: recentUsers.map(u => ({
                 id: u._id,
                 name: u.name,
                 email: u.email,
+                avatar: u.avatar,
+                role: u.role,
                 joinedAt: u.createdAt
             }))
         });
@@ -166,6 +223,42 @@ export const getSecurityDigest = async (req, res, next) => {
         res.json({
             rawMetrics: securityData,
             aiDigest
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// GET /api/admin/audit?type=admin_action&page=1 — paged security & admin activity (last 30 days)
+export const getAuditLog = async (req, res, next) => {
+    try {
+        const TYPES = ['admin_action', 'login_success', 'login_failure'];
+        const type = TYPES.includes(req.query.type) ? req.query.type : null;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = 40;
+        const filter = type ? { type } : { type: { $in: TYPES } };
+
+        const [logs, total] = await Promise.all([
+            SecurityLog.find(filter)
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .populate('userId', 'name avatar role')
+                .lean(),
+            SecurityLog.countDocuments(filter)
+        ]);
+
+        res.json({
+            logs: logs.map(l => ({
+                id: l._id,
+                type: l.type,
+                user: l.userId ? { id: l.userId._id, name: l.userId.name, avatar: l.userId.avatar, role: l.userId.role } : null,
+                email: l.email,
+                ip: l.ip,
+                details: l.details,
+                at: l.createdAt
+            })),
+            pagination: { page, limit, total, pages: Math.ceil(total / limit) }
         });
     } catch (error) {
         next(error);

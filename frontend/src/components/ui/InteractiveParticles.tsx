@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { getDeviceConfig } from '../../lib/deviceOptimization';
+import { ambientFrameInterval } from '../../lib/quality';
 
 export const InteractiveParticles = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -159,6 +160,8 @@ export const InteractiveParticles = () => {
         let lastParticleTime = 0;
         let scrollVelocity = 0;
         let lastScrollY = window.scrollY;
+        // Read once, not every frame (getDeviceConfig runs several matchMedia queries)
+        const frameConfig = getDeviceConfig();
         const animate = (time: number = 0) => {
             if (!ctx) return;
             if (document.hidden || !isIntersecting) {
@@ -166,9 +169,9 @@ export const InteractiveParticles = () => {
                 return;
             }
 
-            const deviceConfig = getDeviceConfig();
             const isScrolling = typeof document !== 'undefined' && document.body.classList.contains('is-scrolling');
-            const targetFpsInterval = isScrolling ? Math.max(33, deviceConfig.particleFpsInterval * 2) : deviceConfig.particleFpsInterval;
+            const baseInterval = ambientFrameInterval(frameConfig.particleFpsInterval);
+            const targetFpsInterval = isScrolling ? Math.max(33, baseInterval * 2) : baseInterval;
 
             if (time - lastParticleTime < targetFpsInterval) {
                 animationFrameId = requestAnimationFrame(animate);

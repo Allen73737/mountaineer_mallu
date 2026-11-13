@@ -6,7 +6,9 @@ import { contactApi } from '../lib/api';
 import { BackButton } from '../components/ui/BackButton';
 import { CreditTitle } from '../components/ui/CreditTitle';
 
+import { usePageMeta } from '../lib/usePageMeta';
 export const ContactPage = () => {
+    usePageMeta({ title: 'Contact', description: 'Questions about an expedition, partnerships or press — get in touch with Mountaineer Mallu.' });
     const [form, setForm] = useState({ name: '', email: '', subject: 'General Inquiry', message: '' });
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
@@ -31,7 +33,7 @@ export const ContactPage = () => {
     };
 
     return (
-        <div className="flashlight min-h-screen bg-alpine-navy dark:bg-transparent text-alpine-snow pt-40 pb-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="flashlight min-h-svh bg-alpine-navy dark:bg-transparent text-alpine-snow pt-40 pb-24 px-6 md:px-12 relative overflow-hidden">
 
             {/* Background massive typography */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[15rem] md:text-[25rem] font-serif font-normal text-white/5 whitespace-nowrap pointer-events-none select-none z-0">

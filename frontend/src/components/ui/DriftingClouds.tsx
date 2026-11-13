@@ -21,7 +21,7 @@ const FOG_PALETTES: Record<string, FogConfig> = {
     },
     mission: {
         sunlightColor: 'rgba(255, 255, 255, 0.95)',
-        tintColor: 'rgba(254, 205, 211, 0.4)',       // Rose gold alpenglow
+        tintColor: 'rgba(254, 205, 211, 0.4)',       // Rose alpenglow
         shadowColor: 'rgba(203, 213, 225, 0.5)'
     },
     stories: {
@@ -46,7 +46,7 @@ const FOG_PALETTES: Record<string, FogConfig> = {
     },
     team: {
         sunlightColor: 'rgba(255, 255, 255, 0.95)',
-        tintColor: 'rgba(253, 230, 138, 0.4)',       // Golden mountain sunlight
+        tintColor: 'rgba(255, 214, 204, 0.4)',       // Alpenglow sunlight
         shadowColor: 'rgba(186, 230, 253, 0.4)'
     },
     reviews: {

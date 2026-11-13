@@ -185,7 +185,7 @@ export const Reviews = () => {
                                     <div className="flex items-center gap-3 mt-2">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-alpine-glacier to-alpine-blue flex items-center justify-center text-white font-bold text-xs uppercase overflow-hidden border border-white/10">
                                             {current.author?.avatar ? (
-                                                <img src={current.author.avatar} alt="avatar" className="w-full h-full object-cover" />
+                                                <img loading="lazy" decoding="async" src={current.author.avatar} alt="avatar" className="w-full h-full object-cover" />
                                             ) : (
                                                 current.author?.name?.slice(0, 2)
                                             )}
@@ -270,7 +270,7 @@ export const Reviews = () => {
                                         >
                                             <Star
                                                 size={32}
-                                                className={`transition-colors duration-200 ${(hoveredStar || rating) >= star ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]" : "text-black/10 dark:text-white/10"}`}
+                                                className={`transition-colors duration-200 ${(hoveredStar || rating) >= star ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_10px_rgba(226, 160, 113,0.5)]" : "text-black/10 dark:text-white/10"}`}
                                             />
                                         </button>
                                     ))}

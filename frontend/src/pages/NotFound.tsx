@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { Compass, Home, BookOpen, Calendar, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { BackButton } from '../components/ui/BackButton';
 
+import { usePageMeta } from '../lib/usePageMeta';
 export const NotFoundPage: React.FC = () => {
+    usePageMeta({ title: 'Page not found', noindex: true });
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-[#030712] text-alpine-navy dark:text-alpine-snow relative flex flex-col justify-center items-center px-6 py-24 overflow-hidden film-grain">
+        <div className="min-h-svh bg-alpine-snow dark:bg-[#030712] text-alpine-navy dark:text-alpine-snow relative flex flex-col justify-center items-center px-6 py-24 overflow-hidden film-grain">
             {/* Ambient Aurora Glows */}
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-[#A3C9E2]/20 via-[#A3C9E2]/10 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
             <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-gradient-to-tl from-[#E2A071]/15 to-transparent rounded-full blur-2xl pointer-events-none -z-10" />

@@ -16,6 +16,15 @@ export const setAuthInvalidatedCallback = (cb: () => void) => { onAuthInvalidate
 let isDemoMode = false;
 export const setDemoMode = (demo: boolean) => { isDemoMode = demo; };
 
+// Server reachability, broadcast so the UI can show one calm banner instead of a wall of errors
+let serverReachable = true;
+const markServerReachable = (ok: boolean) => {
+    if (ok === serverReachable) return;
+    serverReachable = ok;
+    window.dispatchEvent(new CustomEvent('mm:server-status', { detail: { reachable: ok } }));
+};
+export const isServerReachable = () => serverReachable;
+
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const { params, retries = 0, timeoutMs, ...fetchOptions } = options;
 
@@ -49,7 +58,8 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
 
     // Pre-emptively block mutating requests from the frontend if in demo mode
     const method = config.method ? config.method.toUpperCase() : 'GET';
-    if (isDemoMode && method !== 'GET' && endpoint !== '/auth/logout') {
+    const demoAllowed = endpoint === '/auth/logout' || endpoint.startsWith('/notifications') || endpoint === '/ai/theme-suggestion' || endpoint === '/ai/route-briefing';
+    if (isDemoMode && method !== 'GET' && !demoAllowed) {
         const error: any = new Error('Action not permitted for demo accounts.');
         error.status = 403;
         error.data = { error: 'Action not permitted for demo accounts.' };
@@ -72,16 +82,34 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
             throw error;
         }
 
+        markServerReachable(true);
         return response.json();
     } catch (error: any) {
         // Fast-fail on auth check or initial settings to avoid blocking initial render
         const isTransientNetworkError = !error.status || error.status === 503 || error.status === 504;
-        const maxRetries = isUploadRequest ? 0 : 2;
+        // Only reads are retried: repeating a POST (login, post, register) could perform it twice
+        const maxRetries = isUploadRequest || method !== 'GET' ? 0 : 2;
 
         if (isTransientNetworkError && retries < maxRetries && endpoint !== '/auth/me' && endpoint !== '/settings') {
             const backoff = Math.min(300 * Math.pow(2, retries), 1500);
             await new Promise(resolve => setTimeout(resolve, backoff));
             return request<T>(endpoint, { ...options, retries: retries + 1 });
+        }
+
+        // fetch() rejects with a TypeError when nothing answers (server down, offline, CORS) — say so plainly
+        if (!error.status && error.name !== 'AbortError' && error.name !== 'TimeoutError') {
+            markServerReachable(false);
+            const friendly: any = new Error(import.meta.env.DEV
+                ? `Can't reach the API at ${API_URL || window.location.origin}. Is the backend running? (npm run dev in the project root)`
+                : "We can't reach our servers right now. Check your connection and try again.");
+            friendly.status = 0;
+            friendly.cause = error;
+            throw friendly;
+        }
+        if (error.name === 'TimeoutError') {
+            const slow: any = new Error('The server took too long to answer. Please try again.');
+            slow.status = 0;
+            throw slow;
         }
         throw error;
     }
@@ -370,11 +398,26 @@ export const communityApi = {
             body: formData,
         }),
 
-    addComment: (groupId: string, postId: string, content: string) =>
+    addComment: (groupId: string, postId: string, content: string, mentions: string[] = []) =>
         request<{ post: any; message: string }>(`/community/groups/${groupId}/posts/${postId}/comments`, {
             method: 'POST',
-            body: JSON.stringify({ content }),
+            body: JSON.stringify({ content, mentions }),
         }),
+
+    react: (groupId: string, postId: string, emoji: ReactionKey) =>
+        request<{ reactions: { user: string; emoji: ReactionKey }[] }>(`/community/groups/${groupId}/posts/${postId}/react`, {
+            method: 'POST',
+            body: JSON.stringify({ emoji }),
+        }),
+
+    deletePost: (groupId: string, postId: string) =>
+        request<{ message: string }>(`/community/groups/${groupId}/posts/${postId}`, { method: 'DELETE' }),
+
+    deleteComment: (groupId: string, postId: string, commentId: string) =>
+        request<{ post: any; message: string }>(`/community/groups/${groupId}/posts/${postId}/comments/${commentId}`, { method: 'DELETE' }),
+
+    leaveGroup: (groupId: string) =>
+        request<{ message: string }>(`/community/groups/${groupId}/leave`, { method: 'POST' }),
 
     pinMessage: (groupId: string, message: string) =>
         request<{ group: any; message: string }>(`/community/groups/${groupId}/pin`, {
@@ -392,7 +435,13 @@ export const communityApi = {
 
 export const adminApi = {
     getOverview: () =>
-        request<{ stats: any; recentUsers: any[] }>('/admin/overview'),
+        request<{
+            stats: any;
+            recentUsers: any[];
+            moderation?: { stories: number; media: number; reviews: number };
+            signupTrend?: { date: string; count: number }[];
+            upcomingEvents?: { id: string; title: string; date: string; location: string; totalSlots: number; filled: number }[];
+        }>('/admin/overview'),
 
     listAdmins: () =>
         request<{ admins: any[] }>('/admin/admins'),
@@ -578,3 +627,87 @@ export const campaignApi = {
         }),
 };
 
+
+
+// ─── Notifications, search, passport, moderation & audit ──────────────
+
+export type ReactionKey = 'summit' | 'heart' | 'fire' | 'clap' | 'strong';
+
+export interface AppNotification {
+    _id: string;
+    type: string;
+    title: string;
+    body?: string;
+    link?: string;
+    read: boolean;
+    createdAt: string;
+    actor?: { _id: string; name: string; avatar?: string } | null;
+}
+
+export const notificationsApi = {
+    list: () => request<{ notifications: AppNotification[]; unread: number }>('/notifications'),
+    markRead: (id: string) => request<{ ok: true }>(`/notifications/${id}/read`, { method: 'PATCH' }),
+    markAllRead: () => request<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
+    clear: () => request<{ ok: true }>('/notifications', { method: 'DELETE' }),
+};
+
+export interface SearchResult {
+    kind: 'story' | 'event' | 'group' | 'media' | 'team' | 'shop';
+    id: string;
+    title: string;
+    subtitle?: string;
+    image?: string;
+    href: string;
+}
+
+export const searchApi = {
+    query: (q: string, signal?: AbortSignal) => request<{ results: SearchResult[] }>('/search', { params: { q }, signal }),
+};
+
+export interface Passport {
+    stats: Record<string, number>;
+    stamps: { id: string; title: string; location: string; difficulty: string; category?: string; date: string }[];
+    upcoming: { id: string; title: string; location: string; date: string }[];
+    badges: { id: string; name: string; description: string; earned: boolean }[];
+    yearInReview: { year: number; summits: number; places: string[]; stories: number; posts: number; gainM: number; highlight: string | null };
+}
+
+export const passportApi = {
+    get: () => request<Passport>('/users/me/passport'),
+};
+
+export const moderationApi = {
+    stories: (ids: string[], status: 'approved' | 'rejected' | 'pending') =>
+        request<{ message: string; updated: number }>('/stories/bulk-status', { method: 'PATCH', body: JSON.stringify({ ids, status }) }),
+    media: (ids: string[], status: 'approved' | 'rejected') =>
+        request<{ message: string; updated: number }>('/gallery/bulk-status', { method: 'PATCH', body: JSON.stringify({ ids, status }) }),
+    reviews: (ids: string[], status: 'approved' | 'rejected' | 'pending') =>
+        request<{ message: string; updated: number }>('/reviews/bulk-status', { method: 'PATCH', body: JSON.stringify({ ids, status }) }),
+};
+
+export const eventAdminApi = {
+    participantsCsvUrl: (eventId: string) => `${API_URL}/api/events/${eventId}/participants.csv`,
+    message: (eventId: string, data: { subject: string; message: string; channels: { email: boolean; notification: boolean } }) =>
+        request<{ message: string; recipients: number; emailed: number }>(`/events/${eventId}/message`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+            timeoutMs: 60000,
+        }),
+};
+
+export interface AuditEntry {
+    id: string;
+    type: 'admin_action' | 'login_success' | 'login_failure';
+    user: { id: string; name: string; avatar?: string; role: string } | null;
+    email: string;
+    ip: string;
+    details: string;
+    at: string;
+}
+
+export const auditApi = {
+    list: (params: { type?: string; page?: number }) =>
+        request<{ logs: AuditEntry[]; pagination: { page: number; pages: number; total: number } }>('/admin/audit', {
+            params: Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')) as Record<string, string | number>,
+        }),
+};

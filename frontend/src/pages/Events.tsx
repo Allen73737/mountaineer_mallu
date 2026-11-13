@@ -13,13 +13,32 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { CreditTitle } from '../components/ui/CreditTitle';
 import { MorphLink } from '../components/ui/MorphLink';
 
+import { usePageMeta } from '../lib/usePageMeta';
+import { AddToCalendar } from '../components/site/AddToCalendar';
+import { parseEventStart } from '../lib/calendar';
+import { useTranslation } from 'react-i18next';
 export const EventsPage = () => {
+    usePageMeta({ title: 'Upcoming Expeditions', description: 'Join a guided Alpine expedition, skills training day, meetup or cultural gathering with Mountaineer Mallu.' });
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const { user, isLoggedIn } = useAuthStore();
     const { showToast, ToastComponent } = useToast();
+    const { t } = useTranslation();
+    const [category, setCategory] = useState<'all' | 'expedition' | 'training' | 'meetup' | 'cultural'>('all');
+    // Soonest first; past trips sink to the end
+    const visibleEvents = React.useMemo(() => {
+        const now = Date.now();
+        const key = (e: any) => parseEventStart(e.date, e.time)?.start.getTime() ?? Infinity;
+        return events
+            .filter(e => category === 'all' || (e.category || 'expedition') === category)
+            .sort((a, b) => {
+                const ka = key(a), kb = key(b);
+                const pa = ka < now, pb = kb < now;
+                return pa === pb ? (pa ? kb - ka : ka - kb) : pa ? 1 : -1;
+            });
+    }, [events, category]);
 
     const fetchEvents = useCallback(async () => {
         setLoading(true);
@@ -75,7 +94,7 @@ export const EventsPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
             {ToastComponent}
 
             {/* Absolute massive geometric line art background */}
@@ -122,9 +141,30 @@ export const EventsPage = () => {
                         actionLink="/"
                     />
                 ) : (
-                    /* Timeline Layout */
+                    <>
+                    {/* Category filter — expeditions, skills days, meetups and Kerala cultural gatherings */}
+                    <div className="flex flex-wrap justify-center gap-2 mb-16" role="tablist" aria-label="Filter by category">
+                        {(['all', 'expedition', 'training', 'meetup', 'cultural'] as const).map(c => {
+                            const count = c === 'all' ? events.length : events.filter(e => (e.category || 'expedition') === c).length;
+                            if (c !== 'all' && count === 0) return null;
+                            return (
+                                <button
+                                    key={c}
+                                    role="tab"
+                                    aria-selected={category === c}
+                                    onClick={() => setCategory(c)}
+                                    className={`h-10 px-5 rounded-full text-sm font-medium border transition-colors ${category === c
+                                        ? 'bg-alpine-navy text-alpine-snow border-transparent dark:bg-alpine-snow dark:text-alpine-navy'
+                                        : 'border-alpine-navy/15 dark:border-white/15 text-alpine-navy/70 dark:text-white/65 hover:border-alpine-navy/40 dark:hover:border-white/40'}`}
+                                >
+                                    {t(`app.categories.${c}`)} <span className="opacity-50 tabular-nums ml-1">{count}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {/* Timeline Layout */}
                     <div className="relative border-l border-alpine-navy/10 dark:border-alpine-snow/10 pl-8 md:pl-16 space-y-24">
-                        {events.map((evt, i) => (
+                        {visibleEvents.map((evt, i) => (
                             <motion.div
                                 key={evt._id || i}
                                 initial={{ opacity: 0, x: 100 }}
@@ -146,8 +186,13 @@ export const EventsPage = () => {
                                             containerClassName="w-full h-full"
                                             className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 group-hover:scale-110 transition-transform duration-[2000ms]"
                                         />
-                                        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-bold uppercase tracking-widest border border-white/20">
-                                            {evt.type}
+                                        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                                            <span className="bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-bold uppercase tracking-widest border border-white/20">{evt.type}</span>
+                                            {evt.category && evt.category !== 'expedition' && (
+                                                <span className={`backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border ${evt.category === 'cultural' ? 'bg-alpine-sunrise/85 text-[#1B0F08] border-white/20' : 'bg-alpine-glacier/80 text-alpine-navy border-white/20'}`}>
+                                                    {t(`app.categories.${evt.category}`)}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -173,6 +218,7 @@ export const EventsPage = () => {
                                         </div>
 
                                         <div className="flex flex-col sm:flex-row flex-wrap gap-4 mt-auto">
+                                            <AddToCalendar event={evt} variant="compact" className="w-full text-alpine-navy dark:text-alpine-snow" />
                                             {isRegistered(evt) ? (
                                                 <>
                                                     <button
@@ -222,6 +268,7 @@ export const EventsPage = () => {
                             </motion.div>
                         ))}
                     </div>
+                    </>
                 )}
             </div>
         </div>

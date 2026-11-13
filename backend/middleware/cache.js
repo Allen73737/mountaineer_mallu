@@ -10,7 +10,11 @@ let isRedisReady = false;
 
 if (process.env.REDIS_URL) {
     try {
-        redisClient = createClient({ url: process.env.REDIS_URL });
+        redisClient = createClient({
+            url: process.env.REDIS_URL,
+            // Give up after a few tries so an unreachable Redis doesn't reconnect forever; L1 memory cache keeps working
+            socket: { reconnectStrategy: (retries) => (retries > 3 ? false : Math.min(retries * 200, 2000)) },
+        });
         redisClient.on('ready', () => {
             isRedisReady = true;
         });

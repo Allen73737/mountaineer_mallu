@@ -9,6 +9,8 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { ExpeditionTabSkeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/ErrorState';
 
+import { AddToCalendar } from '../../components/site/AddToCalendar';
+import { parseEventStart } from '../../lib/calendar';
 // Simple Custom Calendar Component
 const CustomCalendar = ({ expeditions }: { expeditions: any[] }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -156,8 +158,9 @@ export const UserExpeditionsTab = () => {
         }
     };
 
-    const upcomingExpeditions = expeditions.filter(e => new Date(e.eventId.date) >= new Date());
-    const pastExpeditions = expeditions.filter(e => new Date(e.eventId.date) < new Date());
+    const startOf = (e: any) => parseEventStart(e.eventId?.date, e.eventId?.time)?.start ?? new Date(e.eventId?.date);
+    const upcomingExpeditions = expeditions.filter(e => startOf(e) >= new Date());
+    const pastExpeditions = expeditions.filter(e => startOf(e) < new Date());
 
     // Artificial logic for Passport Stats (based on past expeditions)
     const totalElevationGained = pastExpeditions.length * Math.floor(Math.random() * 2000 + 1000); 
@@ -215,15 +218,11 @@ export const UserExpeditionsTab = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
         >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-alpine-glacier/20 text-alpine-glacier rounded-2xl">
-                        <Mountain size={32} />
-                    </div>
-                    <div>
-                        <h2 className="text-3xl font-serif font-bold tracking-wide">Operations & Passport</h2>
-                        <p className="text-alpine-navy/60 dark:text-white/50 mt-1">Manage your schedule and view your mountaineering logbook.</p>
-                    </div>
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-5 mb-8 md:mb-10">
+                <div className="min-w-0">
+                    <p className="mm-eyebrow mb-3">Basecamp · Logbook</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Operations &amp; <em>passport</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage your schedule and view your mountaineering logbook.</p>
                 </div>
                 <Link to="/events" className="group shrink-0">
                     <div className="flex items-center gap-2 px-5 py-3 rounded-xl bg-alpine-glacier/10 hover:bg-alpine-glacier/20 border border-alpine-glacier/20 text-alpine-glacier font-semibold text-sm transition-all">
@@ -241,7 +240,7 @@ export const UserExpeditionsTab = () => {
                     {/* User ID Card */}
                     <div className="w-full md:w-1/3 flex flex-col items-center p-6 rounded-2xl bg-gradient-to-b from-white/40 to-white/10 dark:from-white/5 dark:to-transparent border border-black/10 dark:border-white/10 shadow-inner">
                         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-alpine-glacier/30 shadow-[0_0_20px_rgba(163,201,226,0.3)] mb-4">
-                            <img src={user?.avatar || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200'} alt="Avatar" className="w-full h-full object-cover" />
+                            <img loading="lazy" decoding="async" src={user?.avatar || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=200'} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                         <h3 className="font-serif font-bold text-xl uppercase tracking-wider">{user?.name}</h3>
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-alpine-glacier mb-6">Verified Explorer</p>
@@ -460,7 +459,7 @@ export const UserExpeditionsTab = () => {
                                     <div className="absolute inset-0 bg-gradient-to-r from-alpine-glacier/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                                     
                                     <div className="w-full md:w-32 h-48 md:h-32 rounded-2xl overflow-hidden shrink-0 shadow-[0_10px_30px_rgba(0,0,0,0.2)] relative">
-                                        <img src={exp.eventId.image} alt={exp.eventId.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                                        <img loading="lazy" decoding="async" src={exp.eventId.image} alt={exp.eventId.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
                                         <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
                                     </div>
                                     <div className="flex-1 w-full text-center md:text-left relative z-10">
@@ -470,6 +469,7 @@ export const UserExpeditionsTab = () => {
                                             <span className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-black/5 dark:border-white/5"><Clock size={14} className="text-alpine-glacier"/> {exp.eventId.time}</span>
                                             <span className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-black/5 dark:border-white/5"><MapPin size={14} className="text-alpine-glacier"/> {exp.eventId.location}</span>
                                         </div>
+                                        <AddToCalendar event={exp.eventId} variant="compact" className="mt-4 justify-center md:justify-start" />
                                     </div>
                                     <div className="shrink-0 flex flex-row md:flex-col items-center justify-center gap-4 md:border-l md:border-t-0 border-t border-black/10 dark:border-white/10 md:pl-8 pt-4 md:pt-0 w-full md:w-auto relative z-10">
                                         <div className="flex flex-col items-center gap-2">

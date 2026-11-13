@@ -143,5 +143,126 @@
     "kicker": "The route · Mont Blanc",
     "title": "The Goûter line, camp by camp",
     "altitude": "Altitude"
+  },
+  "app": {
+    "search": {
+      "placeholder": "Search stories, expeditions, people…",
+      "hint": "Type at least 2 letters",
+      "empty": "No matches for “{{q}}”",
+      "recent": "Recent",
+      "jump": "Jump to",
+      "results": "Results",
+      "open": "Search",
+      "navHint": "↑↓ to move · ↵ to open · esc to close",
+      "kinds": {
+        "story": "Story",
+        "event": "Expedition",
+        "group": "Group",
+        "media": "Media",
+        "team": "Team",
+        "shop": "Shop",
+        "page": "Page"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "empty": "You’re all caught up",
+      "emptyHint": "Replies, reactions and trip updates land here.",
+      "markAll": "Mark all read",
+      "clear": "Clear",
+      "open": "Open notifications"
+    },
+    "calendar": {
+      "google": "Add to Google Calendar",
+      "ics": "Download .ics (Apple, Outlook)",
+      "add": "Add to calendar",
+      "share": "Share trip",
+      "copied": "Link copied"
+    },
+    "pages": {
+      "home": "Home",
+      "stories": "Stories",
+      "events": "Expeditions",
+      "gallery": "Gallery",
+      "community": "Community",
+      "team": "Team",
+      "reviews": "Reviews",
+      "shop": "Shop",
+      "contact": "Contact",
+      "dashboard": "My dashboard",
+      "admin": "Summit Control"
+    },
+    "portal": {
+      "home": "Basecamp",
+      "profile": "Profile",
+      "expeditions": "My Expeditions",
+      "communities": "My Factions",
+      "gear": "Gear Vault",
+      "wishlist": "Wishlist",
+      "write": "Write a Story",
+      "upload": "Upload Media",
+      "submissions": "Submissions",
+      "collections": "Collections",
+      "passport": "Summit Passport",
+      "short": {
+        "home": "Home",
+        "profile": "Profile",
+        "expeditions": "Trips",
+        "communities": "Factions",
+        "gear": "Gear",
+        "wishlist": "Wishlist",
+        "write": "Write",
+        "upload": "Upload",
+        "submissions": "Status",
+        "collections": "Saved",
+        "passport": "Passport"
+      },
+      "groupBasecamp": "Basecamp",
+      "groupCreate": "Create",
+      "mainSite": "Main site",
+      "logout": "Log out",
+      "explorer": "Explorer",
+      "more": "More"
+    },
+    "passport": {
+      "eyebrow": "Basecamp · Achievements",
+      "titleA": "Summit",
+      "titleB": "passport",
+      "desc": "Every expedition stamped, every milestone earned.",
+      "stamps": "Stamps",
+      "badges": "Badges",
+      "earned": "Earned",
+      "locked": "Locked",
+      "yearInReview": "Year in review",
+      "download": "Download card",
+      "share": "Share",
+      "noStamps": "Your first stamp is one expedition away.",
+      "browse": "Browse expeditions",
+      "upcoming": "Coming up",
+      "stats": {
+        "summits": "Summits",
+        "stories": "Stories",
+        "climbed": "Metres climbed",
+        "places": "Places",
+        "posts": "Posts",
+        "reactions": "Reactions received"
+      }
+    },
+    "community": {
+      "react": "React",
+      "reply": "Reply",
+      "delete": "Delete",
+      "leave": "Leave group",
+      "mentionHint": "Type @ to mention someone",
+      "live": "Live",
+      "newPosts": "{{count}} new posts — show"
+    },
+    "categories": {
+      "all": "All",
+      "expedition": "Expedition",
+      "training": "Training",
+      "meetup": "Meetup",
+      "cultural": "Cultural"
+    }
   }
 }

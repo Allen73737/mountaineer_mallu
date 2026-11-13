@@ -1,4 +1,5 @@
 import { streamChat, quickChat } from '../services/groq.js';
+import { parseEventStart, isUpcoming } from '../utils/eventDate.js';
 import Event from '../models/Event.js';
 import GalleryItem from '../models/GalleryItem.js';
 import Review from '../models/Review.js';
@@ -50,10 +51,12 @@ export const chatStream = async (req, res) => {
         // Fetch live site data for system context
         let events = [];
         try {
-            events = await Event.find({ date: { $gte: new Date().toISOString().split('T')[0] } })
-                .sort({ date: 1 })
-                .limit(5)
-                .lean();
+            // Dates are free text ("Jan 15, 2026"), so filter and sort after parsing them
+            events = (await Event.find().lean())
+                .map(e => ({ ...e, start: parseEventStart(e.date, e.time) }))
+                .filter(e => e.start && isUpcoming(e))
+                .sort((a, b) => a.start - b.start)
+                .slice(0, 5);
         } catch (e) { /* non-critical */ }
 
         const systemPrompt = buildSystemPrompt({

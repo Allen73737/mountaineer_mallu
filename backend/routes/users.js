@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { updateProfile, uploadAvatar, listUsers, deleteUser, changeRole, getMyProfile, createCollection, addToCollection, trackDownload, getMyExpeditions, toggleExpeditionReminder, getWishlist, toggleWishlist, changePassword } from '../controllers/userController.js';
 import { authenticate, authorize, requirePermission } from '../middleware/auth.js';
 import { upload, verifyFileSignature } from '../middleware/upload.js';
+import { getPassport } from '../controllers/passportController.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.post('/downloads', authenticate, trackDownload);
 
 // Expeditions
 router.get('/me/expeditions', authenticate, getMyExpeditions);
+router.get('/me/passport', authenticate, getPassport);
 router.patch('/me/expeditions/:eventId/reminder', authenticate, toggleExpeditionReminder);
 
 // Wishlist

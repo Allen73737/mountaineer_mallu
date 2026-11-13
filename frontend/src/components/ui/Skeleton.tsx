@@ -1,3 +1,4 @@
+import { srcSetFor } from '../../lib/img';
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -87,7 +88,7 @@ export const GallerySkeleton = () => (
 
 /** Story / Article Detail Page Skeleton */
 export const DetailSkeleton = () => (
-    <div className="skeleton-delay min-h-screen bg-alpine-snow dark:bg-[#0B0C10] text-alpine-navy dark:text-white pt-28 pb-20 px-6 md:px-12">
+    <div className="skeleton-delay min-h-svh bg-alpine-snow dark:bg-[#0B0C10] text-alpine-navy dark:text-white pt-28 pb-20 px-6 md:px-12">
         <div className="max-w-5xl mx-auto space-y-8">
             <div className="flex items-center gap-4 mb-4">
                 <Skeleton className="h-10 w-28 rounded-full" />
@@ -132,7 +133,7 @@ export const DetailSkeleton = () => (
 
 /** Event Detail Page Skeleton */
 export const EventDetailSkeleton = () => (
-    <div className="skeleton-delay min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
+    <div className="skeleton-delay min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
         <div className="max-w-7xl mx-auto space-y-10">
             <Skeleton className="h-10 w-28 rounded-full mb-6" />
             
@@ -336,10 +337,103 @@ export const StatSkeleton = () => (
     </div>
 );
 
+/**
+ * Sign-in / sign-up placeholder: mirrors AuthHub exactly — photo panel with quote and ascent meter on the
+ * left and the form column on the right (desktop), or a photo header with a rising sheet (phones).
+ */
+export const AuthSkeleton: React.FC = () => (
+    <div className="skeleton-delay min-h-svh w-full bg-[#F7F4EF] dark:bg-[#070B12]" aria-busy="true" aria-label="Loading sign-in">
+        {/* Desktop */}
+        <div className="hidden lg:grid grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] min-h-svh">
+            <div className="sticky top-0 h-svh p-3">
+                <div className="relative h-full rounded-[1.75rem] overflow-hidden bg-gradient-to-b from-[#1A2B40] to-[#0B121C]">
+                    <div className="absolute inset-0 skeleton-shimmer !bg-transparent !rounded-none" />
+                    <div className="relative h-full flex flex-col justify-between p-10 xl:p-12">
+                        <div className="flex items-center justify-between">
+                            <Skeleton className="h-10 w-40 rounded-xl !bg-white/10" />
+                            <Skeleton className="h-7 w-28 rounded-full !bg-white/10" />
+                        </div>
+                        <div className="max-w-xl space-y-4">
+                            <Skeleton className="h-3 w-64 rounded-full !bg-white/10" />
+                            <Skeleton className="h-10 w-full rounded-xl !bg-white/10" />
+                            <Skeleton className="h-10 w-4/5 rounded-xl !bg-white/10" />
+                            <Skeleton className="h-4 w-32 rounded-full !bg-white/10" />
+                            <Skeleton className="h-2 w-full rounded-full !bg-white/10 mt-10" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="flex flex-col px-10 xl:px-16 py-8">
+                <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-28 rounded-full" />
+                    <Skeleton className="h-3 w-36 rounded-full" />
+                </div>
+                <div className="flex-1 flex items-center">
+                    <div className="w-full max-w-md mx-auto space-y-5">
+                        <Skeleton className="h-3 w-40 rounded-full" />
+                        <Skeleton className="h-12 w-72 rounded-xl" />
+                        <Skeleton className="h-4 w-60 rounded-full" />
+                        <div className="pt-4 space-y-6">
+                            <Skeleton className="h-12 w-full rounded-full" />
+                            <Skeleton className="h-px w-full rounded-none" />
+                            <Skeleton className="h-11 w-full rounded-xl" />
+                            <Skeleton className="h-11 w-full rounded-xl" />
+                        </div>
+                        <Skeleton className="h-14 w-full rounded-full mt-2" />
+                        <Skeleton className="h-3 w-48 rounded-full mx-auto" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        {/* Phones & tablets */}
+        <div className="lg:hidden relative min-h-svh">
+            <div className="relative h-[34vh] min-h-[240px] sm:h-[38vh] bg-gradient-to-b from-[#1A2B40] to-[#0B121C] overflow-hidden">
+                <div className="absolute inset-0 skeleton-shimmer !bg-transparent !rounded-none" />
+                <div className="absolute left-5 right-5 top-5 flex justify-between">
+                    <Skeleton className="h-9 w-9 rounded-full !bg-white/10" />
+                    <Skeleton className="h-9 w-32 rounded-xl !bg-white/10" />
+                </div>
+            </div>
+            <div className="relative -mt-8 rounded-t-[2rem] bg-[#F7F4EF] dark:bg-[#070B12] px-6 pt-8 pb-12 space-y-5">
+                <Skeleton className="h-10 w-56 rounded-xl" />
+                <Skeleton className="h-4 w-64 rounded-full" />
+                <Skeleton className="h-12 w-full rounded-full mt-4" />
+                <Skeleton className="h-11 w-full rounded-xl" />
+                <Skeleton className="h-11 w-full rounded-xl" />
+                <Skeleton className="h-14 w-full rounded-full" />
+            </div>
+        </div>
+    </div>
+);
+
+/** Explorer portal / Summit Control placeholder: the console's rail, header and first row of tiles. */
+export const ConsoleSkeleton: React.FC<{ admin?: boolean }> = ({ admin }) => (
+    <div className={`skeleton-delay mm-console ${admin ? 'dark' : ''} min-h-svh flex text-[var(--mm-ink)]`} aria-busy="true" aria-label="Loading dashboard">
+        <div className="mm-backdrop" aria-hidden="true" />
+        <div className={`hidden lg:flex relative z-10 flex-col shrink-0 ${admin ? 'w-[264px] border-r border-[var(--mm-line)] p-5' : 'w-[272px] m-4 mr-0 mm-panel !rounded-[1.75rem] p-6'}`}>
+            <Skeleton className="h-9 w-40 rounded-xl mb-8" />
+            {!admin && <div className="flex items-center gap-3 mb-8"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-28 rounded-full" /><Skeleton className="h-2.5 w-16 rounded-full" /></div></div>}
+            <div className="space-y-2.5">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-xl" />)}</div>
+        </div>
+        <div className="relative z-10 flex-1 min-w-0 px-4 sm:px-8 lg:px-12 pt-20 lg:pt-12">
+            {admin && <Skeleton className="h-4 w-56 rounded-full mb-10" />}
+            <Skeleton className="h-3 w-40 rounded-full mb-4" />
+            <Skeleton className="h-14 w-80 max-w-full rounded-2xl mb-3" />
+            <Skeleton className="h-4 w-96 max-w-full rounded-full mb-10" />
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-44 rounded-[1.25rem]" />)}</div>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-5"><Skeleton className="h-72 xl:col-span-2 rounded-[1.25rem]" /><Skeleton className="h-72 rounded-[1.25rem]" /></div>
+        </div>
+    </div>
+);
+
 /** Smart Route Suspense Skeleton that dynamically adapts to target path */
 export const RouteSuspenseSkeleton: React.FC = () => {
     const location = useLocation();
     const path = location.pathname;
+
+    if (path === '/login' || path === '/signup' || path === '/profile-complete') return <AuthSkeleton />;
+    if (path.startsWith('/portal') || path === '/dashboard') return <ConsoleSkeleton />;
+    if (path.startsWith('/summit-control-panel')) return <ConsoleSkeleton admin />;
 
     if (path.startsWith('/stories/') && path !== '/stories') {
         return <DetailSkeleton />;
@@ -349,7 +443,7 @@ export const RouteSuspenseSkeleton: React.FC = () => {
     }
     if (path.startsWith('/events')) {
         return (
-            <div className="skeleton-delay min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
+            <div className="skeleton-delay min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
                 <div className="max-w-7xl mx-auto space-y-12">
                     <Skeleton className="h-10 w-28 rounded-full mb-6" />
                     <div className="space-y-4">
@@ -365,14 +459,14 @@ export const RouteSuspenseSkeleton: React.FC = () => {
     }
     if (path.startsWith('/gallery')) {
         return (
-            <div className="min-h-screen bg-alpine-snow dark:bg-black pt-32 pb-24 px-4 md:px-8">
+            <div className="min-h-svh bg-alpine-snow dark:bg-black pt-32 pb-24 px-4 md:px-8">
                 <GallerySkeleton />
             </div>
         );
     }
     if (path.startsWith('/community')) {
         return (
-            <div className="min-h-screen bg-alpine-snow dark:bg-[#0B0C10] pt-32 pb-24 px-6 md:px-12">
+            <div className="min-h-svh bg-alpine-snow dark:bg-[#0B0C10] pt-32 pb-24 px-6 md:px-12">
                 <div className="max-w-7xl mx-auto space-y-8">
                     <Skeleton className="h-10 w-28 rounded-full" />
                     <div className="space-y-4">
@@ -386,21 +480,21 @@ export const RouteSuspenseSkeleton: React.FC = () => {
     }
     if (path.startsWith('/shop')) {
         return (
-            <div className="min-h-screen bg-alpine-snow dark:bg-black pt-32 pb-24 px-6 md:px-12">
+            <div className="min-h-svh bg-alpine-snow dark:bg-black pt-32 pb-24 px-6 md:px-12">
                 <ShopSkeleton />
             </div>
         );
     }
     if (path.startsWith('/team')) {
         return (
-            <div className="min-h-screen bg-alpine-snow dark:bg-black pt-32 pb-24 px-6 md:px-12">
+            <div className="min-h-svh bg-alpine-snow dark:bg-black pt-32 pb-24 px-6 md:px-12">
                 <TeamSkeleton />
             </div>
         );
     }
     if (path.startsWith('/reviews')) {
         return (
-            <div className="min-h-screen bg-alpine-snow dark:bg-black pt-32 pb-24 px-6 md:px-12">
+            <div className="min-h-svh bg-alpine-snow dark:bg-black pt-32 pb-24 px-6 md:px-12">
                 <ReviewSkeleton />
             </div>
         );
@@ -408,7 +502,7 @@ export const RouteSuspenseSkeleton: React.FC = () => {
 
     // Default universal page skeleton (Stories, Profile, etc.)
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
+        <div className="min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
             <div className="max-w-7xl mx-auto space-y-12">
                 <Skeleton className="h-10 w-28 rounded-full mb-6" />
                 <div className="space-y-4 pb-8 border-b border-black/10 dark:border-white/10">
@@ -452,6 +546,9 @@ export const ImageWithSkeleton: React.FC<ImageWithSkeletonProps> = ({
             <img
                 src={src}
                 alt={alt}
+                // CDN images get width variants so phones don't download desktop-sized photos
+                srcSet={props.srcSet ?? srcSetFor(src)}
+                sizes={props.sizes ?? '(max-width: 768px) 100vw, 60vw'}
                 loading={props.loading || 'lazy'}
                 decoding="async"
                 onLoad={() => setIsLoaded(true)}

@@ -199,7 +199,7 @@ export const GalleryManagement = () => {
                     {bulkTagging ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                     <span>{bulkTagging ? 'Tagging...' : 'AI Auto-Tag All'}</span>
                 </button>
-                <button onClick={() => setShowUpload(true)} className="py-2.5 px-5 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium">
+                <button onClick={() => setShowUpload(true)} className="mm-btn mm-btn--primary">
                     <UploadCloud size={18} /><span>Upload Media</span>
                 </button>
             </div>
@@ -211,7 +211,7 @@ export const GalleryManagement = () => {
                     {allItems.map(item => (
                         <div key={item._id} className="relative rounded-2xl overflow-hidden group premium-card">
                             <div className="aspect-square relative">
-                                {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <img src={item.url} className="w-full h-full object-cover" />}
+                                {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <img loading="lazy" decoding="async" alt={item.title || ""} src={item.url} className="w-full h-full object-cover" />}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/80 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-[2px] lg:backdrop-blur-sm">
                                     <div className="flex items-center gap-2">
                                         <button onClick={() => handleAiTag(item._id)} disabled={taggingId === item._id} className="p-2.5 bg-purple-500/80 rounded-xl hover:bg-purple-500 text-white transition-colors shadow-lg disabled:opacity-40" title="AI Auto-Tag">
@@ -294,7 +294,7 @@ export const GalleryManagement = () => {
                                 className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center cursor-pointer hover:border-alpine-glacier/50 hover:bg-white/5 transition-all mb-6"
                             >
                                 {uploadPreview || unsplashUrl ? (
-                                    <img src={uploadPreview || unsplashUrl || ''} className="max-h-48 mx-auto rounded-xl object-contain" />
+                                    <img loading="lazy" decoding="async" alt="" src={uploadPreview || unsplashUrl || ''} className="max-h-48 mx-auto rounded-xl object-contain" />
                                 ) : uploadFile ? (
                                     <p className="text-white/60">{uploadFile.name}</p>
                                 ) : (
@@ -323,7 +323,7 @@ export const GalleryManagement = () => {
                                 <button
                                     onClick={handleUpload}
                                     disabled={uploading || (!uploadFile && !unsplashUrl)}
-                                    className="flex-1 py-3 rounded-xl bg-alpine-glacier text-alpine-navy font-bold btn-premium flex items-center justify-center gap-2"
+                                    className="flex-1 mm-btn mm-btn--primary !h-12"
                                 >
                                     {uploading ? <Loader2 className="animate-spin" size={18} /> : 'Upload'}
                                 </button>
@@ -359,7 +359,7 @@ export const GalleryManagement = () => {
                             />
                             <div className="flex gap-3">
                                 <button onClick={() => setEditItem(null)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all">Cancel</button>
-                                <button onClick={handleEditSave} disabled={savingEdit || !editTitle} className="flex-1 py-3 rounded-xl bg-alpine-glacier text-alpine-navy font-bold btn-premium flex items-center justify-center gap-2">
+                                <button onClick={handleEditSave} disabled={savingEdit || !editTitle} className="flex-1 mm-btn mm-btn--primary !h-12">
                                     {savingEdit ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
                                 </button>
                             </div>
@@ -393,7 +393,7 @@ export const GalleryManagement = () => {
                             {selectedMedia.type === 'video' ? (
                                 <video src={selectedMedia.url || selectedMedia.image} autoPlay loop controls className="w-full h-full object-contain bg-black" />
                             ) : (
-                                <img src={selectedMedia.url || selectedMedia.image} className="w-full h-full object-contain bg-black" />
+                                <img loading="lazy" decoding="async" alt="" src={selectedMedia.url || selectedMedia.image} className="w-full h-full object-contain bg-black" />
                             )}
                             <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                                 <h2 className="text-4xl font-serif text-white">{selectedMedia.title}</h2>
@@ -444,7 +444,7 @@ export const GalleryManagement = () => {
                                                 setImageModalOpen(false);
                                             }}
                                         >
-                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <img loading="lazy" decoding="async" src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                                 <span className="text-white text-xs font-medium truncate">Photo by {img.authorName}</span>
                                                 <div className="mt-2 text-alpine-glacier flex items-center gap-1 text-sm font-semibold">

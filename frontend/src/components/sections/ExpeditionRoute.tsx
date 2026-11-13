@@ -53,7 +53,9 @@ export const ExpeditionRoute = () => {
         const idx = CAMPS.reduce((acc, c, i) => (p >= c.at - 0.005 ? i : acc), 0);
         setReached(prev => (prev === idx ? prev : idx));
     });
-    const use3D = !reduce && tier !== 'low';
+    // The scene renders only while scrolling (on demand) and drops resolution on lower tiers, so even the
+    // low tier keeps it; the 2D sketch is for reduced motion and machines without WebGL
+    const use3D = !reduce;
     const theme = useStore(s => s.theme);
     const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -93,7 +95,7 @@ export const ExpeditionRoute = () => {
                             // No WebGL (old GPU, disabled acceleration) or a scene error: show the 2D map instead
                             <SafeBoundary name="RouteTerrain" fallback={flatMap}>
                                 <Suspense fallback={null}>
-                                    <RouteTerrain progress={progress} camps={CAMPS} active={onScreen} quality={tier === 'high' ? 'high' : 'medium'} dark={isDark} />
+                                    <RouteTerrain progress={progress} camps={CAMPS} active={onScreen} quality={tier} dark={isDark} />
                                 </Suspense>
                             </SafeBoundary>
                         )

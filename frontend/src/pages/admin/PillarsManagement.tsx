@@ -114,17 +114,15 @@ export const PillarsManagement = () => {
             {ToastComponent}
 
             {/* Header */}
-            <div className="flex justify-between items-end">
+            <div className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Users className="text-alpine-glacier" size={28} />
-                        <h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Team Members</h1>
-                    </div>
-                    <p className="text-white/50 text-sm">Manage the core team members displayed on the platform.</p>
+                    <p className="mm-eyebrow mb-3">People · The crew</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Team <em>members</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage the core team members displayed on the platform.</p>
                 </div>
                 <button
                     onClick={() => { setCurrentPillar({ order: pillars.length }); setImageFile(null); setIsEditing(true); }}
-                    className="py-2 px-4 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium"
+                    className="mm-btn mm-btn--primary"
                 >
                     <Plus size={18} />
                     <span>Add Leader</span>
@@ -147,7 +145,7 @@ export const PillarsManagement = () => {
                                     className="premium-card rounded-2xl p-4 flex gap-4 group"
                                 >
                                     <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 relative">
-                                        <img src={pillar.image} alt={pillar.name} className="w-full h-full object-cover" />
+                                        <img loading="lazy" decoding="async" src={pillar.image} alt={pillar.name} className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                             <button onClick={() => { setCurrentPillar(pillar); setImageFile(null); setIsEditing(true); }} className="p-1.5 bg-white/20 rounded hover:bg-white/40 text-white transition-colors">
                                                 <Edit2 size={12} />
@@ -200,7 +198,7 @@ export const PillarsManagement = () => {
                                                 transition={{ type: 'spring', stiffness: 100, damping: 14 }}
                                                 className="absolute inset-0 rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
                                             >
-                                                <img src={leader.image} alt={leader.name} className="w-full h-full object-cover" />
+                                                <img loading="lazy" decoding="async" src={leader.image} alt={leader.name} className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
                                                 <div className="absolute inset-0 p-4 flex flex-col justify-end">
                                                     <Quote size={12} className="text-white/30 mb-2" />
@@ -307,7 +305,7 @@ export const PillarsManagement = () => {
                                     </div>
                                     {(currentPillar.image || imageFile) && (
                                         <div className="mt-2">
-                                            <img src={imageFile ? URL.createObjectURL(imageFile) : currentPillar.image} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-white/20" />
+                                            <img loading="lazy" decoding="async" src={imageFile ? URL.createObjectURL(imageFile) : currentPillar.image} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-white/20" />
                                         </div>
                                     )}
                                 </div>
@@ -316,7 +314,7 @@ export const PillarsManagement = () => {
                                     <button type="button" onClick={() => setIsEditing(false)} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white text-sm font-medium transition-colors">
                                         Cancel
                                     </button>
-                                    <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-xl bg-alpine-glacier text-alpine-navy text-sm font-bold flex items-center gap-2 btn-premium">
+                                    <button type="submit" disabled={saving} className="mm-btn mm-btn--primary">
                                         {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                         {saving ? 'Saving...' : 'Save Leader'}
                                     </button>

@@ -3,7 +3,8 @@ import {
     getApprovedReviews, 
     submitReview, 
     getAllReviewsAdmin, 
-    updateReviewStatus, 
+    updateReviewStatus,
+    bulkReviewStatus,
     updateReview,
     deleteReview 
 } from '../controllers/reviewController.js';
@@ -21,6 +22,7 @@ router.post('/', authenticate, submitReview);
 // Protected routes for admin
 router.get('/admin', authenticate, authorize('admin', 'superadmin'), getAllReviewsAdmin);
 router.put('/:id', authenticate, authorize('admin', 'superadmin'), updateReview);
+router.patch('/bulk-status', authenticate, authorize('admin', 'superadmin'), bulkReviewStatus);
 router.patch('/:id/status', authenticate, authorize('admin', 'superadmin'), updateReviewStatus);
 router.delete('/:id', authenticate, authorize('admin', 'superadmin'), deleteReview);
 

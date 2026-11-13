@@ -7,7 +7,6 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
 import { toast } from 'sonner';
-import SoftAurora from '../ui/SoftAurora';
 import { useLenis } from '../ui/SmoothScrollProvider';
 import { useSectionNavigator } from '../../lib/useSectionNavigator';
 import { contactApi } from '../../lib/api';
@@ -135,12 +134,12 @@ export const Contact = () => {
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
                     className={`relative px-6 py-2.5 rounded-full border flex items-center gap-3 transition-colors ${
                         isDark 
-                            ? 'bg-[#0B0C10] border-amber-500/40 text-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.3)]' 
+                            ? 'bg-[#0B0C10] border-amber-500/40 text-amber-400 shadow-[0_0_35px_rgba(212,135,90,0.3)]' 
                             : 'bg-[#081a30] border-alpine-glacier/40 text-alpine-glacier shadow-[0_0_35px_rgba(163,201,226,0.3)]'
                     }`}
                 >
                     <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-                        isDark ? 'bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)]' : 'bg-alpine-glacier shadow-[0_0_10px_rgba(163,201,226,0.8)]'
+                        isDark ? 'bg-amber-400 shadow-[0_0_10px_rgba(212,135,90,0.8)]' : 'bg-alpine-glacier shadow-[0_0_10px_rgba(163,201,226,0.8)]'
                     }`} />
                     <span className="text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase">
                         {t('contact.hq', 'Base Camp & Global HQ')}

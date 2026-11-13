@@ -13,18 +13,18 @@ interface LightPalette {
 }
 
 const LIGHT_PALETTES: Record<string, LightPalette> = {
-    hero: { orb1: '#FFE5B4', orb2: '#FFC3A0', orb3: '#E1EEF6' },       // Champagne & Warm Sunrise Gold
-    mission: { orb1: '#FFC3A0', orb2: '#FFE5B4', orb3: '#FFCCD5' },    // Rose Gold & Peach Sunrise
+    hero: { orb1: '#FFD6CC', orb2: '#FFC3A0', orb3: '#E1EEF6' },       // Alpenglow rose & warm sunrise
+    mission: { orb1: '#FFC3A0', orb2: '#FFD6CC', orb3: '#FFCCD5' },    // Rose & peach sunrise
     stories: { orb1: '#E1EEF6', orb2: '#C6DDEC', orb3: '#DDD6FE' },    // Morning Frost & Sky Glacier
     events: { orb1: '#CCFBF1', orb2: '#E1EEF6', orb3: '#A7F3D0' },     // Glacier Mint & Luminous Cyan
-    team: { orb1: '#FEF3C7', orb2: '#FDE68A', orb3: '#FFC3A0' },       // Golden Mountain Light
+    team: { orb1: '#E1EEF6', orb2: '#FFD6CC', orb3: '#FFC3A0' },       // Glacier & alpenglow light
     reviews: { orb1: '#FFCCD5', orb2: '#FFC3A0', orb3: '#FFE4E6' },    // Warm Sunset Rose
-    merch: { orb1: '#FFE5B4', orb2: '#FFD1BA', orb3: '#FFCCD5' },      // Champagne & Peach Sunburst
+    merch: { orb1: '#FFD6CC', orb2: '#FFD1BA', orb3: '#FFCCD5' },      // Rose & peach sunburst
     gallery: { orb1: '#7EAACB', orb2: '#9C93B5', orb3: '#C6DDEC' },    // Alpine Cyan & Deep Sea Dew
     contact: { orb1: '#7EAACB', orb2: '#9C93B5', orb3: '#E1EEF6' },    // Glacier Starburst & Violet
     community: { orb1: '#7EAACB', orb2: '#60A5FA', orb3: '#9C93B5' },  // Electric Arctic Blue
     dashboard: { orb1: '#E1EEF6', orb2: '#C4B5FD', orb3: '#C6DDEC' },  // Crisp Glacier Platinum
-    default: { orb1: '#FFE5B4', orb2: '#FFC3A0', orb3: '#E1EEF6' }
+    default: { orb1: '#FFD6CC', orb2: '#FFC3A0', orb3: '#E1EEF6' }
 };
 
 export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.memo(({ activeSectionKey, isBlueSection }) => {
@@ -112,7 +112,7 @@ export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.mem
                     transform: 'translate3d(0,0,0)',
                     willChange: 'transform'
                 }}
-                className="absolute top-0 left-0 w-[35vw] h-[35vw] rounded-full bg-gradient-to-r from-[#FFFBEB]/80 via-[#FEF3C7]/60 to-transparent blur-[80px] opacity-70 mix-blend-normal pointer-events-none transform-gpu"
+                className="absolute top-0 left-0 w-[35vw] h-[35vw] rounded-full bg-gradient-to-r from-[#FFF5F2]/80 via-[#FFE1D6]/60 to-transparent blur-[80px] opacity-70 mix-blend-normal pointer-events-none transform-gpu"
             />
 
             {/* Swiss Geometric Technical Grid Texture */}

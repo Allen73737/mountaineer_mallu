@@ -6,12 +6,27 @@ import { reviewsApi, aiApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { useAdminAction } from '../../store/useAdminAction';
 
+import { BulkBar, SelectBox, useSelection } from '../../components/admin/BulkBar';
+import { moderationApi } from '../../lib/api';
 export const ReviewsManagement = () => {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<{content: string, rating: number, status: string}>({ content: '', rating: 5, status: 'pending' });
     const { showToast, ToastComponent } = useToast();
+    const pendingIds = React.useMemo(() => reviews.filter(r => r.status === 'pending').map(r => r._id), [reviews]);
+    const sel = useSelection(pendingIds);
+    const bulk = async (status: 'approved' | 'rejected') => {
+        const ids = [...sel.selected];
+        try {
+            const res = await moderationApi.reviews(ids, status);
+            setReviews(prev => prev.map(r => ids.includes(r._id) ? { ...r, status } : r));
+            sel.clear();
+            showToast(res.message, 'success');
+        } catch (e: any) {
+            showToast(e.message || 'Bulk update failed.', 'error');
+        }
+    };
     const [reviewSummary, setReviewSummary] = useState<any>(null);
     const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -91,13 +106,12 @@ export const ReviewsManagement = () => {
     return (
         <div className="space-y-8">
             {ToastComponent}
+            <BulkBar count={sel.count} noun="review" onApprove={() => bulk('approved')} onReject={() => bulk('rejected')} onClear={sel.clear} />
 
-            <header>
-                <div className="flex items-center gap-3 mb-2">
-                    <MessageSquare className="text-alpine-glacier" size={28} />
-                    <h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Review Moderation</h1>
-                </div>
-                <p className="text-white/50 text-sm">Approve or reject user-submitted reviews before they appear publicly.</p>
+            <header className="mm-rise">
+                <p className="mm-eyebrow mb-3">Content · Moderation</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Review <em>moderation</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Approve or reject user-submitted reviews before they appear publicly.</p>
             </header>
 
             {/* AI Review Sentiment Dashboard */}
@@ -219,13 +233,22 @@ export const ReviewsManagement = () => {
                 </div>
             ) : (
                 <div className="space-y-4">
+                    {pendingIds.length > 0 && (
+                        <label className="flex items-center gap-3 px-1 text-xs text-white/55 cursor-pointer w-fit">
+                            <SelectBox label="Select all pending reviews" checked={sel.allSelected} indeterminate={sel.count > 0} onChange={sel.toggleAll} />
+                            Select all {pendingIds.length} pending
+                        </label>
+                    )}
                     {reviews.map((review) => (
                         <motion.div
                             key={review._id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="premium-card rounded-2xl p-5 flex items-start gap-6 relative overflow-hidden"
+                            className={`premium-card rounded-2xl p-5 flex items-start gap-6 relative overflow-hidden ${sel.has(review._id) ? '!border-alpine-glacier/40' : ''}`}
                         >
+                            {review.status === 'pending' && (
+                                <div className="pt-1 shrink-0"><SelectBox label="Select review" checked={sel.has(review._id)} onChange={() => sel.toggle(review._id)} /></div>
+                            )}
                             {/* Status border indicator */}
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                                 review.status === 'approved' ? 'bg-emerald-500' :
@@ -234,7 +257,7 @@ export const ReviewsManagement = () => {
 
                             <div className="flex-1">
                                 <div className="flex items-center gap-4 mb-3">
-                                    <img 
+                                    <img loading="lazy" decoding="async" 
                                         src={review.author?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${review.author?.name}`} 
                                         alt={review.author?.name} 
                                         className="w-10 h-10 rounded-full border border-white/10"

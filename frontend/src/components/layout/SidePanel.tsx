@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { switchTheme } from '../../lib/themeSwitch';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { X, LogIn, UserPlus, Settings, LogOut, Moon, Sun, Monitor, ShieldAlert, CloudSnow, ArrowUpRight, Instagram, Mail } from 'lucide-react';
+import { X, LogIn, UserPlus, Settings, LogOut, Moon, Sun, Monitor, ShieldAlert, CloudSnow, ArrowUpRight, Instagram, Mail, Search } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -9,6 +9,8 @@ import { DynamicLogo } from '../ui/DynamicLogo';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useLenis } from '../ui/SmoothScrollProvider';
 import { daySlides, nightSlides, sceneImages } from '../../data/peaks';
+import { useTranslation } from 'react-i18next';
+import { useCommandPalette } from '../site/CommandPalette';
 
 // Menu previews only need to fill half the screen
 const preview = (src: string) => src.replace('w=2560', 'w=1400');
@@ -39,6 +41,7 @@ export const SidePanel = () => {
     const { isLoggedIn, user, logoutAsync } = useAuthStore();
     const { lenis } = useLenis();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [hovered, setHovered] = useState<number | null>(null);
@@ -94,35 +97,52 @@ export const SidePanel = () => {
 
     const sideColumn = (
         <motion.div variants={fadeVars} className="flex flex-col gap-4 w-full">
+            {/* Search lives here on phones, where the top bar has no room for it */}
+            <button
+                type="button"
+                onClick={() => { close(); setTimeout(() => useCommandPalette.getState().setOpen(true), 250); }}
+                className="sm:hidden flex items-center gap-3 h-11 px-4 rounded-full border border-white/15 bg-white/[0.04] text-white/70 text-sm"
+            >
+                <Search size={15} /> {t('app.search.placeholder')}
+            </button>
             {isLoggedIn && user ? (
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                        {user.avatar ? (
-                            <img src={user.avatar} alt="" className="w-11 h-11 rounded-full border border-white/25 object-cover" />
-                        ) : (
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-alpine-blue to-alpine-glacier grid place-items-center font-bold text-alpine-navy">{user.name.charAt(0)}</div>
-                        )}
-                        <div className="min-w-0">
-                            <p className="font-semibold text-white truncate">{user.name}</p>
-                            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-alpine-sunrise">{user.role}</p>
+                <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.045] p-4 sm:p-5">
+                    <div className="flex items-center gap-4">
+                        <span className="relative shrink-0">
+                            {user.avatar ? (
+                                <img loading="lazy" decoding="async" src={user.avatar} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-alpine-glacier/35 ring-offset-2 ring-offset-[#061A31] dark:ring-offset-[#05070C]" />
+                            ) : (
+                                <span className="w-14 h-14 rounded-full bg-gradient-to-tr from-alpine-blue to-alpine-glacier grid place-items-center font-serif text-2xl text-alpine-navy ring-2 ring-alpine-glacier/35 ring-offset-2 ring-offset-[#061A31] dark:ring-offset-[#05070C]">{user.name.charAt(0)}</span>
+                            )}
+                            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-[3px] ring-[#061A31] dark:ring-[#05070C]" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/45 flex items-center gap-2">
+                                Signed in <span className="w-1 h-1 rounded-full bg-white/30" /> <span className="text-alpine-sunrise">{user.role}</span>
+                            </p>
+                            <p className="font-serif text-[1.65rem] sm:text-3xl leading-[1.1] text-white truncate mt-0.5">{user.name}</p>
+                            {user.email && <p className="text-xs text-white/45 truncate">{user.email}</p>}
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <Link to="/portal" onClick={close} className={`${(user.role === 'Admin' || user.role === 'SuperAdmin') ? '' : 'col-span-2'} flex items-center justify-center gap-2 py-2.5 rounded-full border border-white/20 hover:bg-white hover:text-alpine-navy text-white text-sm font-semibold transition-colors`}>
-                            <Settings size={14} /> Portal
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                        <Link to="/portal" onClick={close} className="flex items-center justify-center gap-2 py-3 rounded-full bg-white text-alpine-navy text-sm font-semibold hover:bg-alpine-glacier transition-colors">
+                            <Settings size={15} /> Portal
                         </Link>
-                        {(user.role === 'Admin' || user.role === 'SuperAdmin') && (
-                            <Link to="/summit-control-panel" onClick={close} className="flex items-center justify-center gap-2 py-2.5 rounded-full border border-red-400/40 text-red-300 hover:bg-red-500/20 text-sm font-semibold transition-colors">
-                                <ShieldAlert size={14} /> Admin
+                        {(user.role === 'Admin' || user.role === 'SuperAdmin') ? (
+                            <Link to="/summit-control-panel" onClick={close} className="flex items-center justify-center gap-2 py-3 rounded-full border border-white/25 text-white text-sm font-semibold hover:bg-white/10 transition-colors">
+                                <ShieldAlert size={15} /> Admin
                             </Link>
+                        ) : (
+                            <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center justify-center gap-2 py-3 rounded-full border border-white/25 text-white text-sm font-semibold hover:bg-red-500/15 hover:border-red-400/40 hover:text-red-200 transition-colors cursor-pointer">
+                                <LogOut size={15} /> Sign out
+                            </button>
                         )}
                     </div>
-                    <button
-                        onClick={() => setShowLogoutConfirm(true)}
-                        className="self-start inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/50 hover:text-red-300 transition-colors cursor-pointer"
-                    >
-                        <LogOut size={13} /> Sign out
-                    </button>
+                    {(user.role === 'Admin' || user.role === 'SuperAdmin') && (
+                        <button onClick={() => setShowLogoutConfirm(true)} className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-white/55 text-sm font-semibold hover:bg-red-500/10 hover:text-red-200 transition-colors cursor-pointer">
+                            <LogOut size={14} /> Sign out
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-2">

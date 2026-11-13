@@ -1,9 +1,15 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from backend/.env first, then root fallback
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 dotenv.config();
 
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import express from 'express';
 import compression from 'compression';
 import { createServer } from 'http';
@@ -27,9 +33,6 @@ import { validateEnv } from './config/envValidator.js';
 // Validate critical production configurations
 validateEnv();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import storyRoutes from './routes/stories.js';
@@ -46,6 +49,11 @@ import aiRoutes from './routes/ai.js';
 import socialRoutes from './routes/social.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { startCronJobs } from './services/cron.js';
+import { attachRealtime } from './services/notify.js';
+import notificationRoutes from './routes/notifications.js';
+import searchRoutes from './routes/search.js';
+import seoRoutes from './routes/seo.js';
+import { auditAdminActions } from './middleware/audit.js';
 
 const app = express();
 
@@ -72,6 +80,9 @@ const io = new SocketIOServer(httpServer, {
 // Make io accessible in controllers via req.app.get('io')
 app.set('io', io);
 
+// Per-user notification rooms + live community groups
+attachRealtime(io);
+
 io.on('connection', (socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
     socket.on('disconnect', () => {
@@ -95,21 +106,36 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms', 
 
 // Set up Redis Client for Rate Limiting (Graceful Fallback if Redis is offline)
 let isRedisConnected = false;
-const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
+let redisClient = null;
 
-redisClient.on('ready', () => { isRedisConnected = true; logger.info('✅ Redis connected successfully'); });
-redisClient.on('error', (err) => {
-    if (isRedisConnected) {
-        logger.warn(`Redis Client Error: ${err.message}`);
+if (process.env.REDIS_URL) {
+    try {
+        redisClient = createClient({
+            url: process.env.REDIS_URL,
+            socket: {
+                reconnectStrategy: (retries) => (retries > 3 ? false : Math.min(retries * 200, 2000))
+            }
+        });
+        redisClient.on('ready', () => { 
+            isRedisConnected = true; 
+            logger.info('✅ Redis connected successfully'); 
+        });
+        redisClient.on('error', (err) => {
+            if (isRedisConnected) {
+                logger.warn(`Redis Client Error: ${err.message}`);
+            }
+            isRedisConnected = false;
+        });
+        redisClient.connect().catch(() => { 
+            isRedisConnected = false; 
+        });
+    } catch {
+        isRedisConnected = false;
     }
-    isRedisConnected = false;
-});
-redisClient.connect().catch(() => { isRedisConnected = false; });
+}
 
 const createRateLimiter = (options) => {
-    const store = (isRedisConnected && redisClient.isReady) 
+    const store = (isRedisConnected && redisClient?.isReady) 
         ? new RedisStore({ sendCommand: (...args) => redisClient.sendCommand(args) }) 
         : undefined;
     return rateLimit({ ...options, store });
@@ -152,38 +178,50 @@ app.use(helmet({
     hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
 }));
 
-// General rate limiting
+// Rate limiting — sized for real browsing. A dashboard view fires a dozen GETs, and every page load
+// calls /api/auth/me, so session checks and health probes must never count against brute-force budgets.
+const isDev = process.env.NODE_ENV !== 'production';
+const scale = (n) => (isDev ? n * 10 : n);
+
 const limiter = createRateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200,
+    windowMs: 15 * 60 * 1000,
+    max: scale(1000),
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.path === '/health' || (req.method === 'GET' && req.path === '/auth/me'),
     message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
 
-// Stricter rate limit for auth routes (10 per 15 min)
+// Brute-force guard for credential endpoints only; successful sign-ins don't use up the budget
 const authLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: { error: 'Too many authentication attempts, please try again later.' },
+    max: scale(10),
+    skipSuccessfulRequests: true,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many sign-in attempts. Please wait a few minutes and try again.' },
 });
-app.use('/api/auth/', authLimiter);
+app.use(['/api/auth/login', '/api/auth/signup', '/api/auth/google', '/api/auth/demo-login'], authLimiter);
 
 // Extra strict rate limit for OTP/password reset (5 per 15 min)
 const otpLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: scale(5),
+    standardHeaders: true,
+    legacyHeaders: false,
     message: { error: 'Too many reset attempts. Please wait and try again.' },
 });
 app.use('/api/auth/forgot-password', otpLimiter);
 app.use('/api/auth/verify-otp', otpLimiter);
 app.use('/api/auth/reset-password', otpLimiter);
 
-// AI chat rate limit (30 per 15 min)
+// AI usage limit (60 per 15 min)
 const aiLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 30,
+    max: scale(60),
+    standardHeaders: true,
+    legacyHeaders: false,
     message: { error: 'AI usage limit reached. Please wait a moment.' },
 });
 app.use('/api/ai/', aiLimiter);
@@ -256,7 +294,7 @@ const handleHealthCheck = (req, res) => {
             state: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown'
         },
         redis: {
-            connected: isRedisConnected && redisClient.isOpen
+            connected: isRedisConnected && redisClient?.isOpen
         },
         system: {
             memoryRssMB: (mem.rss / 1024 / 1024).toFixed(1),
@@ -273,6 +311,8 @@ app.get('/healthz', handleHealthCheck);
 app.get('/api/health', handleHealthCheck);
 
 // ─── API Routes ────────────────────────────────────────────────────────
+// Record every successful admin write for the audit log
+app.use('/api', auditAdminActions);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/stories', storyRoutes);
@@ -287,15 +327,23 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/merchandise', merchandiseRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/social', socialRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/search', searchRoutes);
+// Crawler-facing: sitemap, robots-friendly share pages with Open Graph tags
+app.use('/', seoRoutes);
 
 // ─── Production Static Serving (Single-Container & Monolith Deployments) ─
 const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 if (fs.existsSync(frontendDistPath)) {
     app.use(express.static(frontendDistPath, {
         maxAge: '1h',
+        // /stories → stories.html: section pages pre-rendered at build time with their own title and share tags
+        extensions: ['html'],
         setHeaders: (res, filePath) => {
             if (filePath.includes(`${path.sep}assets${path.sep}`)) {
                 res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            } else if (filePath.endsWith('sw.js') || filePath.endsWith('.html')) {
+                res.setHeader('Cache-Control', 'no-cache');
             }
         }
     }));
@@ -314,33 +362,47 @@ app.use(errorHandler);
 
 // ─── Database Connection & Server Start ────────────────────────────────
 export const startServer = async () => {
-    try {
-        const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE || '50', 10);
-        const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE || '5', 10);
+    httpServer.listen(PORT, () => {
+        console.log(`🏔️  Worker ${process.pid} running API on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+        startCronJobs();
+    });
 
-        await mongoose.connect(process.env.MONGODB_URI, {
-            dbName: 'mountaineer-mallu',
-            serverSelectionTimeoutMS: 10000,
-            socketTimeoutMS: 45000,
-            maxPoolSize,
-            minPoolSize,
-            w: 'majority',
-            retryWrites: true
-        });
-        console.log(`✅ MongoDB connected successfully [Pool: ${minPoolSize}-${maxPoolSize}] in Worker ${process.pid}`);
+    const connectMongo = async () => {
+        try {
+            const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE || '50', 10);
+            const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE || '5', 10);
 
-        mongoose.connection.on('error', (err) => logger.error(`[MongoDB] Connection error: ${err.message}`));
-        mongoose.connection.on('disconnected', () => logger.warn('[MongoDB] Disconnected from server.'));
-        mongoose.connection.on('reconnected', () => logger.info('[MongoDB] Reconnected successfully.'));
+            if (!process.env.MONGODB_URI) {
+                console.error('[MongoDB] MONGODB_URI is not set in environment variables.');
+                return;
+            }
 
-        httpServer.listen(PORT, () => {
-            console.log(`🏔️  Worker ${process.pid} running API on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-            startCronJobs();
-        });
-    } catch (error) {
-        console.error(`❌ Worker ${process.pid} MongoDB connection failed:`, error.message);
-        process.exit(1);
-    }
+            await mongoose.connect(process.env.MONGODB_URI, {
+                dbName: 'mountaineer-mallu',
+                serverSelectionTimeoutMS: 8000,
+                socketTimeoutMS: 45000,
+                maxPoolSize,
+                minPoolSize,
+                w: 'majority',
+                retryWrites: true
+            });
+            console.log(`✅ MongoDB connected successfully [Pool: ${minPoolSize}-${maxPoolSize}] in Worker ${process.pid}`);
+        } catch (error) {
+            console.error(`❌ Worker ${process.pid} MongoDB connection failed:`, error.message);
+            if (process.env.NODE_ENV === 'production') {
+                process.exit(1);
+            } else {
+                console.warn(`⚠️ [Worker ${process.pid}] Database degraded. Re-attempting MongoDB connection in 10s...`);
+                setTimeout(connectMongo, 10000);
+            }
+        }
+    };
+
+    mongoose.connection.on('error', (err) => logger.error(`[MongoDB] Connection error: ${err.message}`));
+    mongoose.connection.on('disconnected', () => logger.warn('[MongoDB] Disconnected from server.'));
+    mongoose.connection.on('reconnected', () => logger.info('[MongoDB] Reconnected successfully.'));
+
+    await connectMongo();
 };
 
 // ─── Graceful Shutdown Handler (Docker, K8s, Render, Railway, AWS) ────
@@ -354,7 +416,7 @@ const gracefulShutdown = async (signal) => {
                 io.close();
                 console.log(`  ✓ Socket.io connections terminated.`);
             }
-            if (isRedisConnected && redisClient.isOpen) {
+            if (isRedisConnected && redisClient?.isOpen) {
                 await redisClient.quit();
                 console.log(`  ✓ Redis connection closed.`);
             }

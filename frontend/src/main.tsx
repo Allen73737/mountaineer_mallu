@@ -12,6 +12,11 @@ import '@fontsource/instrument-serif/400-italic.css'
 import '@fontsource/montserrat/400.css'
 import '@fontsource/montserrat/500.css'
 import '@fontsource/montserrat/600.css'
+// Malayalam: an editorial serif for headlines and Manjari's calligraphic rounds for text. Both are subset by
+// unicode-range, so English pages never download them; they arrive only when Malayalam glyphs appear.
+import '@fontsource-variable/noto-serif-malayalam'
+import '@fontsource/manjari/malayalam-400.css'
+import '@fontsource/manjari/malayalam-700.css'
 import './index.css'
 import './lib/i18n'
 
@@ -21,6 +26,13 @@ import { reloadForNewVersion } from './lib/chunkRecovery';
 
 // Vite fires this when a lazy page's files can't be fetched — typically a tab left open across a deploy.
 // Reload once (guarded against loops) so the visitor lands on the new version instead of an error.
+// Offline support (installable app, cached photos, saved trip details). Production only, so dev never serves stale code.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => { /* unsupported or blocked: the site works without it */ });
+    });
+}
+
 window.addEventListener('vite:preloadError', event => {
     if (reloadForNewVersion()) event.preventDefault();
 });

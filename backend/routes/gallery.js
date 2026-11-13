@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { listApproved, listPending, listAll, uploadMedia, approveMedia, rejectMedia, deleteMedia, getMyMedia, toggleLike, updateMedia } from '../controllers/galleryController.js';
+import { listApproved, listPending, listAll, uploadMedia, approveMedia, rejectMedia, deleteMedia, getMyMedia, toggleLike, updateMedia, bulkMediaStatus } from '../controllers/galleryController.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
 import { upload, verifyFileSignature } from '../middleware/upload.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -18,6 +18,7 @@ router.post('/:id/like', authenticate, toggleLike);
 router.get('/pending', authenticate, requirePermission('manageGallery'), listPending);
 router.get('/all', authenticate, requirePermission('manageGallery'), listAll);
 router.put('/:id', authenticate, requirePermission('manageGallery'), updateMedia);
+router.patch('/bulk-status', authenticate, requirePermission('manageGallery'), bulkMediaStatus);
 router.put('/:id/approve', authenticate, requirePermission('manageGallery'), approveMedia);
 router.put('/:id/reject', authenticate, requirePermission('manageGallery'), rejectMedia);
 router.delete('/:id', authenticate, requirePermission('manageGallery'), deleteMedia);

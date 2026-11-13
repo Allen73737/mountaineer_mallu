@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { listStories, getStory, createStory, updateStory, deleteStory, getMyStories, updateStoryStatus } from '../controllers/storyController.js';
+import { listStories, getStory, createStory, updateStory, deleteStory, getMyStories, updateStoryStatus, bulkStoryStatus } from '../controllers/storyController.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
 import { upload, verifyFileSignature } from '../middleware/upload.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -17,6 +17,7 @@ router.post('/submit', authenticate, upload.single('image'), verifyFileSignature
 // Admin routes
 router.post('/', authenticate, requirePermission('manageStories'), upload.single('image'), verifyFileSignature, createStory);
 router.put('/:id', authenticate, requirePermission('manageStories'), upload.single('image'), verifyFileSignature, updateStory);
+router.patch('/bulk-status', authenticate, requirePermission('manageStories'), bulkStoryStatus);
 router.patch('/:id/status', authenticate, requirePermission('manageStories'), updateStoryStatus);
 router.delete('/:id', authenticate, requirePermission('manageStories'), deleteStory);
 

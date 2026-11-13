@@ -32,14 +32,13 @@ export const SmoothScrollProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        // True coarse-only mobile phone check: native touch scrolling is ideal for pocket smartphones,
-        // while touchscreen laptops, hybrids, tablets with pointers, and desktop monitors get silky Lenis inertia
-        const isCoarseOnlyMobile = typeof window !== 'undefined' && 
-            window.innerWidth < 768 && 
+        // Touch-only devices (phones and tablets without a mouse or trackpad) scroll natively: the OS momentum
+        // under a finger is smoother than any JS inertia. Touchscreen laptops and desktops keep Lenis for the wheel.
+        const isTouchOnly = typeof window !== 'undefined' &&
             window.matchMedia('(pointer: coarse) and (hover: none)').matches;
 
-        if (isCoarseOnlyMobile) {
-            return; // Use 100% native smooth touch scrolling on pocket phones
+        if (isTouchOnly) {
+            return;
         }
 
         // Frame-rate-independent lerp instead of a fixed-duration tween: the page starts moving on the very
@@ -54,6 +53,9 @@ export const SmoothScrollProvider: React.FC<{ children: React.ReactNode }> = ({ 
             touchMultiplier: 1.5,
             infinite: false,
             autoResize: true,
+            // Wheel over an inner scroll pane (dashboards, modals, chat, menus) scrolls that pane natively
+            // instead of being swallowed by the page-level smoother
+            allowNestedScroll: true,
         });
 
         setLenisInstance(lenis);

@@ -14,6 +14,7 @@ import { useIntro, splitGraphemes } from '../../lib/intro';
 import { Magnetic } from '../ui/Magnetic';
 import { loadAlpineWeather, windLabel } from '../../lib/weather';
 import { AscentFilm } from '../ui/AscentFilm';
+import { ambientFrameInterval } from '../../lib/quality';
 
 // ─── Live Wallpaper: Starfield Canvas (Ultra Premium) ──────────────────
 const StarfieldCanvas: React.FC = () => {
@@ -139,7 +140,7 @@ const StarfieldCanvas: React.FC = () => {
                 animRef.current = 0;
                 return;
             }
-            if (time - lastTime < 20) {
+            if (time - lastTime < ambientFrameInterval(20)) {
                 animRef.current = requestAnimationFrame(draw);
                 return;
             }
@@ -420,7 +421,7 @@ const LightModeAtmosphere: React.FC = () => {
                 animRef.current = 0;
                 return;
             }
-            if (time - lastLightTime < 24) {
+            if (time - lastLightTime < ambientFrameInterval(24)) {
                 animRef.current = requestAnimationFrame(draw);
                 return;
             }
@@ -831,7 +832,7 @@ export const HeroSection = () => {
         // Own presence boundary: the page wrapper's <AnimatePresence initial={false}> would otherwise skip every
         // entrance animation in here on first load
         <AnimatePresence>
-        <section key="hero" ref={sectionRef} className={`relative w-full ${reduceMotion ? 'h-screen' : 'h-[420vh]'} bg-transparent dark:bg-transparent hero-section-cursor overflow-clip`}>
+        <section key="hero" ref={sectionRef} className={`relative w-full ${reduceMotion ? 'h-svh' : 'h-[420vh]'} bg-transparent dark:bg-transparent hero-section-cursor overflow-clip`}>
             <div className="sticky top-0 w-full h-[100svh] overflow-hidden">
 
                 {/* Everything photographic dissolves to transparent at the bottom, so the hero melts into the page behind it */}

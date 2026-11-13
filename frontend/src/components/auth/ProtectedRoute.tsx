@@ -33,8 +33,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Show loading while auth is being verified from cookie
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-black">
-                <div className="w-8 h-8 border-2 border-alpine-glacier/30 border-t-alpine-glacier rounded-full animate-spin" />
+            <div className="min-h-svh flex flex-col items-center justify-center gap-5 bg-[#05080D]" role="status" aria-live="polite">
+                <div className="w-9 h-9 border border-alpine-glacier/20 border-t-alpine-glacier rounded-full animate-spin" />
+                <p className="font-mono text-[10px] tracking-[0.32em] uppercase text-white/40">Verifying credentials</p>
             </div>
         );
     }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getOverview, listAdmins, createAdmin, updatePermissions, revokeAdmin, getSecurityDigest } from '../controllers/adminController.js';
+import { getOverview, listAdmins, createAdmin, updatePermissions, revokeAdmin, getSecurityDigest, getAuditLog } from '../controllers/adminController.js';
 import { generateCampaign, listCampaigns, approveCampaign, deleteCampaign } from '../controllers/campaignController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -12,6 +12,7 @@ router.put('/admins/:id/permissions', authenticate, authorize('superadmin'), upd
 router.delete('/admins/:id', authenticate, authorize('superadmin'), revokeAdmin);
 
 // Security Digest
+router.get('/audit', authenticate, authorize('admin', 'superadmin'), getAuditLog);
 router.get('/security-digest', authenticate, authorize('admin', 'superadmin'), getSecurityDigest);
 
 // Campaign Autopilot

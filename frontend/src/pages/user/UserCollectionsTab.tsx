@@ -72,8 +72,9 @@ export const UserCollectionsTab = () => {
             className="flex flex-col h-full"
         >
             <div className="mb-6 sm:mb-10">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-alpine-navy dark:text-white mb-3 sm:mb-4 tracking-wide">Collections Archive</h1>
-                <p className="text-alpine-navy/60 dark:text-white/60 text-base sm:text-lg font-light">Your personalized gallery of saved expeditions and downloads.</p>
+                <p className="mm-eyebrow mb-3">Create · Archive</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Collections <em>archive</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Your personalized gallery of saved expeditions and downloads.</p>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar sm:pr-2 pb-8 flex flex-col gap-8 sm:gap-12">

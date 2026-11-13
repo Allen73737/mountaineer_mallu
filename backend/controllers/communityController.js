@@ -1,6 +1,23 @@
 import Group from '../models/Group.js';
 import Post from '../models/Post.js';
 import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
+import { notify, emitToGroup } from '../services/notify.js';
+
+const REACTIONS = ['summit', 'heart', 'fire', 'clap', 'strong'];
+const isModOrAdmin = (group, user) =>
+    group.moderators.some(m => m.toString() === user._id.toString()) || ['admin', 'superadmin'].includes(user.role);
+
+// Only people who are actually in the group can be mentioned
+const cleanMentions = (raw, group) => {
+    let ids = raw;
+    if (typeof raw === 'string') {
+        try { ids = JSON.parse(raw); } catch { ids = raw.split(','); }
+    }
+    if (!Array.isArray(ids)) return [];
+    const members = new Set(group.members.map(String));
+    return [...new Set(ids.map(String))].filter(id => members.has(id)).slice(0, 20);
+};
+const snippet = (text = '', n = 120) => (text.length > n ? `${text.slice(0, n - 1)}…` : text);
 
 // GET /api/community/groups
 export const listGroups = async (req, res, next) => {
@@ -62,7 +79,8 @@ export const getGroup = async (req, res, next) => {
                 .sort({ createdAt: -1 })
                 .skip(skip).limit(limit)
                 .populate('author', 'name avatar')
-                .populate('comments.author', 'name avatar'),
+                .populate('comments.author', 'name avatar')
+                .populate('mentions', 'name'),
             Post.countDocuments({ group: group._id })
         ]);
 
@@ -110,6 +128,13 @@ export const requestJoin = async (req, res, next) => {
         group.pendingRequests.push(req.user._id);
         await group.save();
 
+        notify(group.moderators, {
+            type: 'join_request', actor: req.user._id,
+            title: `${req.user.name} asked to join ${group.name}`,
+            body: 'Review the request in the group settings.',
+            link: '/community'
+        });
+
         res.json({ message: 'Join request submitted.' });
     } catch (error) {
         next(error);
@@ -140,6 +165,13 @@ export const approveJoin = async (req, res, next) => {
             group.members.push(userId);
         }
         await group.save();
+
+        notify(userId, {
+            type: 'join_approved', actor: req.user._id,
+            title: `You're in — welcome to ${group.name}`,
+            body: 'Say hello to the rope team.',
+            link: '/portal/communities'
+        });
 
         res.json({ message: 'User approved.' });
     } catch (error) {
@@ -194,14 +226,24 @@ export const createPost = async (req, res, next) => {
             imageUrl = result.secure_url;
         }
 
+        const mentions = cleanMentions(req.body.mentions, group);
         const post = await Post.create({
             content: req.body.content,
             image: imageUrl,
             group: group._id,
-            author: req.user._id
+            author: req.user._id,
+            mentions
         });
 
         await post.populate('author', 'name avatar');
+        await post.populate('mentions', 'name');
+        emitToGroup(group._id, 'community:post', { groupId: String(group._id), post });
+        notify(mentions, {
+            type: 'mention', actor: req.user._id,
+            title: `${req.user.name} mentioned you in ${group.name}`,
+            body: snippet(post.content),
+            link: '/portal/communities'
+        });
         res.status(201).json({ message: 'Post created.', post });
     } catch (error) {
         next(error);
@@ -221,12 +263,30 @@ export const addComment = async (req, res, next) => {
         const post = await Post.findById(req.params.postId);
         if (!post) return res.status(404).json({ error: 'Post not found.' });
 
+        const mentions = cleanMentions(req.body.mentions, group);
         post.comments.push({
             author: req.user._id,
-            content: req.body.content
+            content: req.body.content,
+            mentions
         });
         await post.save();
         await post.populate('comments.author', 'name avatar');
+        await post.populate('author', 'name avatar');
+        await post.populate('mentions', 'name');
+
+        emitToGroup(group._id, 'community:post-updated', { groupId: String(group._id), post });
+        notify(post.author._id, {
+            type: 'comment', actor: req.user._id,
+            title: `${req.user.name} replied to your post`,
+            body: snippet(req.body.content),
+            link: '/portal/communities'
+        });
+        notify(mentions.filter(id => id !== String(post.author._id)), {
+            type: 'mention', actor: req.user._id,
+            title: `${req.user.name} mentioned you in a reply`,
+            body: snippet(req.body.content),
+            link: '/portal/communities'
+        });
 
         res.json({ message: 'Comment added.', post });
     } catch (error) {
@@ -287,6 +347,108 @@ export const deleteGroup = async (req, res, next) => {
         await Post.deleteMany({ group: req.params.id });
 
         res.json({ message: 'Group deleted.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// POST /api/community/groups/:id/posts/:postId/react — toggle one reaction per person
+export const reactToPost = async (req, res, next) => {
+    try {
+        const { emoji } = req.body;
+        if (!REACTIONS.includes(emoji)) return res.status(400).json({ error: 'Unknown reaction.' });
+
+        const group = await Group.findById(req.params.id);
+        if (!group) return res.status(404).json({ error: 'Group not found.' });
+        if (!group.members.some(m => m.toString() === req.user._id.toString())) {
+            return res.status(403).json({ error: 'You must be a member to react.' });
+        }
+
+        const post = await Post.findOne({ _id: req.params.postId, group: group._id });
+        if (!post) return res.status(404).json({ error: 'Post not found.' });
+
+        const mine = post.reactions.find(r => r.user.toString() === req.user._id.toString());
+        let added = false;
+        if (mine && mine.emoji === emoji) {
+            post.reactions = post.reactions.filter(r => r.user.toString() !== req.user._id.toString());
+        } else if (mine) {
+            mine.emoji = emoji;
+        } else {
+            post.reactions.push({ user: req.user._id, emoji });
+            added = true;
+        }
+        await post.save();
+
+        emitToGroup(group._id, 'community:reactions', { groupId: String(group._id), postId: String(post._id), reactions: post.reactions });
+        if (added) {
+            notify(post.author, {
+                type: 'reaction', actor: req.user._id,
+                title: `${req.user.name} reacted to your post`,
+                body: snippet(post.content),
+                link: '/portal/communities'
+            });
+        }
+        res.json({ reactions: post.reactions });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// DELETE /api/community/groups/:id/posts/:postId — author, moderator or admin
+export const deletePost = async (req, res, next) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        if (!group) return res.status(404).json({ error: 'Group not found.' });
+        const post = await Post.findOne({ _id: req.params.postId, group: group._id });
+        if (!post) return res.status(404).json({ error: 'Post not found.' });
+
+        if (post.author.toString() !== req.user._id.toString() && !isModOrAdmin(group, req.user)) {
+            return res.status(403).json({ error: 'You can only delete your own posts.' });
+        }
+        await post.deleteOne();
+        emitToGroup(group._id, 'community:post-deleted', { groupId: String(group._id), postId: String(post._id) });
+        res.json({ message: 'Post deleted.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// DELETE /api/community/groups/:id/posts/:postId/comments/:commentId
+export const deleteComment = async (req, res, next) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        if (!group) return res.status(404).json({ error: 'Group not found.' });
+        const post = await Post.findOne({ _id: req.params.postId, group: group._id });
+        if (!post) return res.status(404).json({ error: 'Post not found.' });
+        const comment = post.comments.id(req.params.commentId);
+        if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+        if (comment.author.toString() !== req.user._id.toString() && !isModOrAdmin(group, req.user)) {
+            return res.status(403).json({ error: 'You can only delete your own comments.' });
+        }
+        comment.deleteOne();
+        await post.save();
+        await post.populate('author', 'name avatar');
+        await post.populate('comments.author', 'name avatar');
+        await post.populate('mentions', 'name');
+        emitToGroup(group._id, 'community:post-updated', { groupId: String(group._id), post });
+        res.json({ message: 'Comment deleted.', post });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// POST /api/community/groups/:id/leave
+export const leaveGroup = async (req, res, next) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        if (!group) return res.status(404).json({ error: 'Group not found.' });
+        const me = req.user._id.toString();
+        group.members = group.members.filter(m => m.toString() !== me);
+        group.moderators = group.moderators.filter(m => m.toString() !== me);
+        group.pendingRequests = group.pendingRequests.filter(m => m.toString() !== me);
+        await group.save();
+        res.json({ message: 'You left the group.' });
     } catch (error) {
         next(error);
     }

@@ -39,6 +39,12 @@ const eventSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    // Expedition, skills training, social meetup, or a Kerala cultural gathering (Onam, Vishu…)
+    category: {
+        type: String,
+        enum: ['expedition', 'training', 'meetup', 'cultural'],
+        default: 'expedition'
+    },
     whatsappGroupUrl: {
         type: String,
         default: '',

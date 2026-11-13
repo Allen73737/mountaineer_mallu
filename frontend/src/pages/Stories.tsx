@@ -11,7 +11,9 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { CreditTitle } from '../components/ui/CreditTitle';
 import { MorphLink } from '../components/ui/MorphLink';
 
+import { usePageMeta } from '../lib/usePageMeta';
 export const StoriesPage = () => {
+    usePageMeta({ title: 'Expedition Stories', description: 'First-hand chronicles from Malayalee climbers across the Alps — routes, summits, setbacks and the people on the rope.' });
     const [stories, setStories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export const StoriesPage = () => {
     }, [fetchStories]);
 
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
+        <div className="min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12">
             <div className="max-w-7xl mx-auto relative z-50">
                 <BackButton />
 

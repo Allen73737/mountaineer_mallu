@@ -80,9 +80,10 @@ export const UsersManagement = () => {
         <div className="space-y-8">
             {ToastComponent}
 
-            <header>
-                <div className="flex items-center gap-3 mb-2"><Users className="text-alpine-glacier" size={28} /><h1 className="text-3xl font-bold font-serif tracking-wide">Users Management</h1></div>
-                <p className="text-white/50 text-sm">View, search, and manage all registered users</p>
+            <header className="mm-rise">
+                <p className="mm-eyebrow mb-3">People · Directory</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Explorers</h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">View, search, and manage all registered users</p>
             </header>
 
             {/* Search */}
@@ -109,7 +110,7 @@ export const UsersManagement = () => {
                                     <td className="p-5">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-full bg-alpine-navy flex items-center justify-center font-bold text-alpine-glacier border border-white/10 shrink-0">
-                                                {user.avatar ? <img src={user.avatar} className="w-full h-full rounded-full object-cover" /> : user.name?.charAt(0)}
+                                                {user.avatar ? <img loading="lazy" decoding="async" alt="" src={user.avatar} className="w-full h-full rounded-full object-cover" /> : user.name?.charAt(0)}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-white">{user.name}</p>

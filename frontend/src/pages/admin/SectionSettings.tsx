@@ -71,13 +71,11 @@ export const SectionSettings = () => {
         <div className="space-y-8">
             {ToastComponent}
 
-            <header className="flex justify-between items-end">
+            <header className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Layers className="text-alpine-glacier" size={28} />
-                        <h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Section Control</h1>
-                    </div>
-                    <p className="text-white/50 text-sm">Toggle section visibility, maintenance mode & preview changes live</p>
+                    <p className="mm-eyebrow mb-3">Platform · Visibility</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Section <em>control</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Toggle section visibility, maintenance mode & preview changes live</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -90,7 +88,7 @@ export const SectionSettings = () => {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="py-2.5 px-5 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium"
+                        className="mm-btn mm-btn--primary"
                     >
                         {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                         <span>Save & Push Live</span>

@@ -118,17 +118,15 @@ export const MerchandiseManagement = () => {
             {ToastComponent}
 
             {/* Header */}
-            <div className="flex justify-between items-end">
+            <div className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <ShoppingBag className="text-alpine-glacier" size={28} />
-                        <h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Merchandise</h1>
-                    </div>
-                    <p className="text-white/50 text-sm">Manage the expedition gear and merchandise shown in the shop.</p>
+                    <p className="mm-eyebrow mb-3">Platform · Provisions</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Merchandise</h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage the expedition gear and merchandise shown in the shop.</p>
                 </div>
                 <button
                     onClick={() => { setCurrentItem({ currency: '₹', inStock: true, order: items.length }); setImageFile(null); setIsEditing(true); }}
-                    className="py-2 px-4 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium"
+                    className="mm-btn mm-btn--primary"
                 >
                     <Plus size={18} />
                     <span>Add Item</span>
@@ -156,7 +154,7 @@ export const MerchandiseManagement = () => {
                                         </div>
                                     )}
                                     <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 relative bg-black/40">
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover mix-blend-screen" />
+                                        <img loading="lazy" decoding="async" src={item.image} alt={item.name} className="w-full h-full object-cover mix-blend-screen" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
                                             <button onClick={() => { setCurrentItem(item); setImageFile(null); setIsEditing(true); }} className="p-1.5 bg-white/20 rounded hover:bg-white/40 text-white transition-colors">
                                                 <Edit2 size={12} />
@@ -238,7 +236,7 @@ export const MerchandiseManagement = () => {
                             {/* Image Layer (Floating) */}
                             <div className="absolute inset-x-4 top-12 bottom-32 flex items-center justify-center z-10" style={{ transform: 'translateZ(60px)' }}>
                                 {currentItem.image || imageFile ? (
-                                    <img 
+                                    <img loading="lazy" decoding="async" 
                                         src={imageFile ? URL.createObjectURL(imageFile) : currentItem.image} 
                                         alt="Preview" 
                                         className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] mix-blend-screen" 
@@ -413,7 +411,7 @@ export const MerchandiseManagement = () => {
                                     <button type="button" onClick={() => setIsEditing(false)} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white text-sm font-medium transition-colors">
                                         Cancel
                                     </button>
-                                    <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-xl bg-alpine-glacier text-alpine-navy text-sm font-bold flex items-center gap-2 btn-premium">
+                                    <button type="submit" disabled={saving} className="mm-btn mm-btn--primary">
                                         {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                         {saving ? 'Saving...' : 'Save Product'}
                                     </button>

@@ -102,13 +102,11 @@ export const CampaignAutopilot = () => {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-serif font-bold text-white tracking-wide mb-2 flex items-center gap-3">
-                    <Sparkles className="text-alpine-glacier" size={28} />
-                    Campaign Autopilot
-                </h1>
-                <p className="text-white/50 text-sm">AI-powered marketing campaign generator — describe what you want, and the AI builds it for you.</p>
-            </div>
+            <header className="mm-rise">
+                <p className="mm-eyebrow mb-3">Platform · AI marketing</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Campaign <em>autopilot</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">AI-powered marketing campaign generator — describe what you want, and the AI builds it for you.</p>
+            </header>
 
             {/* Prompt Input */}
             <motion.div

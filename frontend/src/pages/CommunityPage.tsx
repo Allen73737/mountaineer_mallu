@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Users, MessageSquare, Map, Star, ShieldCheck, ArrowRight, Lock, MapPin, Calendar, Send, Wand2, X, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Users, ShieldCheck, ArrowRight, MapPin, Calendar, LogOut, Clock, Pin, LogIn } from 'lucide-react';
 import { Loader2 } from '../components/ui/BrandLoader';
 import { Link } from 'react-router-dom';
-import { communityApi, aiApi } from '../lib/api';
+import { useTranslation } from 'react-i18next';
+import { communityApi, eventsApi } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from '../components/ui/Toast';
 import { BackButton } from '../components/ui/BackButton';
@@ -11,84 +12,84 @@ import { CommunitySkeleton } from '../components/ui/Skeleton';
 import { CreditTitle } from '../components/ui/CreditTitle';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { GroupFeed } from '../components/community/GroupFeed';
+import { parseEventStart } from '../lib/calendar';
+import { usePageMeta } from '../lib/usePageMeta';
 
-const TABS = [
-    { id: 'groups', label: 'Groups', icon: Users },
-    { id: 'discussions', label: 'Discussions', icon: MessageSquare },
-    { id: 'trails', label: 'Trail Logistics', icon: Map },
-    { id: 'spotlight', label: 'Member spotlight', icon: Star }
-];
+const idOf = (x: any) => (typeof x === 'string' ? x : x?._id);
 
 export const CommunityPage = () => {
-    const [activeTab, setActiveTab] = useState('groups');
+    usePageMeta({ title: 'Community', description: 'Find your rope team. Join regional groups of Malayalee hikers and climbers across Europe.' });
+    const { t, i18n } = useTranslation();
     const [groups, setGroups] = useState<any[]>([]);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedGroup, setSelectedGroup] = useState<any>(null);
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [postContent, setPostContent] = useState('');
-    const [posting, setPosting] = useState(false);
-    
-    // AI Image Suggestion State
-    const [unsplashUrl, setUnsplashUrl] = useState<string | null>(null);
-    const [suggestedImages, setSuggestedImages] = useState<any[]>([]);
-    const [imagesLoading, setImagesLoading] = useState(false);
-    const [imageModalOpen, setImageModalOpen] = useState(false);
-
+    const [detailLoading, setDetailLoading] = useState(false);
     const [joiningId, setJoiningId] = useState<string | null>(null);
+    const [confirmLeave, setConfirmLeave] = useState(false);
+    const [upcoming, setUpcoming] = useState<any[]>([]);
     const { user, isLoggedIn } = useAuthStore();
     const { showToast, ToastComponent } = useToast();
 
-    // Failed loads get an error state with retry (bumping reloadKey re-runs the fetch)
     const [loadError, setLoadError] = useState<string | null>(null);
     const [reloadKey, setReloadKey] = useState(0);
+
     useEffect(() => {
-        const fetchGroups = async () => {
-            setLoading(true);
-            setLoadError(null);
-            try {
-                const data = await communityApi.listGroups();
+        let cancelled = false;
+        setLoading(true);
+        setLoadError(null);
+        communityApi.listGroups()
+            .then(data => {
+                if (cancelled) return;
                 setGroups(data.groups);
-                if (data.groups.length > 0) {
-                    loadGroupDetail(data.groups[0]._id);
-                }
-            } catch (err: any) {
-                console.error('Failed to load groups:', err);
-                setLoadError(err?.message || 'We could not reach the community right now.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchGroups();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+                setSelectedId(id => id ?? data.groups[0]?._id ?? null);
+            })
+            .catch((err: any) => !cancelled && setLoadError(err?.message || 'We could not reach the community right now.'))
+            .finally(() => !cancelled && setLoading(false));
+        return () => { cancelled = true; };
     }, [reloadKey]);
 
-    const loadGroupDetail = async (groupId: string) => {
-        if (!isLoggedIn) {
-            // Show basic info for non-auth users
-            const group = groups.find(g => g._id === groupId);
-            setSelectedGroup(group);
-            return;
-        }
-        try {
-            const data = await communityApi.getGroup(groupId);
-            setSelectedGroup(data.group);
-            setPosts(data.posts || []);
-        } catch (err: any) {
-            // If unauthorized, just show basic group info
-            const group = groups.find(g => g._id === groupId);
-            setSelectedGroup(group);
-        }
-    };
+    // Real upcoming expeditions for the side panel
+    useEffect(() => {
+        eventsApi.list(1, 30).then(d => {
+            const now = Date.now();
+            setUpcoming((d.events || [])
+                .map((e: any) => ({ ...e, start: parseEventStart(e.date, e.time)?.start }))
+                .filter((e: any) => e.start && e.start.getTime() >= now)
+                .sort((a: any, b: any) => a.start - b.start)
+                .slice(0, 3));
+        }).catch(() => {});
+    }, []);
 
-    const handleJoin = async (groupId: string) => {
-        if (!isLoggedIn) {
-            showToast('Please log in to join groups.', 'error');
-            return;
-        }
-        setJoiningId(groupId);
+    // Load the selected group's detail + feed (members only see posts; visitors see the summary)
+    useEffect(() => {
+        if (!selectedId) return;
+        const summary = groups.find(g => g._id === selectedId);
+        if (!isLoggedIn) { setSelectedGroup(summary); setPosts([]); return; }
+        let cancelled = false;
+        setDetailLoading(true);
+        communityApi.getGroup(selectedId)
+            .then(data => { if (!cancelled) { setSelectedGroup(data.group); setPosts(data.posts || []); } })
+            .catch(() => { if (!cancelled) { setSelectedGroup(summary); setPosts([]); } })
+            .finally(() => !cancelled && setDetailLoading(false));
+        return () => { cancelled = true; };
+    }, [selectedId, isLoggedIn, groups]);
+
+    const isMember = !!selectedGroup?.members?.some?.((m: any) => idOf(m) === user?.id);
+    const isPending = !!selectedGroup?.pendingRequests?.some?.((m: any) => idOf(m) === user?.id);
+    const isModerator = !!selectedGroup?.moderators?.some?.((m: any) => idOf(m) === user?.id);
+    const memberCount = selectedGroup?.memberCount ?? selectedGroup?.members?.length ?? 0;
+
+    const handleJoin = async () => {
+        if (!selectedGroup) return;
+        setJoiningId(selectedGroup._id);
         try {
-            await communityApi.requestJoin(groupId);
-            showToast('Join request submitted! Awaiting moderator approval.', 'success');
+            await communityApi.requestJoin(selectedGroup._id);
+            setSelectedGroup((g: any) => ({ ...g, pendingRequests: [...(g.pendingRequests || []), user?.id] }));
+            showToast('Request sent — a moderator will approve you shortly.', 'success');
         } catch (err: any) {
             showToast(err.message || 'Failed to request join.', 'error');
         } finally {
@@ -96,409 +97,171 @@ export const CommunityPage = () => {
         }
     };
 
-    const handleSuggestImages = async () => {
-        if (!postContent.trim()) {
-            showToast('Please type some content first to get AI suggestions.', 'error');
-            return;
-        }
-        setImagesLoading(true);
+    const handleLeave = async () => {
+        if (!selectedGroup) return;
+        setConfirmLeave(false);
         try {
-            const context = { title: selectedGroup?.name || 'Community Post', content: postContent, type: 'community discussion' };
-            const data = await aiApi.suggestImages(context);
-            setSuggestedImages(data.images);
-            setImageModalOpen(true);
+            await communityApi.leaveGroup(selectedGroup._id);
+            setSelectedGroup((g: any) => ({ ...g, members: (g.members || []).filter((m: any) => idOf(m) !== user?.id) }));
+            setPosts([]);
+            showToast('You left the group.', 'info');
         } catch (err: any) {
-            showToast(err.message || 'Failed to fetch image suggestions.', 'error');
-        } finally {
-            setImagesLoading(false);
+            showToast(err.message || 'Could not leave the group.', 'error');
         }
     };
 
-    const handlePost = async () => {
-        if (!selectedGroup || (!postContent.trim() && !unsplashUrl)) return;
-        setPosting(true);
-        try {
-            const formData = new FormData();
-            formData.append('content', postContent);
-            if (unsplashUrl) formData.append('unsplashUrl', unsplashUrl);
-
-            const data = await communityApi.createPost(selectedGroup._id, formData);
-            setPosts([data.post, ...posts]);
-            setPostContent('');
-            setUnsplashUrl(null);
-            showToast('Field report posted.', 'success');
-        } catch (err: any) {
-            showToast(err.message || 'Failed to post.', 'error');
-        } finally {
-            setPosting(false);
-        }
-    };
-
-    const isMember = selectedGroup?.members?.some?.((m: any) => m._id === user?.id || m === user?.id);
+    const sortedGroups = useMemo(() => [...groups].sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0)), [groups]);
 
     return (
-        <main className="flashlight min-h-screen bg-alpine-navy dark:bg-[#0B0C10] text-white pt-28 pb-20 relative overflow-hidden transition-colors duration-500">
+        <main className="min-h-svh bg-alpine-navy dark:bg-[#0B0C10] text-white pt-28 pb-24 relative overflow-hidden transition-colors duration-500">
             {ToastComponent}
 
-            {/* Ambient Background */}
-            <div className="absolute inset-0 z-0 opacity-40 dark:opacity-20 pointer-events-none transition-opacity duration-500">
-                <div className="absolute top-0 right-1/4 w-[60vw] h-[60vw] bg-alpine-glacier/40 dark:bg-alpine-navy/40 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen transition-colors duration-500" />
-                <div className="absolute bottom-1/4 left-1/4 w-[40vw] h-[40vw] bg-alpine-blue/20 dark:bg-alpine-glacier/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-screen transition-colors duration-500" />
+            <div className="absolute inset-0 z-0 opacity-40 dark:opacity-20 pointer-events-none">
+                <div className="absolute top-0 right-1/4 w-[60vw] h-[60vw] bg-alpine-glacier/40 dark:bg-alpine-navy/40 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
+                <div className="absolute bottom-1/4 left-1/4 w-[40vw] h-[40vw] bg-alpine-blue/20 dark:bg-alpine-glacier/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 relative z-50">
-                {/* Night-sky page: render in the dark palette even in light mode */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
                 <div className="dark"><BackButton /></div>
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
-                    <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ duration: 0.8 }}
-                    >
-                        <CreditTitle lines={['Community']} creditClassName="text-alpine-glacier" className="font-serif text-5xl md:text-7xl font-normal drop-shadow-sm dark:drop-shadow-md text-white" />
-                        <p className="text-xl text-white/60 font-light max-w-2xl">
-                            Find your people. Join a regional group, swap route advice, and plan your next trip together.
-                        </p>
-                    </motion.div>
-                </div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8 }} className="mb-12">
+                    <CreditTitle lines={['Community']} creditClassName="text-alpine-glacier" className="font-serif text-5xl md:text-7xl font-normal text-white" />
+                    <p className="text-lg md:text-xl text-white/60 font-light max-w-2xl">
+                        Find your people. Join a regional group, swap route advice, and plan your next trip together.
+                    </p>
+                </motion.div>
 
-                {/* Tab Navigation */}
-                <div role="tablist" aria-label="Community sections" className="scroll-fade-x flex overflow-x-auto hide-scrollbar gap-2 mb-12 border-b border-white/10 pb-4 transition-colors duration-500">
-                    {TABS.map((tab) => (
-                        <button
-                            key={tab.id}
-                            role="tab"
-                            aria-selected={activeTab === tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`relative px-6 py-3 rounded-xl flex items-center gap-2 font-medium tracking-wide whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'text-white' : 'text-white/40 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            <tab.icon size={18} />
-                            {tab.label}
-                            {activeTab === tab.id && (
-                                <motion.div
-                                    layoutId="community-tab-indicator"
-                                    className="absolute inset-0 bg-white/10 shadow-sm border border-white/10 rounded-xl z-[-1]"
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                />
-                            )}
-                        </button>
-                    ))}
-                </div>
+                {loading && groups.length === 0 ? (
+                    <CommunitySkeleton />
+                ) : loadError && groups.length === 0 ? (
+                    <div className="max-w-md mx-auto py-16">
+                        <ErrorState title="Community signal lost" message={loadError} onRetry={() => setReloadKey(k => k + 1)} backLink="/" backText="Back to base camp" />
+                    </div>
+                ) : groups.length === 0 ? (
+                    <EmptyState icon={Users} title="No community groups yet" description="Groups for regions, skill levels and upcoming trips will appear here as soon as they're created." actionText="See upcoming expeditions" actionLink="/events" />
+                ) : (
+                    <div className="mm-console dark grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+                        {/* Groups */}
+                        <aside className="lg:col-span-3 space-y-3">
+                            <p className="mm-eyebrow mb-1">Groups · {groups.length}</p>
+                            <div className="flex lg:flex-col gap-2 overflow-x-auto hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0 pb-1">
+                                {sortedGroups.map(g => (
+                                    <button
+                                        key={g._id}
+                                        onClick={() => setSelectedId(g._id)}
+                                        aria-current={selectedId === g._id}
+                                        className={`shrink-0 lg:shrink text-left px-4 py-3.5 rounded-2xl border transition-colors min-w-[200px] lg:min-w-0 ${selectedId === g._id
+                                            ? 'bg-alpine-glacier/10 border-alpine-glacier/30'
+                                            : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'}`}
+                                    >
+                                        <span className="block text-sm font-medium text-white truncate">{g.name}</span>
+                                        <span className="flex items-center gap-1.5 text-xs text-white/45 mt-0.5"><Users size={11} /> {g.memberCount || 0}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </aside>
 
-                {/* Content Area */}
-                <div className="min-h-[50vh]">
-                    {loading && groups.length === 0 ? (
-                        <CommunitySkeleton />
-                    ) : loadError && groups.length === 0 ? (
-                        <div className="max-w-md mx-auto py-16">
-                            <ErrorState
-                                title="Community signal lost"
-                                message={loadError}
-                                onRetry={() => setReloadKey(k => k + 1)}
-                                backLink="/"
-                                backText="Back to base camp"
-                            />
-                        </div>
-                    ) : groups.length === 0 ? (
-                        <EmptyState
-                            icon={Users}
-                            title="No community groups yet"
-                            description="Groups for regions, skill levels and upcoming trips will appear here as soon as they're created."
-                            actionText="See upcoming expeditions"
-                            actionLink="/events"
-                        />
-                    ) : (
-                        <AnimatePresence mode="wait">
-                            {activeTab === 'groups' && (
-                                <motion.div
-                                key="groups"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.5 }}
-                                className="grid grid-cols-1 lg:grid-cols-12 gap-8"
-                            >
-                                {/* Left Panel: Active Group Focus */}
-                                <div className="lg:col-span-3 space-y-6">
-                                    {loading ? (
-                                        <div className="bg-white/5 dark:bg-[#0B0C10]/40 rounded-3xl p-6 animate-pulse h-64" />
-                                    ) : selectedGroup ? (
-                                        <div className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-sm dark:shadow-none transition-colors duration-500">
-                                            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6 border border-white/10 shadow-md">
-                                                <ShieldCheck size={24} className="text-white" />
-                                            </div>
-                                            <h2 className="font-serif text-2xl font-bold mb-2 text-white">{selectedGroup.name}</h2>
-                                            <p className="text-white/50 text-sm mb-6 leading-relaxed">
-                                                {selectedGroup.description}
-                                            </p>
-
-                                            <div className="space-y-4 pt-6 border-t border-white/10 transition-colors duration-500">
-                                                <div>
-                                                    <span className="text-white/40 text-xs tracking-widest uppercase block mb-2">Moderators</span>
-                                                    {selectedGroup.moderators?.map((mod: any) => (
-                                                        <div key={mod._id || mod} className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/5 transition-colors duration-500 mb-1">
-                                                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">{(mod.name || 'M').charAt(0)}</div>
-                                                            <span className="text-sm font-medium text-white">{mod.name || 'Moderator'}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                <div>
-                                                    <span className="text-white/40 text-xs tracking-widest uppercase block mb-2">Members ({selectedGroup.memberCount || selectedGroup.members?.length || 0})</span>
-                                                    <div className="flex -space-x-2">
-                                                        {(selectedGroup.members || []).slice(0, 5).map((m: any, i: number) => (
-                                                            <div key={i} className="w-8 h-8 rounded-full bg-alpine-navy border-2 border-white/80 dark:border-[#0B0C10] flex items-center justify-center text-[10px] text-white font-bold">{(m.name || 'U').charAt(0)}</div>
-                                                        ))}
-                                                        {(selectedGroup.memberCount || selectedGroup.members?.length || 0) > 5 && (
-                                                            <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-white/80 dark:border-[#0B0C10] flex items-center justify-center text-[10px] font-bold text-white">+{(selectedGroup.memberCount || selectedGroup.members?.length) - 5}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                        {/* Feed */}
+                        <section className="lg:col-span-6 space-y-5 min-w-0">
+                            {selectedGroup && (
+                                <div className="mm-panel p-5 sm:p-6">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <h2 className="mm-title text-3xl sm:text-4xl">{selectedGroup.name}</h2>
+                                            <p className="text-sm text-white/55 mt-2 leading-relaxed">{selectedGroup.description}</p>
                                         </div>
-                                    ) : null}
-
-                                    {/* Group selector */}
-                                    {groups.length > 1 && (
-                                        <div className="space-y-2">
-                                            {groups.map(g => (
-                                                <button
-                                                    key={g._id}
-                                                    onClick={() => loadGroupDetail(g._id)}
-                                                    className={`w-full text-left p-3 rounded-xl border transition-all text-sm font-medium ${selectedGroup?._id === g._id
-                                                        ? 'bg-alpine-glacier/10 border-alpine-glacier/30 text-white'
-                                                        : 'bg-white/5 border-transparent hover:bg-white/10 text-white/50'
-                                                    }`}
-                                                >
-                                                    {g.name} ({g.memberCount || 0})
-                                                </button>
+                                        <span className="grid place-items-center w-11 h-11 rounded-full border border-white/10 text-alpine-glacier shrink-0"><ShieldCheck size={18} /></span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 mt-5">
+                                        <div className="flex -space-x-2">
+                                            {(selectedGroup.members || []).filter((m: any) => typeof m === 'object').slice(0, 6).map((m: any) => (
+                                                m.avatar
+                                                    ? <img loading="lazy" decoding="async" key={m._id} src={m.avatar} alt={m.name} title={m.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-[#0B0C10]" />
+                                                    : <span key={m._id} title={m.name} className="w-8 h-8 rounded-full grid place-items-center bg-alpine-blue ring-2 ring-[#0B0C10] text-[11px] font-semibold">{m.name?.charAt(0)}</span>
                                             ))}
                                         </div>
-                                    )}
-
-                                    {/* Admin Control Rule Reminder */}
-                                    <div className="bg-white/5 dark:bg-transparent border border-white/10 dark:border-white/5 rounded-3xl p-6 flex items-start gap-4 shadow-sm dark:shadow-none">
-                                        <Lock size={20} className="text-amber-400 shrink-0 mt-1" />
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-white/90 mb-1">Architecture Locked</h4>
-                                            <p className="text-xs text-white/50 leading-relaxed">System groups are administered strictly by approved Mountain Guides. Users may only request to join existing factions.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Center Panel: Feed */}
-                                <div className="lg:col-span-6 space-y-6">
-                                    {isMember && (
-                                        <div className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-sm dark:shadow-none transition-colors duration-500">
-                                            <div className="flex gap-4 items-start">
-                                                <div className="w-10 h-10 rounded-full bg-alpine-glacier/30 shrink-0 flex items-center justify-center text-sm font-bold text-white">{user?.name?.charAt(0)}</div>
-                                                <div className="flex-1 flex flex-col gap-2">
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={postContent}
-                                                            onChange={e => setPostContent(e.target.value)}
-                                                            onKeyDown={e => e.key === 'Enter' && handlePost()}
-                                                            placeholder="Post field report or intelligence..."
-                                                            className="flex-1 bg-white/5 border border-white/5 rounded-2xl px-4 py-3 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-alpine-glacier/30"
-                                                        />
-                                                        <button 
-                                                            onClick={handleSuggestImages} 
-                                                            disabled={imagesLoading || posting} 
-                                                            className="p-3 bg-white/5 rounded-xl text-white/60 hover:text-alpine-glacier hover:bg-white/10 transition-all flex items-center justify-center"
-                                                            title="AI Suggest Cover Image"
-                                                        >
-                                                            {imagesLoading ? <Loader2 className="animate-spin" size={18} /> : <Wand2 size={18} />}
-                                                        </button>
-                                                        <button onClick={handlePost} disabled={posting} className="p-3 bg-alpine-glacier/20 rounded-xl text-alpine-glacier hover:bg-alpine-glacier/30 transition-all flex items-center justify-center">
-                                                            {posting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    {unsplashUrl && (
-                                                        <div className="relative inline-block mt-2 self-start rounded-xl overflow-hidden border border-white/10">
-                                                            <img src={unsplashUrl} className="h-32 w-auto object-cover opacity-90" alt="Selected cover" />
-                                                            <button 
-                                                                onClick={() => setUnsplashUrl(null)}
-                                                                className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors"
-                                                            >
-                                                                <X size={14} />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {!isMember && isLoggedIn && (
-                                        <div className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-6 text-center text-white/40 text-sm">
-                                            Join this faction to post and participate in discussions.
-                                        </div>
-                                    )}
-
-                                    {posts.length > 0 ? posts.map((post) => (
-                                        <div key={post._id} className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-sm dark:shadow-none transition-colors duration-500">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-alpine-glacier/20 flex items-center justify-center text-sm font-bold text-white">{post.author?.name?.charAt(0) || 'U'}</div>
-                                                    <div>
-                                                        <p className="font-medium text-sm text-white">{post.author?.name || 'Member'}</p>
-                                                        <p className="text-xs text-white/40">{new Date(post.createdAt).toLocaleString()} • Field Report</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <p className="text-white/80 leading-relaxed text-sm mb-4">
-                                                {post.content}
-                                            </p>
-                                            {post.image && (
-                                                <img src={post.image} className="w-full h-48 object-cover rounded-xl mb-4" />
-                                            )}
-                                            {post.comments?.length > 0 && (
-                                                <div className="border-t border-white/5 pt-4 space-y-3">
-                                                    {post.comments.map((c: any, ci: number) => (
-                                                        <div key={ci} className="flex gap-3">
-                                                            <div className="w-6 h-6 rounded-full bg-white/10 shrink-0 flex items-center justify-center text-[10px] font-bold text-white">{c.author?.name?.charAt(0) || 'U'}</div>
-                                                            <div>
-                                                                <span className="text-xs font-bold text-white">{c.author?.name || 'Member'}</span>
-                                                                <p className="text-xs text-white/60">{c.content}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )) : (
-                                        <div className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-12 text-center">
-                                            <p className="text-white/30 font-mono text-sm">[ NO_FIELD_REPORTS ]</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Right Panel: Logistics */}
-                                <div className="lg:col-span-3 space-y-6">
-                                    {selectedGroup && (
-                                        <button
-                                            onClick={() => handleJoin(selectedGroup._id)}
-                                            disabled={isMember || joiningId === selectedGroup._id}
-                                            className={`w-full font-bold py-4 rounded-2xl flex justify-center items-center gap-2 border transition-all group shadow-md dark:shadow-none hover:shadow-lg hover:-translate-y-0.5 dark:hover:-translate-y-0 ${isMember
-                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-default'
-                                                : 'bg-white/10 text-white hover:bg-white/20 border-transparent'
-                                            }`}
-                                        >
-                                            {isMember ? (
-                                                'Already Deployed ✓'
-                                            ) : joiningId === selectedGroup._id ? (
-                                                <Loader2 className="animate-spin" size={18} />
+                                        <span className="text-xs text-white/50">{memberCount} members</span>
+                                        <div className="ml-auto">
+                                            {!isLoggedIn ? (
+                                                <Link to="/login" className="mm-btn mm-btn--primary"><LogIn size={15} /> Sign in to join</Link>
+                                            ) : isMember ? (
+                                                <button onClick={() => setConfirmLeave(true)} className="mm-btn mm-btn--ghost"><LogOut size={14} /> {t('app.community.leave')}</button>
+                                            ) : isPending ? (
+                                                <span className="mm-btn mm-btn--ghost cursor-default"><Clock size={14} /> Request pending</span>
                                             ) : (
-                                                <>Request Deployment (Join) <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                                                <button onClick={handleJoin} disabled={joiningId === selectedGroup._id} className="mm-btn mm-btn--primary">
+                                                    {joiningId === selectedGroup._id ? <Loader2 size={15} className="animate-spin" /> : <>Request to join <ArrowRight size={15} /></>}
+                                                </button>
                                             )}
-                                        </button>
-                                    )}
-
-                                    <div className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-sm dark:shadow-none transition-colors duration-500">
-                                        <h3 className="font-serif text-xl font-bold mb-4 text-white">Upcoming Logistics</h3>
-                                        <div className="space-y-4">
-                                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-alpine-glacier/30 transition-colors cursor-pointer group shadow-sm dark:shadow-none">
-                                                <h4 className="font-semibold text-sm mb-2 group-hover:text-alpine-glacier transition-colors text-white">Winter Traverse: Chamonix</h4>
-                                                <div className="flex items-center gap-2 text-xs text-white/50 mb-1 transition-colors duration-500">
-                                                    <Calendar size={14} /> Feb 28 - Mar 02
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs text-white/50 transition-colors duration-500">
-                                                    <MapPin size={14} /> Briefing at Basecamp Alpha
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
-
-                                    {selectedGroup?.pinnedMessage && (
-                                        <div className="bg-white/5 dark:bg-[#0B0C10]/40 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-sm dark:shadow-none transition-colors duration-500">
-                                            <h3 className="font-serif text-xl font-bold mb-4 text-alpine-glacier dark:text-alpine-sunrise">Pinned Comm</h3>
-                                            <p className="text-sm text-white/70 leading-relaxed transition-colors duration-500">
-                                                {selectedGroup.pinnedMessage}
-                                            </p>
+                                    {selectedGroup.pinnedMessage && (
+                                        <div className="mt-5 p-4 rounded-2xl bg-alpine-glacier/[0.06] border border-alpine-glacier/15 flex gap-3">
+                                            <Pin size={15} className="text-alpine-glacier shrink-0 mt-0.5" />
+                                            <p className="text-sm text-white/75 leading-relaxed">{selectedGroup.pinnedMessage}</p>
                                         </div>
                                     )}
                                 </div>
-                            </motion.div>
-                        )}
+                            )}
 
-                        {activeTab !== 'groups' && (
-                            <motion.div
-                                key="empty"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="flex flex-col items-center justify-center h-[40vh] text-center"
-                            >
-                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6 transition-colors duration-500">
-                                    <Lock size={32} className="text-white/20" />
+                            {detailLoading ? (
+                                <div className="space-y-4">{[1, 2].map(i => <div key={i} className="mm-panel h-40 animate-pulse" />)}</div>
+                            ) : selectedGroup && (isLoggedIn ? (
+                                <GroupFeed group={selectedGroup} posts={posts} setPosts={setPosts} isMember={isMember} isModerator={isModerator} />
+                            ) : (
+                                <div className="mm-panel p-10 text-center">
+                                    <p className="mm-title text-2xl mb-2">Members talk here</p>
+                                    <p className="text-sm text-white/50 mb-6">Sign in or create a free account to read posts and join the conversation.</p>
+                                    <Link to="/signup" className="mm-btn mm-btn--primary">Create a free account</Link>
                                 </div>
-                                <h2 className="font-serif text-3xl font-normal mb-2 text-white">Members only</h2>
-                                <p className="text-white/40 max-w-md">Sign in or create a free account to join the conversation.</p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    )}
-                </div>
+                            ))}
+                        </section>
 
+                        {/* Context */}
+                        <aside className="lg:col-span-3 space-y-5">
+                            <div className="mm-panel p-5">
+                                <p className="mm-eyebrow mm-eyebrow--bare mb-1.5">On the calendar</p>
+                                <h3 className="mm-title text-2xl mb-4">Next <em>ascents</em></h3>
+                                {upcoming.length === 0 ? (
+                                    <p className="text-sm text-white/45">No trips scheduled yet. <Link to="/events" className="text-alpine-glacier hover:underline">See all</Link></p>
+                                ) : (
+                                    <ul className="space-y-3">
+                                        {upcoming.map(e => (
+                                            <li key={e._id}>
+                                                <Link to={`/events/${e._id}`} className="block p-3.5 -mx-1 rounded-xl hover:bg-white/[0.04] transition-colors group">
+                                                    <p className="text-sm font-medium text-white group-hover:text-alpine-glacier transition-colors line-clamp-2">{e.title}</p>
+                                                    <p className="flex items-center gap-1.5 text-xs text-white/45 mt-1.5"><Calendar size={12} /> {e.start.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' })}</p>
+                                                    <p className="flex items-center gap-1.5 text-xs text-white/45 mt-0.5 truncate"><MapPin size={12} /> {e.location}</p>
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+
+                            <div className="mm-panel p-5">
+                                <h3 className="mm-title text-xl mb-3">How groups work</h3>
+                                <ul className="space-y-2.5 text-sm text-white/55 leading-relaxed">
+                                    <li>Request to join — a moderator approves new members.</li>
+                                    <li>Type <span className="text-alpine-glacier">@</span> to mention someone; they'll get a notification.</li>
+                                    <li>Posts and reactions appear live for everyone in the group.</li>
+                                </ul>
+                            </div>
+                        </aside>
+                    </div>
+                )}
             </div>
 
-            {/* AI Image Suggestion Modal */}
-            <AnimatePresence>
-                {imageModalOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-alpine-navy dark:bg-[#0A0D14] rounded-3xl w-full max-w-4xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
-                        >
-                            <div className="p-4 sm:p-6 border-b border-white/5 flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-lg sm:text-xl font-serif text-white">AI Cover Suggestions</h3>
-                                    <p className="text-xs sm:text-sm text-white/60">Images sourced from Unsplash based on your post.</p>
-                                </div>
-                                <button
-                                    onClick={() => setImageModalOpen(false)}
-                                    className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
-                                >
-                                    <X size={20} className="text-white" />
-                                </button>
-                            </div>
-                            
-                            <div className="p-4 sm:p-6 overflow-y-auto">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {suggestedImages.map((img: any) => (
-                                        <div 
-                                            key={img.id} 
-                                            className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-black/5"
-                                            onClick={() => {
-                                                setUnsplashUrl(img.url);
-                                                setImageModalOpen(false);
-                                            }}
-                                        >
-                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                                                <span className="text-white text-xs font-medium truncate">Photo by {img.authorName}</span>
-                                                <div className="mt-2 text-alpine-glacier flex items-center gap-1 text-sm font-semibold">
-                                                    <CheckCircle size={14} /> Select
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <ConfirmDialog
+                isOpen={confirmLeave}
+                title={`Leave ${selectedGroup?.name || 'this group'}?`}
+                description="You'll stop seeing posts. You can request to join again later."
+                confirmText={t('app.community.leave')}
+                cancelText="Stay"
+                icon="warning"
+                onConfirm={handleLeave}
+                onCancel={() => setConfirmLeave(false)}
+            />
         </main>
     );
 };

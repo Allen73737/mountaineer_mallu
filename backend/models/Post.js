@@ -10,7 +10,11 @@ const commentSchema = new mongoose.Schema({
         type: String,
         required: true,
         maxlength: 1000
-    }
+    },
+    mentions: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, {
     timestamps: true
 });
@@ -35,7 +39,16 @@ const postSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    comments: [commentSchema]
+    comments: [commentSchema],
+    mentions: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    reactions: [{
+        _id: false,
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        emoji: { type: String, enum: ['summit', 'heart', 'fire', 'clap', 'strong'], required: true }
+    }]
 }, {
     timestamps: true
 });

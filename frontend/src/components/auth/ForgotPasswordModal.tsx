@@ -186,7 +186,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose }: Props) => {
                                     <button
                                         type="submit"
                                         disabled={isLoading || otp.length !== 6}
-                                        className="w-full py-3.5 rounded-xl bg-amber-500 text-white font-bold flex items-center justify-center gap-2 hover:bg-amber-400 transition-colors shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                                        className="w-full py-3.5 rounded-xl bg-amber-500 text-white font-bold flex items-center justify-center gap-2 hover:bg-amber-400 transition-colors shadow-[0_0_15px_rgba(212,135,90,0.3)]"
                                     >
                                         {isLoading ? <Loader2 className="animate-spin" size={20} /> : <ArrowRight size={20} />}
                                         {isLoading ? 'Verifying...' : 'Verify Code'}

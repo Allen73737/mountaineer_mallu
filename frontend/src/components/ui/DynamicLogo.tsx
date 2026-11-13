@@ -18,7 +18,7 @@ export const DynamicLogo: React.FC<DynamicLogoProps> = ({
             <div className="relative h-full flex-shrink-0 flex items-center justify-center aspect-square min-w-[32px] min-h-[32px]">
                 <div className="h-full w-full flex items-center justify-center z-10 aspect-square">
                     <img
-                        src="/logos/logo-dark.png"
+                        src="/logos/logo-dark.webp"
                         alt="Mountaineer Mallu Logomark Dark"
                         width={48}
                         height={48}
@@ -28,7 +28,7 @@ export const DynamicLogo: React.FC<DynamicLogoProps> = ({
                         decoding="sync"
                     />
                     <img
-                        src="/logos/logo-light.png"
+                        src="/logos/logo-light.webp"
                         alt="Mountaineer Mallu Logomark Light"
                         width={48}
                         height={48}
@@ -44,7 +44,7 @@ export const DynamicLogo: React.FC<DynamicLogoProps> = ({
             {showText && (
                 <div className="h-[110%] z-0 -ml-2 flex items-center aspect-[140/48] flex-shrink-0">
                     <img
-                        src="/logos/text-logo.png"
+                        src="/logos/text-logo.webp"
                         alt="Mountaineer Mallu Text"
                         width={140}
                         height={48}

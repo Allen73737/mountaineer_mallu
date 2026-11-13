@@ -122,7 +122,7 @@ export const Merch = () => {
     }, []);
 
     return (
-        <section ref={sectionRef} id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-transparent dark:bg-transparent relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-screen">
+        <section ref={sectionRef} id="merch" className="py-20 md:py-28 px-6 md:px-12 bg-transparent dark:bg-transparent relative overflow-hidden flex flex-col items-center justify-center min-h-[80vh] md:min-h-svh">
 
             {/* Background massive typography */}
             <motion.div
@@ -175,7 +175,7 @@ export const Merch = () => {
                         <div key={product.id} className="min-w-[240px] snap-start flex-shrink-0">
                             <TiltCard className="premium-card-light dark:premium-card rounded-2xl overflow-hidden border border-black/5 dark:border-white/[0.06] h-full shadow-lg group-hover:shadow-2xl">
                                 <div className="reveal-img relative h-52 overflow-hidden">
-                                    <img src={product.img} alt={product.title} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={product.img} alt={product.title} className="w-full h-full object-cover" />
                                     <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10">
                                         {product.category}
                                     </div>
@@ -231,7 +231,7 @@ export const Merch = () => {
                                 className="absolute inset-0 bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 overflow-hidden transform-style-3d group"
                                 style={{ transform: `rotateY(${currentAngle}deg) translateZ(${zRadius}px)` }}
                             >
-                                <img src={product.img} alt={product.title} className="w-full h-2/3 object-cover opacity-90 group-hover:opacity-100 transition-opacity translate-z-10" />
+                                <img loading="lazy" decoding="async" src={product.img} alt={product.title} className="w-full h-2/3 object-cover opacity-90 group-hover:opacity-100 transition-opacity translate-z-10" />
                                 <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10 translate-z-10">
                                     {product.category}
                                 </div>

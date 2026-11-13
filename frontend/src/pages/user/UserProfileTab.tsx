@@ -95,8 +95,9 @@ export const UserProfileTab = () => {
         >
             <div className="mb-6 sm:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-alpine-navy dark:text-white mb-3 sm:mb-4 tracking-wide">Explorer Profile</h1>
-                    <p className="text-alpine-navy/60 dark:text-white/60 text-base sm:text-lg font-light">Manage your personal expedition credentials.</p>
+                    <p className="mm-eyebrow mb-3">Basecamp · Identity</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Explorer <em>profile</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage your personal expedition credentials.</p>
                 </div>
             </div>
 
@@ -157,7 +158,7 @@ export const UserProfileTab = () => {
                                 <div className="absolute inset-[-20px] rounded-full border border-alpine-glacier/10 border-solid animate-[spin_30s_linear_infinite_reverse]" />
                                 
                                 {profile?.avatar ? (
-                                    <img src={profile.avatar} alt="Avatar" className="relative z-10 w-32 h-32 rounded-full object-cover shadow-[0_0_40px_rgba(163,201,226,0.3)] border-4 border-white dark:border-[#0A0D14]" />
+                                    <img loading="lazy" decoding="async" src={profile.avatar} alt="Avatar" className="relative z-10 w-32 h-32 rounded-full object-cover shadow-[0_0_40px_rgba(163,201,226,0.3)] border-4 border-white dark:border-[#0A0D14]" />
                                 ) : (
                                     <div className="relative z-10 w-32 h-32 rounded-full bg-gradient-to-br from-alpine-navy to-black flex items-center justify-center text-5xl font-black font-serif text-white shadow-[0_0_40px_rgba(163,201,226,0.3)] border-4 border-white dark:border-[#0A0D14]">
                                         {profile?.name.charAt(0)}

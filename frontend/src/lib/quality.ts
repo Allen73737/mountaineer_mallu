@@ -22,7 +22,10 @@ const gpuTier = (): QualityTier | null => {
         const renderer = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).toLowerCase();
         gl.getExtension('WEBGL_lose_context')?.loseContext();
         if (/swiftshader|llvmpipe|softpipe|basic render|software/.test(renderer)) return 'low';
-        if (/intel.*(hd|uhd) graphics [2-6]\d{2}\b|mali-[gt]?[1-7]\d\b|adreno.*[1-5]\d{2}\b|powervr/.test(renderer)) return 'medium';
+        // Integrated GPUs share memory bandwidth with the CPU: every Intel HD / UHD / Iris (not the discrete
+        // Arc cards), AMD's integrated "Radeon Graphics" / Vega, and mid-range mobile GPUs run the medium tier.
+        // (Newer Intel parts report a bare "Intel(R) UHD Graphics" with no model number.)
+        if (/intel(?!.*\barc\b).*(hd|uhd|iris)|radeon\(tm\) graphics|radeon graphics|radeon.*vega|mali|adreno.*[1-6]\d{2}\b|powervr/.test(renderer)) return 'medium';
         return null;
     } catch {
         return null;
@@ -49,6 +52,10 @@ const detect = (): QualityTier => {
     const device = getDeviceConfig();
     if (device.prefersReducedMotion) return 'low';
     let tier: QualityTier = device.isMobile ? 'medium' : device.isTablet ? (device.isLowPower ? 'low' : 'medium') : (device.isLowPower ? 'medium' : 'high');
+    // Memory-starved machines (Chrome reports deviceMemory in GB, capped at 8) can't afford WebGL layers on top of the page
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    if ((nav.deviceMemory ?? 8) <= 4) tier = 'low';
+    else if ((nav.hardwareConcurrency ?? 8) <= 4 && tier === 'high') tier = 'medium';
     const gpu = gpuTier();
     if (gpu && ORDER.indexOf(gpu) < ORDER.indexOf(tier)) tier = gpu;
     return tier;
@@ -114,4 +121,14 @@ export const startQualityProbe = () => {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
+};
+
+/**
+ * Minimum ms between frames for slow ambient canvases (stars, drifting particles, aurora-like motion):
+ * the motion is gentle enough that 30 fps (medium) or 20 fps (low) looks the same as 60 but costs half
+ * or a third of the work. The high tier keeps the component's own interval.
+ */
+export const ambientFrameInterval = (base: number) => {
+    const tier = useQuality.getState().tier;
+    return Math.max(base, tier === 'low' ? 50 : tier === 'medium' ? 33 : base);
 };

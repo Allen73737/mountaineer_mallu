@@ -134,7 +134,7 @@ export const Events = () => {
         <section 
             id="events" 
             ref={sectionRef}
-            className="relative w-full min-h-screen bg-transparent dark:bg-transparent flex items-center overflow-hidden py-24 md:py-32 transition-colors duration-500"
+            className="relative w-full min-h-svh bg-transparent dark:bg-transparent flex items-center overflow-hidden py-24 md:py-32 transition-colors duration-500"
             data-morph-card
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

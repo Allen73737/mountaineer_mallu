@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
+const DEMO_EMAIL = 'demo@mountaineermallu.com';
+// Read-only AI helpers the demo dashboard shows (they POST but change nothing)
+const DEMO_ALLOWED = ['/api/auth/logout', '/api/notifications', '/api/ai/theme-suggestion', '/api/ai/route-briefing'];
+
 // Verify JWT from HTTP-only cookie and attach user to request
 export const authenticate = async (req, res, next) => {
     try {
@@ -23,6 +27,11 @@ export const authenticate = async (req, res, next) => {
         }
 
         req.user = user;
+
+        // The shared demo account is read-only everywhere (only logging out and marking notifications read are allowed)
+        if (user.email === DEMO_EMAIL && req.method !== 'GET' && !DEMO_ALLOWED.some(p => req.originalUrl.startsWith(p))) {
+            return res.status(403).json({ error: 'The demo account is read-only. Create a free account to do this.' });
+        }
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {

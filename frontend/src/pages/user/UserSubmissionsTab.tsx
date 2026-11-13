@@ -68,8 +68,9 @@ export const UserSubmissionsTab = () => {
             className="flex flex-col h-full"
         >
             <div className="mb-6 sm:mb-10">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-alpine-navy dark:text-white mb-3 sm:mb-4 tracking-wide">My Submissions</h1>
-                <p className="text-alpine-navy/60 dark:text-white/60 text-base sm:text-lg font-light">Track the editorial status of your stories and media.</p>
+                <p className="mm-eyebrow mb-3">Create · Editorial status</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">My <em>submissions</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Track the editorial status of your stories and media.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 flex-1 overflow-y-auto custom-scrollbar sm:pr-2 pb-8">

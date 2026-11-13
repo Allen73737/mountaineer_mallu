@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { toast } from 'sonner';
 import { CreditTitle } from '../components/ui/CreditTitle';
 
+import { usePageMeta } from '../lib/usePageMeta';
 interface ProductItem {
     id: string | number;
     _id?: string;
@@ -144,6 +145,7 @@ const DEFAULT_PRODUCTS: ProductItem[] = [
 const CATEGORIES = ['All', 'Outerwear', 'Apparel', 'Gear', 'Accessories'];
 
 export const ShopPage = () => {
+    usePageMeta({ title: 'Shop', description: 'Expedition gear and apparel from Mountaineer Mallu.' });
     const { isLoggedIn } = useAuthStore();
     const [products, setProducts] = useState<ProductItem[]>(DEFAULT_PRODUCTS);
     const [loading, setLoading] = useState(false);
@@ -391,7 +393,7 @@ export const ShopPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-black/95 text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="min-h-svh bg-alpine-snow dark:bg-black/95 text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
             {/* Ambient Background Aura */}
             <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-alpine-blue/5 dark:bg-alpine-sunrise/5 rounded-full blur-[140px] pointer-events-none -z-10" />
 
@@ -712,7 +714,7 @@ export const ShopPage = () => {
                                             key={item.id}
                                             className="flex items-center gap-4 p-4 rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-sm"
                                         >
-                                            <img
+                                            <img loading="lazy" decoding="async"
                                                 src={item.img}
                                                 alt={item.title}
                                                 className="w-18 h-20 rounded-xl object-cover flex-shrink-0"
@@ -825,7 +827,7 @@ export const ShopPage = () => {
                             >
                                 {/* Modal Visual */}
                                 <div className="md:w-1/2 relative bg-black/40 min-h-[300px] md:min-h-full">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                         src={quickViewProduct.img}
                                         alt={quickViewProduct.title}
                                         className="w-full h-full object-cover"

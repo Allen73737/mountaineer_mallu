@@ -11,7 +11,6 @@ import { ComingSoon } from './components/ui/ComingSoon';
 import { CookieBanner } from './components/ui/CookieBanner';
 import { CustomCursor } from './components/ui/CustomCursor';
 import { InteractiveParticles } from './components/ui/InteractiveParticles';
-import { AtmosphericBackground } from './components/ui/AtmosphericBackground';
 import { NetworkStatusToast } from './components/ui/NetworkStatusToast';
 import { Home } from './pages/Home';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
@@ -30,17 +29,20 @@ import { LogoHandoff } from './components/ui/LogoHandoff';
 import { Flashlight } from './components/ui/Flashlight';
 import { AltitudeGauge } from './components/ui/AltitudeGauge';
 import { DayCycleGrade } from './components/ui/DayCycleGrade';
-import { LensFX } from './components/ui/LensFX';
 import { MorphOverlay } from './components/ui/MorphOverlay';
 import { WeatherAtmosphere } from './components/ui/WeatherAtmosphere';
 import { loadAlpineWeather } from './lib/weather';
-import { startQualityProbe } from './lib/quality';
+import { startQualityProbe, useQuality } from './lib/quality';
 import { SafeBoundary } from './components/ui/SafeBoundary';
 import { ErrorState } from './components/ui/ErrorState';
+import { CommandPalette } from './components/site/CommandPalette';
+import { startNotificationSync } from './store/useNotifications';
 
 // Global overlays that only matter after the page is up (chat, guided tour with driver.js, demo lock):
 // split out of the main bundle so first load parses less JavaScript
 const AIChatAssistant = lazy(() => import('./components/ui/AIChatAssistant').then(m => ({ default: m.AIChatAssistant })));
+// WebGL aurora (and its ogl library) only downloads on machines that run it — the high quality tier
+const AtmosphericBackground = lazy(() => import('./components/ui/AtmosphericBackground').then(m => ({ default: m.AtmosphericBackground })));
 const TourGuide = lazy(() => import('./components/ui/TourGuide').then(m => ({ default: m.TourGuide })));
 const DemoLockOverlay = lazy(() => import('./components/ui/DemoLockOverlay').then(m => ({ default: m.DemoLockOverlay })));
 
@@ -76,6 +78,7 @@ const PillarsManagement = lazy(() => import('./pages/admin/PillarsManagement').t
 const ReviewsManagement = lazy(() => import('./pages/admin/ReviewsManagement').then(m => ({ default: m.ReviewsManagement })));
 const MerchandiseManagement = lazy(() => import('./pages/admin/MerchandiseManagement').then(m => ({ default: m.MerchandiseManagement })));
 const CampaignAutopilot = lazy(() => import('./pages/admin/CampaignAutopilot').then(m => ({ default: m.CampaignAutopilot })));
+const AuditLog = lazy(() => import('./pages/admin/AuditLog').then(m => ({ default: m.AuditLog })));
 
 /** Route guard — redirects hidden sections, shows ComingSoon for coming_soon */
 const SectionRoute = ({ sectionKey, label, children }: { sectionKey: string; label: string; children: React.ReactNode }) => {
@@ -88,7 +91,8 @@ const SectionRoute = ({ sectionKey, label, children }: { sectionKey: string; lab
 };
 
 function App() {
-    const { theme, weather } = useStore();
+    const { theme, weather, isSnowEffectEnabled } = useStore();
+    const qualityTier = useQuality(s => s.tier);
     const { checkAuth, user } = useAuthStore();
     const { fetchSettings, initSocket, disconnectSocket, settings } = useSiteSettings();
     const { i18n } = useTranslation();
@@ -131,6 +135,8 @@ function App() {
     // Auth screens are full-bleed with their own header, so they skip the global Navbar/SidePanel
     const isAuthRoute = ['/profile-complete', '/login', '/signup'].includes(location.pathname);
     const isAppLayout = !isAdminRoute && !isPortalRoute && !isAuthRoute;
+    // The dashboards paint their own opaque console backdrop, so the site's cinematic layers would only burn GPU behind it
+    const isConsoleRoute = isAdminRoute || isPortalRoute;
 
     const isAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin';
     const showMaintenance = settings.maintenance.enabled && !(isAdmin && settings.maintenance.allowAdminAccess);
@@ -149,8 +155,43 @@ function App() {
             useAuthStore.getState().logoutAsync();
         });
 
-        return () => disconnectSocket();
+        // Live inbox: follows login/logout and listens on the socket
+        const stopNotifications = startNotificationSync();
+
+        // If the API was down when the page opened (e.g. backend still connecting to the database),
+        // pick up settings and the session as soon as it answers again — no manual refresh needed
+        const onServerStatus = (e: Event) => {
+            if ((e as CustomEvent).detail?.reachable) { checkAuth(); fetchSettings(); }
+        };
+        window.addEventListener('mm:server-status', onServerStatus);
+
+        return () => { stopNotifications(); disconnectSocket(); window.removeEventListener('mm:server-status', onServerStatus); };
     }, []);
+
+    // Once the intro is done and the browser is idle, fetch the code for the pages people open next,
+    // so navigating shows the page straight away instead of a loading skeleton
+    useEffect(() => {
+        // In development each prefetch makes Vite compile a whole page graph on the spot, which is what made the dev site crawl
+        if (isLoading || import.meta.env.DEV) return;
+        const conn = (navigator as any).connection;
+        if (conn?.saveData || /2g/.test(conn?.effectiveType || '')) return; // respect data saver / very slow links
+        const idle = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1200));
+        const loads: (() => Promise<unknown>)[] = [
+            () => import('./pages/Events'), () => import('./pages/Stories'), () => import('./pages/auth/AuthPage'),
+            () => import('./pages/CommunityPage'), () => import('./pages/Gallery'), () => import('./pages/EventDetail'),
+            () => import('./pages/StoryDetail'), () => import('./pages/Team'), () => import('./pages/Shop'),
+        ];
+        if (user) loads.unshift(() => import('./pages/user/UserDashboard'));
+        if (user?.role === 'Admin' || user?.role === 'SuperAdmin') loads.push(() => import('./pages/admin/AdminDashboard'), () => import('./pages/admin/AdminOverview'));
+        let cancelled = false;
+        const next = () => {
+            const load = loads.shift();
+            if (!load || cancelled) return;
+            load().catch(() => {}).finally(() => idle(next));
+        };
+        const id = window.setTimeout(() => idle(next), 2500);
+        return () => { cancelled = true; window.clearTimeout(id); };
+    }, [isLoading, user?.id, user?.role]);
 
     // Watch the frame rate and step effects down if this device can't keep up. Starts after the intro
     // (the loader's own animation and the decor booting would read as a slow device) plus a short warm-up.
@@ -197,13 +238,12 @@ function App() {
     return (
         <MotionConfig reducedMotion="user">
         <SmoothScrollProvider>
-            <div className="min-h-screen bg-transparent dark:bg-transparent text-alpine-navy dark:text-alpine-snow transition-colors duration-500 overflow-x-clip film-grain">
+            <div className={`min-h-svh bg-transparent dark:bg-transparent text-alpine-navy dark:text-alpine-snow transition-colors duration-500 overflow-x-clip ${isConsoleRoute ? '' : 'film-grain'}`}>
             <div className="fixed inset-0 bg-[#030712] dark:bg-black -z-50 pointer-events-none" />
-            {!isAdminRoute && <div className="cinema-vignette" aria-hidden="true" />}
+            {!isConsoleRoute && <div className="cinema-vignette" aria-hidden="true" />}
             <CinematicTitles />
             {/* Decorative layers: if one fails (GPU, driver, browser quirk) it switches itself off instead of taking the page down */}
             {location.pathname === '/' && <SafeBoundary name="DayCycleGrade"><DayCycleGrade /></SafeBoundary>}
-            {!isAdminRoute && <SafeBoundary name="LensFX"><LensFX /></SafeBoundary>}
             {decorReady && isAppLayout && <SafeBoundary name="WeatherAtmosphere"><WeatherAtmosphere /></SafeBoundary>}
             <SafeBoundary name="MorphOverlay"><MorphOverlay /></SafeBoundary>
             <LogoHandoff />
@@ -215,8 +255,12 @@ function App() {
                 <>
                     <SafeBoundary name="CustomCursor"><CustomCursor /></SafeBoundary>
                     {/* Auth screens have their own photographic backdrop — keep them clean */}
-                    {!isAuthRoute && <SafeBoundary name="AtmosphericBackground"><AtmosphericBackground /></SafeBoundary>}
-                    {!isAuthRoute && <SafeBoundary name="InteractiveParticles"><InteractiveParticles /></SafeBoundary>}
+                    {/* WebGL aurora only on the high tier; the probe steps down on struggling devices */}
+                    {isAppLayout && qualityTier === 'high' && <SafeBoundary name="AtmosphericBackground"><Suspense fallback={<div className="atmos-static" aria-hidden="true" />}><AtmosphericBackground /></Suspense></SafeBoundary>}
+                    {/* Medium / low tiers get the same mood as a static gradient: no full-screen shader running behind every page */}
+                    {isAppLayout && qualityTier !== 'high' && <div className="atmos-static" aria-hidden="true" />}
+                    {/* Live weather already draws its own snow and fog; this extra flurry runs only when the visitor asks for it */}
+                    {isAppLayout && isSnowEffectEnabled && <SafeBoundary name="InteractiveParticles"><InteractiveParticles /></SafeBoundary>}
                 </>
             )}
 
@@ -247,7 +291,7 @@ function App() {
             <RouteTransition routeKey={getRouteKey(location.pathname)}>
                 {/* A page that crashes shows an error card in place; the navbar, menu and the rest of the site keep working */}
                 <SafeBoundary name="Page" resetKey={location.pathname} fallback={reset => (
-                    <div className="min-h-screen flex items-center justify-center px-6 pt-28 pb-16">
+                    <div className="min-h-svh flex items-center justify-center px-6 pt-28 pb-16">
                         <div className="max-w-md w-full">
                             <ErrorState
                                 title="This page hit a snag"
@@ -282,12 +326,13 @@ function App() {
                         </ProtectedRoute>
                     } />
 
-                    {/* User Dashboard */}
-                    <Route path="/dashboard" element={
+                    {/* Explorer portal (user dashboard) */}
+                    <Route path="/portal/*" element={
                         <ProtectedRoute>
                             <UserDashboard />
                         </ProtectedRoute>
                     } />
+                    <Route path="/dashboard" element={<Navigate to="/portal" replace />} />
 
                     {/* Admin Panel */}
                     <Route path="/summit-control-panel/access-denied" element={<AccessDenied />} />
@@ -318,6 +363,7 @@ function App() {
                             </ProtectedRoute>
                         } />
                         <Route path="users" element={<UsersManagement />} />
+                        <Route path="audit" element={<AuditLog />} />
                         <Route path="campaigns" element={
                             <ProtectedRoute allowedRoles={['SuperAdmin']}>
                                 <CampaignAutopilot />
@@ -330,6 +376,9 @@ function App() {
                 </Suspense>
                 </SafeBoundary>
             </RouteTransition>
+
+            {/* ⌘K search & quick navigation */}
+            <SafeBoundary name="CommandPalette"><CommandPalette /></SafeBoundary>
 
             {/* Global Cookie Consent Banner */}
             <CookieBanner />

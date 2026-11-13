@@ -1,4 +1,5 @@
 import Review from '../models/Review.js';
+import { notify } from '../services/notify.js';
 
 // @desc    Get all approved reviews (Public)
 // @route   GET /api/reviews
@@ -70,6 +71,9 @@ export const updateReviewStatus = async (req, res, next) => {
         if (!review) {
             return res.status(404).json({ error: 'Review not found' });
         }
+        if (status === 'approved' && review.author?._id) {
+            notify(review.author._id, { type: 'review_status', actor: req.user._id, title: 'Your review is live — thank you!', body: '', link: '/reviews' });
+        }
         res.json(review);
     } catch (error) {
         next(error);
@@ -109,6 +113,23 @@ export const deleteReview = async (req, res, next) => {
         }
         await review.deleteOne();
         res.json({ message: 'Review deleted successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// PATCH /api/reviews/bulk-status — { ids: [], status }
+export const bulkReviewStatus = async (req, res, next) => {
+    try {
+        const { ids, status } = req.body;
+        if (!['pending', 'approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+        if (!Array.isArray(ids) || !ids.length || ids.length > 100) return res.status(400).json({ error: 'Provide 1–100 ids.' });
+        const reviews = await Review.find({ _id: { $in: ids } }).select('author status');
+        await Review.updateMany({ _id: { $in: ids } }, { status });
+        if (status === 'approved') {
+            notify(reviews.filter(r => r.status !== 'approved').map(r => r.author), { type: 'review_status', actor: req.user._id, title: 'Your review is live — thank you!', body: '', link: '/reviews' });
+        }
+        res.json({ message: `${reviews.length} review${reviews.length === 1 ? '' : 's'} updated.`, updated: reviews.length });
     } catch (error) {
         next(error);
     }

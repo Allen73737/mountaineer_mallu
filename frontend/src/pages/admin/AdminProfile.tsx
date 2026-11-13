@@ -113,10 +113,11 @@ export const AdminProfile = () => {
             className="max-w-6xl mx-auto space-y-8"
         >
             {ToastComponent}
-            <div>
-                <h1 className="text-3xl font-serif text-alpine-navy dark:text-white mb-2">Profile & Security</h1>
-                <p className="text-alpine-navy/60 dark:text-white/60">Manage your administrative identity and credentials.</p>
-            </div>
+            <header className="mm-rise">
+                <p className="mm-eyebrow mb-3">Account · Security</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Profile &amp; <em>security</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage your administrative identity and credentials.</p>
+            </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* ─── Profile Card ────────────────────────────────────── */}
@@ -129,7 +130,7 @@ export const AdminProfile = () => {
                         <div className="relative z-10 flex flex-col items-center text-center">
                             <div className="relative group mb-6">
                                 {profile?.avatar ? (
-                                    <img src={profile.avatar} alt="Avatar" className="w-32 h-32 rounded-full object-cover shadow-2xl border-4 border-alpine-glacier/20" />
+                                    <img loading="lazy" decoding="async" src={profile.avatar} alt="Avatar" className="w-32 h-32 rounded-full object-cover shadow-2xl border-4 border-alpine-glacier/20" />
                                 ) : (
                                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-alpine-navy to-[#0A0D14] flex items-center justify-center text-4xl font-bold text-white shadow-2xl border-4 border-alpine-glacier/20">
                                         {profile?.name.charAt(0)}

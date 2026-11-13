@@ -65,15 +65,11 @@ export const UserWishlistTab = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
         >
-            <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-red-500/20 text-red-500 rounded-2xl">
-                    <Heart size={32} className="fill-current" />
+            <div className="min-w-0">
+                    <p className="mm-eyebrow mb-3">Basecamp · Saved gear</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">My <em>wishlist</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Your saved premium expedition gear and apparel.</p>
                 </div>
-                <div>
-                    <h2 className="text-3xl font-serif font-bold tracking-wide">My Wishlist</h2>
-                    <p className="text-alpine-navy/60 dark:text-white/50 mt-1">Your saved premium expedition gear and apparel.</p>
-                </div>
-            </div>
 
             {wishlist.length === 0 ? (
                 <div className="p-12 text-center bg-black/5 dark:bg-white/5 rounded-3xl border border-black/10 dark:border-white/10">
@@ -103,7 +99,7 @@ export const UserWishlistTab = () => {
                                 <div className="h-full bg-white dark:bg-[#0B0C10] rounded-3xl p-4 border border-black/5 dark:border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl flex flex-col transform-style-3d group-hover:rotate-x-2 group-hover:rotate-y-[-2deg]">
                                     
                                     <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-4 bg-black/5 dark:bg-white/5 group-hover:shadow-[0_20px_40px_-20px_rgba(0,0,0,0.5)] transition-all duration-500">
-                                        <img
+                                        <img loading="lazy" decoding="async"
                                             src={item.image}
                                             alt={item.name}
                                             className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal group-hover:scale-110 transition-transform duration-700 ease-out"

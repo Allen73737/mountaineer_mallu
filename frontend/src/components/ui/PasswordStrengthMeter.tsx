@@ -21,7 +21,7 @@ export const PasswordStrengthMeter = ({ password }: PasswordStrengthMeterProps) 
         if (strength === 0) return "bg-white/10";
         if (strength === 1) return "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]";
         if (strength === 2) return "bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]";
-        if (strength === 3) return "bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]";
+        if (strength === 3) return "bg-yellow-500 shadow-[0_0_10px_rgba(212, 135, 90,0.5)]";
         if (strength === 4) return "bg-lime-400 shadow-[0_0_10px_rgba(163,230,53,0.5)]";
         return "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]";
     };

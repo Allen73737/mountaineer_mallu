@@ -17,6 +17,7 @@ import { DirectionalScrollReveal } from '../components/ui/DirectionalScrollRevea
 import { useSiteSettings } from '../store/useSiteSettings';
 import { SafeBoundary } from '../components/ui/SafeBoundary';
 
+import { usePageMeta } from '../lib/usePageMeta';
 const RIDGE_PATH = 'M0 70 L110 62 L190 44 L250 54 L330 26 L410 50 L470 38 L550 58 L630 32 L700 8 L770 36 L850 24 L910 50 L990 36 L1070 56 L1140 48 L1200 66';
 const SUMMIT = { x: 700, y: 8 }; // highest point of RIDGE_PATH in its 1200 × 80 box
 
@@ -37,8 +38,8 @@ const SectionDivider = () => {
                             <stop offset="0%" stopColor="#A3C9E2" stopOpacity="0" />
                             <stop offset="20%" stopColor="#A3C9E2" />
                             <stop offset="58%" stopColor="#E2A071" />
-                            <stop offset="85%" stopColor="#C9A96E" />
-                            <stop offset="100%" stopColor="#C9A96E" stopOpacity="0" />
+                            <stop offset="85%" stopColor="#B9CCDC" />
+                            <stop offset="100%" stopColor="#B9CCDC" stopOpacity="0" />
                         </linearGradient>
                     </defs>
                     {/* Faint full ridge so the shape reads before it is drawn */}
@@ -280,7 +281,7 @@ const SummitPushIn = () => {
                     <path d={PEAK} fill={g('body')} />
                     <path d={PEAK_LIT} fill={g('lit')} className="summit-alpenglow" />
                     <path d={PEAK_SNOW} fill={g('snow')} />
-                    <path d={RIDGE_LEFT} fill="none" stroke="#FFD2B0" strokeWidth="1.5" strokeLinejoin="round" opacity="0.7" />
+                    <path d={RIDGE_LEFT} fill="none" stroke="#FFD0C2" strokeWidth="1.5" strokeLinejoin="round" opacity="0.7" />
 
                     {/* Wind blowing snow off the summit */}
                     <ellipse cx="800" cy="300" rx="95" ry="13" fill={g('plume')} className="summit-plume" />
@@ -288,7 +289,7 @@ const SummitPushIn = () => {
 
                     {/* Base camp: tents glowing at the foot, headlamps working up the switchbacks */}
                     <motion.g style={{ opacity: lifeOpacity }}>
-                        <path d={CLIMB} fill="none" stroke="#FFD9A8" strokeWidth="1" strokeDasharray="2 7" strokeLinecap="round" opacity="0.35" />
+                        <path d={CLIMB} fill="none" stroke="#FFD6C8" strokeWidth="1" strokeDasharray="2 7" strokeLinecap="round" opacity="0.35" />
                         {[0, 5, 10].map(delay => (
                             <g key={delay}>
                                 <circle r="7" fill={g('glow')} />
@@ -298,7 +299,7 @@ const SummitPushIn = () => {
                         ))}
                         <ellipse cx="664" cy="782" rx="70" ry="26" fill={g('glow')} className="summit-campfire" />
                         {TENTS.map(({ x, s }) => (
-                            <path key={x} d={`M${x - 11 * s} 784 L${x} ${784 - 17 * s} L${x + 11 * s} 784 Z`} fill="#F2A65E" stroke="#FFD9A8" strokeWidth="0.6" className="summit-tent" style={{ animationDelay: `${x % 7 * 0.3}s` }} />
+                            <path key={x} d={`M${x - 11 * s} 784 L${x} ${784 - 17 * s} L${x + 11 * s} 784 Z`} fill="#F2A65E" stroke="#FFD6C8" strokeWidth="0.6" className="summit-tent" style={{ animationDelay: `${x % 7 * 0.3}s` }} />
                         ))}
                     </motion.g>
                 </motion.svg>
@@ -328,8 +329,8 @@ const SummitPushIn = () => {
                         ))}
                         <span className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-[radial-gradient(circle,rgba(255,194,122,0.55),transparent_65%)] summit-campfire-glow" />
                         <svg viewBox="0 0 40 30" className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-10 h-8">
-                            <path d="M4 28 L20 4 L36 28 Z" fill="none" stroke="#FFD9A8" strokeWidth="1.6" strokeLinejoin="round" />
-                            <path d="M20 4 L20 28 M14 28 L20 18 L26 28" fill="none" stroke="#FFD9A8" strokeWidth="1.2" strokeLinejoin="round" />
+                            <path d="M4 28 L20 4 L36 28 Z" fill="none" stroke="#FFD6C8" strokeWidth="1.6" strokeLinejoin="round" />
+                            <path d="M20 4 L20 28 M14 28 L20 18 L26 28" fill="none" stroke="#FFD6C8" strokeWidth="1.2" strokeLinejoin="round" />
                         </svg>
                     </div>
 
@@ -353,6 +354,7 @@ const SummitPushIn = () => {
 };
 
 export const Home = () => {
+    usePageMeta({ path: '/' });
     return (
         <main className="relative w-full overflow-clip">
             <div id="hero">

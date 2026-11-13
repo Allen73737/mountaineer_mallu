@@ -1,4 +1,5 @@
 import GalleryItem from '../models/GalleryItem.js';
+import { notify } from '../services/notify.js';
 import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
 
 // GET /api/gallery — approved media only
@@ -168,6 +169,7 @@ export const approveMedia = async (req, res, next) => {
             { new: true }
         );
         if (!item) return res.status(404).json({ error: 'Media not found.' });
+        announceMedia(item, 'approved', req.user._id);
         res.json({ message: 'Media approved.', item });
     } catch (error) {
         next(error);
@@ -183,6 +185,7 @@ export const rejectMedia = async (req, res, next) => {
             { new: true }
         );
         if (!item) return res.status(404).json({ error: 'Media not found.' });
+        announceMedia(item, 'rejected', req.user._id);
         res.json({ message: 'Media rejected.', item });
     } catch (error) {
         next(error);
@@ -195,6 +198,31 @@ export const deleteMedia = async (req, res, next) => {
         const item = await GalleryItem.findByIdAndDelete(req.params.id);
         if (!item) return res.status(404).json({ error: 'Media not found.' });
         res.json({ message: 'Media deleted.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const announceMedia = (item, status, actor) => {
+    if (!item.uploadedBy) return;
+    notify(item.uploadedBy, {
+        type: 'media_status', actor,
+        title: status === 'approved' ? `Your ${item.type || 'photo'} is in the gallery` : `Your ${item.type || 'photo'} wasn't added to the gallery`,
+        body: item.title || '',
+        link: status === 'approved' ? '/gallery' : '/portal/submissions'
+    });
+};
+
+// PATCH /api/gallery/bulk-status — { ids: [], status: 'approved' | 'rejected' }
+export const bulkMediaStatus = async (req, res, next) => {
+    try {
+        const { ids, status } = req.body;
+        if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
+        if (!Array.isArray(ids) || !ids.length || ids.length > 100) return res.status(400).json({ error: 'Provide 1–100 ids.' });
+        const items = await GalleryItem.find({ _id: { $in: ids } });
+        await GalleryItem.updateMany({ _id: { $in: ids } }, status === 'approved' ? { status, approvedBy: req.user._id } : { status });
+        items.forEach(i => announceMedia(i, status, req.user._id));
+        res.json({ message: `${items.length} item${items.length === 1 ? '' : 's'} ${status}.`, updated: items.length });
     } catch (error) {
         next(error);
     }

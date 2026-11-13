@@ -1,10 +1,15 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cluster from 'cluster';
 import os from 'os';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from backend/.env first, then root fallback
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config();
 
 // Cluster is enabled in production or if explicitly requested via CLUSTER_ENABLED=true
 const isClusterEnabled = process.env.CLUSTER_ENABLED === 'true' || 
@@ -75,15 +80,20 @@ if (isClusterEnabled && cluster.isPrimary) {
 } else {
     // Single-process mode or Worker process
     import('./index.js').then(({ default: app, startServer }) => {
-        process.on('uncaughtException', (err) => {
-            console.error(`[Process ${process.pid}] Uncaught Exception:`, err);
-            setTimeout(() => process.exit(1), 1000);
+        // A stray rejection (a failed email, an AI timeout, a Mongo blip) is logged, never fatal —
+        // under `node --watch` a crashed process is not restarted, which left the API silently down.
+        process.on('unhandledRejection', (reason) => {
+            console.error(`[Process ${process.pid}] Unhandled rejection (kept running):`, reason);
         });
 
-        process.on('unhandledRejection', (reason, promise) => {
-            console.error(`[Process ${process.pid}] Unhandled Rejection at:`, promise, 'reason:', reason);
-            setTimeout(() => process.exit(1), 1000);
+        process.on('uncaughtException', (err) => {
+            console.error(`[Process ${process.pid}] Uncaught exception:`, err);
+            // In production the cluster supervisor / platform restarts a clean worker; in development stay up
+            if (process.env.NODE_ENV === 'production') setTimeout(() => process.exit(1), 1000);
         });
+
+        // A cluster worker whose supervisor went away should not linger holding the port
+        if (cluster.isWorker) process.on('disconnect', () => process.exit(0));
 
         startServer();
     }).catch(err => {

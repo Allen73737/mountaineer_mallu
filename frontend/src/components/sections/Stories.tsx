@@ -99,7 +99,7 @@ export const Stories = () => {
     };
 
     return (
-        <section id="stories" className="relative w-full min-h-screen bg-transparent dark:bg-transparent transition-colors duration-500 flex flex-col py-16 md:py-24 px-4 md:px-12">
+        <section id="stories" className="relative w-full min-h-svh bg-transparent dark:bg-transparent transition-colors duration-500 flex flex-col py-16 md:py-24 px-4 md:px-12">
             
             {/* Header (Outside the accordion) */}
             <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 relative z-20">

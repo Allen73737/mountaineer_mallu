@@ -15,16 +15,16 @@ interface PrismConfig {
 
 const PRISM_PALETTES: Record<string, PrismConfig> = {
     hero: {
-        primaryBeam: 'from-transparent via-[#7EAACB]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/20 via-white/70 via-[#E2A071]/25 to-transparent',
         secondaryBeam: 'from-transparent via-[#9C93B5]/15 via-white/60 via-[#34D399]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.12)',
-        accentGlow: 'rgba(251, 191, 36, 0.15)'
+        accentGlow: 'rgba(226, 160, 113, 0.15)'
     },
     mission: {
-        primaryBeam: 'from-transparent via-[#E2A071]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        primaryBeam: 'from-transparent via-[#E2A071]/20 via-white/70 via-[#E2A071]/25 to-transparent',
         secondaryBeam: 'from-transparent via-[#7EAACB]/15 via-white/60 via-[#F43F5E]/20 to-transparent',
         causticTint: 'rgba(251, 113, 133, 0.14)',
-        accentGlow: 'rgba(251, 191, 36, 0.16)'
+        accentGlow: 'rgba(226, 160, 113, 0.16)'
     },
     stories: {
         primaryBeam: 'from-transparent via-[#7EAACB]/25 via-white/80 via-[#9C93B5]/25 to-transparent',
@@ -51,22 +51,22 @@ const PRISM_PALETTES: Record<string, PrismConfig> = {
         accentGlow: 'rgba(96, 165, 250, 0.15)'
     },
     team: {
-        primaryBeam: 'from-transparent via-[#FBBF24]/25 via-white/80 via-[#7EAACB]/20 to-transparent',
-        secondaryBeam: 'from-transparent via-[#F43F5E]/15 via-white/60 via-[#FBBF24]/20 to-transparent',
-        causticTint: 'rgba(251, 191, 36, 0.15)',
+        primaryBeam: 'from-transparent via-[#E2A071]/25 via-white/80 via-[#7EAACB]/20 to-transparent',
+        secondaryBeam: 'from-transparent via-[#F43F5E]/15 via-white/60 via-[#E2A071]/20 to-transparent',
+        causticTint: 'rgba(226, 160, 113, 0.15)',
         accentGlow: 'rgba(56, 189, 248, 0.14)'
     },
     reviews: {
-        primaryBeam: 'from-transparent via-[#F43F5E]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        primaryBeam: 'from-transparent via-[#F43F5E]/20 via-white/70 via-[#E2A071]/25 to-transparent',
         secondaryBeam: 'from-transparent via-[#9C93B5]/15 via-white/60 via-[#E2A071]/20 to-transparent',
         causticTint: 'rgba(244, 63, 94, 0.14)',
         accentGlow: 'rgba(192, 132, 252, 0.14)'
     },
     merch: {
-        primaryBeam: 'from-transparent via-[#E2A071]/25 via-white/80 via-[#FBBF24]/25 to-transparent',
+        primaryBeam: 'from-transparent via-[#E2A071]/25 via-white/80 via-[#E2A071]/25 to-transparent',
         secondaryBeam: 'from-transparent via-[#34D399]/15 via-white/60 via-[#E2A071]/20 to-transparent',
         causticTint: 'rgba(251, 113, 133, 0.15)',
-        accentGlow: 'rgba(251, 191, 36, 0.15)'
+        accentGlow: 'rgba(226, 160, 113, 0.15)'
     },
     contact: {
         primaryBeam: 'from-transparent via-[#7EAACB]/25 via-white/80 via-[#9C93B5]/25 to-transparent',
@@ -81,10 +81,10 @@ const PRISM_PALETTES: Record<string, PrismConfig> = {
         accentGlow: 'rgba(129, 140, 248, 0.15)'
     },
     default: {
-        primaryBeam: 'from-transparent via-[#7EAACB]/20 via-white/70 via-[#FBBF24]/25 to-transparent',
+        primaryBeam: 'from-transparent via-[#7EAACB]/20 via-white/70 via-[#E2A071]/25 to-transparent',
         secondaryBeam: 'from-transparent via-[#9C93B5]/15 via-white/60 via-[#34D399]/20 to-transparent',
         causticTint: 'rgba(56, 189, 248, 0.12)',
-        accentGlow: 'rgba(251, 191, 36, 0.15)'
+        accentGlow: 'rgba(226, 160, 113, 0.15)'
     }
 };
 

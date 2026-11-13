@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { CreditTitle } from '../components/ui/CreditTitle';
 import { Odometer } from '../components/ui/Odometer';
 
+import { usePageMeta } from '../lib/usePageMeta';
 interface ReviewItem {
     id?: string | number;
     _id?: string;
@@ -78,6 +79,7 @@ const FALLBACK_REVIEWS: ReviewItem[] = [
 ];
 
 export const ReviewsPage = () => {
+    usePageMeta({ title: 'Reviews', description: 'What members say about climbing with Mountaineer Mallu.' });
     const { t } = useTranslation();
     const { isLoggedIn, user } = useAuthStore();
     const [reviews, setReviews] = useState<ReviewItem[]>(FALLBACK_REVIEWS);
@@ -161,7 +163,7 @@ export const ReviewsPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="min-h-svh bg-alpine-snow dark:bg-black text-alpine-navy dark:text-alpine-snow pt-32 pb-24 px-6 md:px-12 relative overflow-hidden">
             {/* Ambient Lighting */}
             <div className="absolute top-24 left-1/4 w-[600px] h-[600px] bg-alpine-blue/5 dark:bg-alpine-sunrise/5 rounded-full blur-[150px] pointer-events-none -z-10" />
 

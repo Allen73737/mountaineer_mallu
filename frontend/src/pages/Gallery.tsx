@@ -14,7 +14,9 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { CreditTitle } from '../components/ui/CreditTitle';
 
+import { usePageMeta } from '../lib/usePageMeta';
 export const GalleryPage = () => {
+    usePageMeta({ title: 'Gallery', description: 'Photos and films from the summits, ridges and huts — captured by the Mountaineer Mallu community.' });
     const [mediaItems, setMediaItems] = useState<any[]>([]);
     const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
@@ -165,7 +167,7 @@ export const GalleryPage = () => {
     };
 
     return (
-        <div className="flashlight relative min-h-screen bg-alpine-navy dark:bg-black text-alpine-snow dark:text-white pt-32 pb-24 px-4 md:px-8">
+        <div className="flashlight relative min-h-svh bg-alpine-navy dark:bg-black text-alpine-snow dark:text-white pt-32 pb-24 px-4 md:px-8">
             {ToastComponent}
 
             <div className="max-w-7xl mx-auto px-4 relative z-50">
@@ -313,7 +315,7 @@ export const GalleryPage = () => {
                             {selectedMedia.type === 'video' ? (
                                 <video src={selectedMedia.url} autoPlay loop controls className="w-full h-full object-contain bg-black" />
                             ) : (
-                                <img src={selectedMedia.url} alt={selectedMedia.title} className="w-full h-full object-contain bg-black" />
+                                <img loading="lazy" decoding="async" src={selectedMedia.url} alt={selectedMedia.title} className="w-full h-full object-contain bg-black" />
                             )}
                             {/* Caption bar */}
                             <motion.div
@@ -445,7 +447,7 @@ export const GalleryPage = () => {
                                 className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center cursor-pointer hover:border-alpine-glacier/50 hover:bg-white/5 transition-all mb-6"
                             >
                                 {uploadPreview ? (
-                                    <img src={uploadPreview} className="max-h-48 mx-auto rounded-xl object-contain" />
+                                    <img loading="lazy" decoding="async" alt="" src={uploadPreview} className="max-h-48 mx-auto rounded-xl object-contain" />
                                 ) : uploadFile ? (
                                     <p className="text-white/60">{uploadFile.name}</p>
                                 ) : (

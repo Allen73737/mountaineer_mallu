@@ -25,6 +25,7 @@ const ROUTE_TITLES: Record<string, [string, string]> = {
     '/contact': ['Mission Control', 'Contact'],
     '/auth': ['Welcome back', 'Account'],
     '/dashboard': ['Your basecamp', 'Dashboard'],
+    '/portal': ['Your basecamp', 'Dashboard'],
 };
 const titleFor = (key: string): [string, string] => {
     if (ROUTE_TITLES[key]) return ROUTE_TITLES[key];
@@ -247,6 +248,8 @@ export const RouteTransition: React.FC<{ routeKey: string; children: React.React
 /** Collapse nested routes that share a shell (admin, auth) into one key so the shell doesn't replay. */
 export const getRouteKey = (pathname: string) => {
     if (pathname.startsWith('/summit-control-panel')) return '/summit-control-panel';
+    // Portal tabs swap inside the dashboard shell — no full-page curtain between them
+    if (pathname.startsWith('/portal')) return '/portal';
     if (pathname === '/login' || pathname === '/signup') return '/auth';
     return pathname;
 };

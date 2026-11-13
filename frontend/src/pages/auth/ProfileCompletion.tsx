@@ -78,7 +78,7 @@ export const ProfileCompletion = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#F7F4EF] dark:bg-[#070B12] text-alpine-navy dark:text-alpine-snow pt-16 pb-12">
+        <div className="min-h-svh flex items-center justify-center relative overflow-hidden bg-[#F7F4EF] dark:bg-[#070B12] text-alpine-navy dark:text-alpine-snow pt-16 pb-12">
             <div className="absolute inset-0 z-0">
                 <div className="atelier-glow" />
                 <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-alpine-snow/5 rounded-full blur-[100px]" />
@@ -173,7 +173,7 @@ export const ProfileCompletion = () => {
                                         className="w-24 h-24 bg-alpine-navy/[0.03] dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-alpine-navy/20 dark:border-white/20 text-alpine-navy/50 dark:text-white/60 hover:text-alpine-navy dark:hover:text-white hover:border-alpine-blue dark:hover:border-alpine-glacier transition-colors cursor-pointer relative overflow-hidden group"
                                     >
                                         {avatarPreview ? (
-                                            <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover rounded-full" />
+                                            <img loading="lazy" decoding="async" src={avatarPreview} alt="Preview" className="w-full h-full object-cover rounded-full" />
                                         ) : (
                                             <UploadCloud size={32} />
                                         )}
@@ -201,7 +201,7 @@ export const ProfileCompletion = () => {
                                         whileTap={{ scale: 0.98 }}
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="ascent-cta w-2/3 py-4 rounded-full bg-alpine-navy text-white dark:bg-gradient-to-r dark:from-[#E2A071] dark:to-[#C9A96E] dark:text-alpine-navy font-semibold text-base flex items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow] shadow-[0_14px_34px_-14px_rgba(8,40,76,0.7)] disabled:opacity-70"
+                                        className="ascent-cta w-2/3 py-4 rounded-full bg-alpine-navy text-white dark:bg-gradient-to-r dark:from-[#E2A071] dark:to-[#D4775A] dark:text-alpine-navy font-semibold text-base flex items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow] shadow-[0_14px_34px_-14px_rgba(8,40,76,0.7)] disabled:opacity-70"
                                     >
                                         {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <span>Complete Profile</span>}
                                     </motion.button>
@@ -239,7 +239,7 @@ const NextButton = () => (
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         type="submit"
-        className="ascent-cta w-full py-4 rounded-full bg-alpine-navy text-white dark:bg-gradient-to-r dark:from-[#E2A071] dark:to-[#C9A96E] dark:text-alpine-navy font-semibold text-base flex items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow] shadow-[0_14px_34px_-14px_rgba(8,40,76,0.7)] mt-6"
+        className="ascent-cta w-full py-4 rounded-full bg-alpine-navy text-white dark:bg-gradient-to-r dark:from-[#E2A071] dark:to-[#D4775A] dark:text-alpine-navy font-semibold text-base flex items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow] shadow-[0_14px_34px_-14px_rgba(8,40,76,0.7)] mt-6"
     >
         <span>Continue</span>
         <ChevronRight size={20} />

@@ -12,7 +12,7 @@
   --color-alpine-forest: #2C4A3B;
   --color-alpine-sunrise: #E2A071;
   --color-alpine-blue: #4A6A8C;
-  --color-alpine-gold: #C9A96E;
+  --color-alpine-gold: #B9CCDC; /* retired gold → glacier platinum (no gold/yellow anywhere in the brand) */
   --color-alpine-pearl: #F0EDE8;
   --color-alpine-obsidian: #0A0E14;
   --color-alpine-mist: #B8C5D1;
@@ -21,18 +21,18 @@
   /* Editorial pairing: a high-contrast display serif for headlines, a true mono for telemetry
      (coordinates, altitudes, timecodes). Georgia (a system font, nothing to download) covers the moment
      before Instrument Serif arrives — a web-font fallback would be fetched too, competing with first paint. */
-  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
-  --font-display: 'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', sans-serif;
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: 'Instrument Serif', 'Noto Serif Malayalam Variable', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter Variable', 'Inter', 'Manjari', system-ui, sans-serif;
+  --font-display: 'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', 'Manjari', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'Manjari', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ── One palette everywhere ──
      Off-brand Tailwind families are remapped onto the brand ramps, so every component (old and new)
-     speaks the same colour language: warm accents → sunrise copper / gold, cool accents → glacier → navy,
+     speaks the same colour language: warm accents → sunrise copper / ember (never gold or yellow), cool accents → glacier → navy,
      violet / pink accents → muted alpine dusk. Red and green stay as-is for error and success states. */
   --color-amber-50: #FBF3EC; --color-amber-100: #F6E4D4; --color-amber-200: #EFCBAE; --color-amber-300: #E8B48E; --color-amber-400: #E2A071; --color-amber-500: #D4875A; --color-amber-600: #B96F48; --color-amber-700: #95573A; --color-amber-800: #6F412D; --color-amber-900: #4D2E21; --color-amber-950: #2E1B14;
   --color-orange-50: #FBF3EC; --color-orange-100: #F6E4D4; --color-orange-200: #EFCBAE; --color-orange-300: #E8B48E; --color-orange-400: #E2A071; --color-orange-500: #D4875A; --color-orange-600: #B96F48; --color-orange-700: #95573A; --color-orange-800: #6F412D; --color-orange-900: #4D2E21; --color-orange-950: #2E1B14;
-  --color-yellow-50: #FAF6EE; --color-yellow-100: #F3EBD8; --color-yellow-200: #E8D7B1; --color-yellow-300: #DCC28D; --color-yellow-400: #C9A96E; --color-yellow-500: #B79457; --color-yellow-600: #977745; --color-yellow-700: #745B36; --color-yellow-800: #534128; --color-yellow-900: #382C1C; --color-yellow-950: #211A11;
+  --color-yellow-50: #FBF3EC; --color-yellow-100: #F6E4D4; --color-yellow-200: #EFCBAE; --color-yellow-300: #E8B48E; --color-yellow-400: #E2A071; --color-yellow-500: #D4875A; --color-yellow-600: #B96F48; --color-yellow-700: #95573A; --color-yellow-800: #6F412D; --color-yellow-900: #4D2E21; --color-yellow-950: #2E1B14;
   --color-sky-50: #F1F7FB; --color-sky-100: #E1EEF6; --color-sky-200: #C6DDEC; --color-sky-300: #A3C9E2; --color-sky-400: #7EAACB; --color-sky-500: #5A88B0; --color-sky-600: #4A6A8C; --color-sky-700: #2E557D; --color-sky-800: #1A3C62; --color-sky-900: #08284C; --color-sky-950: #04182F;
   --color-blue-50: #F1F7FB; --color-blue-100: #E1EEF6; --color-blue-200: #C6DDEC; --color-blue-300: #A3C9E2; --color-blue-400: #7EAACB; --color-blue-500: #5A88B0; --color-blue-600: #4A6A8C; --color-blue-700: #2E557D; --color-blue-800: #1A3C62; --color-blue-900: #08284C; --color-blue-950: #04182F;
   --color-cyan-50: #F1F7FB; --color-cyan-100: #E1EEF6; --color-cyan-200: #C6DDEC; --color-cyan-300: #A3C9E2; --color-cyan-400: #7EAACB; --color-cyan-500: #5A88B0; --color-cyan-600: #4A6A8C; --color-cyan-700: #2E557D; --color-cyan-800: #1A3C62; --color-cyan-900: #08284C; --color-cyan-950: #04182F;
@@ -225,15 +225,27 @@
 /* ═══════════════════════════════════════════════════════════════
                     I18N SAFE TYPOGRAPHY (MALAYALAM)
    ═══════════════════════════════════════════════════════════════ */
+/* Malayalam has tall stacked conjuncts and vowel signs above and below the line: give it room,
+   drop the wide uppercase tracking (it pulls conjuncts apart) and never fake italics or bold. */
+html[lang="ml"] body { line-height: 1.75; }
 html[lang="ml"] .leading-none,
 html[lang="ml"] .leading-tight,
-html[lang="ml"] h1, 
-html[lang="ml"] h2, 
+html[lang="ml"] h1,
+html[lang="ml"] h2,
 html[lang="ml"] h3 {
-  line-height: 1.5 !important;
-  padding-top: 0.1em;
-  padding-bottom: 0.1em;
+  line-height: 1.45 !important;
+  padding-top: 0.08em;
+  padding-bottom: 0.08em;
 }
+html[lang="ml"] :is(h1, h2, h3, h4, .font-serif) {
+  font-synthesis: none;
+  letter-spacing: -0.005em;
+}
+html[lang="ml"] :is(p, li, label, button, a, span) { font-feature-settings: 'kern' 1; }
+html[lang="ml"] :is([class*="tracking-"], .mm-eyebrow) { letter-spacing: 0.02em !important; }
+html[lang="ml"] .uppercase { text-transform: none; }
+/* Micro labels are unreadable in Malayalam below ~12px */
+html[lang="ml"] :is(.text-\[9px\], .text-\[9\.5px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .mm-eyebrow) { font-size: 12px !important; }
 
 /* ═══════════════════════════════════════════════════════════════
                     GLASSMORPHISM UTILITIES
@@ -362,7 +374,7 @@ html[lang="ml"] h3 {
 
   /* ═══ TEXT UTILITIES ═══ */
   .text-gradient {
-    background: linear-gradient(135deg, #A3C9E2 0%, #E2A071 50%, #C9A96E 100%);
+    background: linear-gradient(135deg, #A3C9E2 0%, #F8FAF9 45%, #E2A071 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -546,37 +558,6 @@ html[lang="ml"] h3 {
   background: radial-gradient(ellipse 120% 100% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.38) 100%);
 }
 
-/* ── Lens under motion (<LensFX />): --lens-v 0 → 1 is written only on these elements while moving ── */
-.lens-fringe {
-  position: fixed;
-  inset: -2%;
-  z-index: 9997;
-  pointer-events: none;
-  /* Out of the render tree at rest; LensFX switches it on only while the camera moves */
-  display: none;
-  mix-blend-mode: screen;
-  /* Chromatic aberration lives at the edge of the frame: warm fringe leading, cool fringe trailing */
-  background:
-    radial-gradient(ellipse 85% 80% at 50% calc(50% - var(--lens-v, 0) * 2.5%), transparent 72%, rgba(255, 70, 60, 0.22) 92%, transparent 100%),
-    radial-gradient(ellipse 85% 80% at 50% calc(50% + var(--lens-v, 0) * 2.5%), transparent 72%, rgba(60, 200, 255, 0.22) 92%, transparent 100%);
-}
-/* Extra grain under motion: its own layer, so the film grain on the app root is never touched */
-.lens-grain {
-  position: fixed;
-  inset: -10%;
-  z-index: 9998;
-  pointer-events: none;
-  display: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 220px 220px;
-  animation: grain-boil 0.9s steps(6) infinite;
-}
-.cine-title.lens-split {
-  text-shadow:
-    calc(var(--lens-v, 0) * 3px) 0 rgb(255 60 60 / calc(var(--lens-v, 0) * 0.55)),
-    calc(var(--lens-v, 0) * -3px) 0 rgb(60 210 255 / calc(var(--lens-v, 0) * 0.55));
-}
-
 /* ── Live weather fog (<WeatherAtmosphere />): two soft banks drifting across the lower frame ── */
 .weather-fog { position: absolute; inset: 0; transition: opacity 2s ease; }
 .weather-fog__bank {
@@ -627,6 +608,18 @@ html[lang="ml"] h3 {
 
 /* Quality tiers (lib/quality.ts): the low tier keeps the look but drops the always-on texture */
 html[data-quality="low"] .film-grain::after { display: none; }
+/* Medium tier keeps the grain texture but stops it boiling, so the full-screen layer isn't recomposited 7x a second */
+html[data-quality="medium"] .film-grain::after { animation: none; will-change: auto; }
+
+/* Static stand-in for the WebGL aurora on medium / low tiers */
+.atmos-static {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 20% 18%, rgba(79,134,188,0.22), transparent 70%),
+    radial-gradient(50% 40% at 82% 30%, rgba(126,116,176,0.16), transparent 70%),
+    radial-gradient(70% 50% at 50% 100%, rgba(201,128,90,0.10), transparent 70%);
+}
+html:not(.dark) .atmos-static { opacity: 0.5; }
 
 /* Backdrop blur cost grows with the radius (every frame, for everything behind the glass). Tailwind's
    backdrop-blur-* utilities read these theme sizes, so weaker tiers get the same frosted look with a
@@ -778,7 +771,7 @@ html[data-quality="low"] { --blur-md: 6px; --blur-lg: 8px; --blur-xl: 8px; --blu
 }
 
 .altitude-gauge__fill {
-  background: linear-gradient(to top, #A3C9E2, #E2A071 70%, #C9A96E);
+  background: linear-gradient(to top, #A3C9E2, #E2A071 70%, #D4775A);
   box-shadow: 0 0 12px rgba(226, 160, 113, 0.55);
   transform-origin: bottom;
 }
@@ -928,11 +921,11 @@ html[data-quality="low"] { --blur-md: 6px; --blur-lg: 8px; --blur-xl: 8px; --blu
 .watermark-text-dark {
   background: linear-gradient(
     90deg,
-    rgba(245,158,11,0.08) 0%,
+    rgba(212,135,90,0.08) 0%,
     rgba(255,255,255,0.30) 25%,
-    rgba(245,158,11,0.15) 50%,
+    rgba(212,135,90,0.15) 50%,
     rgba(255,255,255,0.30) 75%,
-    rgba(245,158,11,0.08) 100%
+    rgba(212,135,90,0.08) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
@@ -1005,8 +998,8 @@ html[data-quality="low"] { --blur-md: 6px; --blur-lg: 8px; --blur-xl: 8px; --blu
 
 /* Summit achieved celebration pulse */
 @keyframes summit-achieved {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(201,169,110,0.4)); }
-  50% { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(201,169,110,0.8)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(185,204,220,0.4)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(185,204,220,0.8)); }
 }
 
 /* Floating dust motes for light mode */
@@ -1445,7 +1438,8 @@ html:not(.dark) .skeleton-shimmer::after {
   html, body {
     overflow-x: clip;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    /* manipulation (not pan-y): keeps pinch-zoom for people who need it while removing double-tap delay */
+    touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -1616,7 +1610,7 @@ html:not(.dark) .skeleton-shimmer::after {
   z-index: 9998;
   pointer-events: none;
   transform-origin: left center;
-  background: linear-gradient(90deg, #A3C9E2, #E2A071 60%, #C9A96E);
+  background: linear-gradient(90deg, #A3C9E2, #E2A071 60%, #D4775A);
   box-shadow: 0 0 12px rgba(226, 160, 113, 0.6);
 }
 
@@ -2102,7 +2096,7 @@ html.theme-fading *::after {
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: soon-gradient 9s ease-in-out infinite alternate;
 }
-.dark .soon-gradient { background-image: linear-gradient(100deg, #F8FAF9 0%, #A3C9E2 30%, #E2A071 55%, #C9A96E 75%, #F8FAF9 100%); }
+.dark .soon-gradient { background-image: linear-gradient(100deg, #F8FAF9 0%, #A3C9E2 30%, #E2A071 55%, #D4775A 75%, #F8FAF9 100%); }
 @keyframes soon-gradient { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
 .soon-blob { animation: soon-blob 18s ease-in-out infinite alternate; }
 .soon-blob--late { animation-delay: -9s; }
@@ -2270,3 +2264,220 @@ html.has-mm-cursor iframe { cursor: auto !important; }
 
 @media (prefers-reduced-motion: reduce) { .mm-cursor__ticks { animation: none; } }
 img[data-gl-hidden] { opacity: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   BASECAMP CONSOLE — shared design layer for the explorer portal, the
+   admin panel (Summit Control) and the demo. Same language as the public
+   site: Instrument Serif headlines, mono telemetry eyebrows, navy/obsidian
+   night, glacier light, sunrise used sparingly. Never gold or yellow.
+   ═══════════════════════════════════════════════════════════════ */
+.mm-console {
+  --mm-ink: #F8FAF9;
+  --mm-ink-2: rgba(248, 250, 249, 0.62);
+  --mm-ink-3: rgba(248, 250, 249, 0.38);
+  --mm-line: rgba(163, 201, 226, 0.12);
+  --mm-line-strong: rgba(163, 201, 226, 0.24);
+  --mm-surface: linear-gradient(180deg, rgba(20, 32, 52, 0.55) 0%, rgba(10, 14, 20, 0.55) 100%);
+  --mm-surface-solid: #0B111B;
+  --mm-glacier: #A3C9E2;
+  --mm-sunrise: #E2A071;
+  --mm-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+html:not(.dark) .mm-console:not(.dark) {
+  --mm-ink: #08284C;
+  --mm-ink-2: rgba(8, 40, 76, 0.66);
+  --mm-ink-3: rgba(8, 40, 76, 0.42);
+  --mm-line: rgba(8, 40, 76, 0.09);
+  --mm-line-strong: rgba(8, 40, 76, 0.18);
+  --mm-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 250, 249, 0.62) 100%);
+  --mm-surface-solid: #FFFFFF;
+  --mm-glacier: #2E557D;
+}
+
+/* Instrument Serif ships a single 400 weight: synthetic bold smears it. Keep every console headline crisp. */
+.mm-console .font-serif { font-weight: 400 !important; font-synthesis: none; letter-spacing: -0.01em; }
+.mm-console .glow-text { text-shadow: none; }
+
+/* Backdrop: deep night gradient, a faint contour map and a glacier bloom — static, so it costs nothing per frame */
+.mm-backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.mm-backdrop::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 50% at 85% -10%, rgba(74, 106, 140, 0.32) 0%, transparent 70%),
+    radial-gradient(45% 40% at -5% 105%, rgba(226, 160, 113, 0.07) 0%, transparent 70%),
+    linear-gradient(180deg, #070B12 0%, #05080D 100%);
+}
+html:not(.dark) .mm-console:not(.dark) .mm-backdrop::before {
+  background:
+    radial-gradient(60% 50% at 85% -10%, rgba(163, 201, 226, 0.45) 0%, transparent 70%),
+    radial-gradient(45% 40% at -5% 105%, rgba(226, 160, 113, 0.10) 0%, transparent 70%),
+    linear-gradient(180deg, #F8FAF9 0%, #EEF3F7 100%);
+}
+.mm-backdrop::after {
+  content: ''; position: absolute; inset: -10%;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600' fill='none' stroke='%23A3C9E2' stroke-opacity='0.07' stroke-width='1'%3E%3Cpath d='M-20 420c80-40 140-120 240-110s150 90 250 70 130-80 150-90'/%3E%3Cpath d='M-20 460c90-30 150-100 250-90s150 80 240 60 140-70 150-80'/%3E%3Cpath d='M-20 500c100-20 160-80 260-70s150 70 230 50 150-60 150-70'/%3E%3Cpath d='M-20 380c70-50 130-140 230-130s160 100 260 80 120-90 150-100'/%3E%3Cpath d='M-20 340c60-60 120-160 220-150s170 110 270 90 110-100 150-110'/%3E%3Cpath d='M120 300c40-60 90-120 160-110s100 70 160 50'/%3E%3Cpath d='M160 270c30-40 70-80 120-75s80 50 120 35'/%3E%3Cpath d='M-20 120c100 20 180 0 260-40s170-40 380 10'/%3E%3Cpath d='M-20 160c100 15 190-5 270-40s170-30 370 15'/%3E%3C/svg%3E");
+  background-size: 600px 600px;
+  mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 30%, transparent 85%);
+}
+html:not(.dark) .mm-console:not(.dark) .mm-backdrop::after { filter: brightness(0.35); opacity: 0.7; }
+
+/* Surfaces */
+.mm-panel {
+  position: relative;
+  background: var(--mm-surface);
+  border: 1px solid var(--mm-line);
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 48px -32px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+/* Panels scroll over a static backdrop, so on medium / low tiers a near-opaque fill looks the same as frosted glass
+   without re-blurring every panel on every scroll frame */
+html:not([data-quality="high"]) .mm-panel { backdrop-filter: none; -webkit-backdrop-filter: none; background: linear-gradient(180deg, rgba(17, 27, 44, 0.92) 0%, rgba(10, 14, 21, 0.94) 100%); }
+html:not([data-quality="high"]):not(.dark) .mm-console:not(.dark) .mm-panel { background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 249, 0.9) 100%); }
+html:not(.dark) .mm-console:not(.dark) .mm-panel { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 24px 48px -36px rgba(8, 40, 76, 0.35); }
+.mm-panel--interactive { transition: border-color 0.4s var(--mm-ease), transform 0.5s var(--mm-ease), box-shadow 0.5s var(--mm-ease); }
+@media (hover: hover) {
+  .mm-panel--interactive:hover { border-color: var(--mm-line-strong); transform: translate3d(0, -2px, 0); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 30px 60px -30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(163, 201, 226, 0.06); }
+}
+/* Hairline glint across the top edge of a panel */
+.mm-panel::before {
+  content: ''; position: absolute; left: 1.25rem; right: 1.25rem; top: -1px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(163, 201, 226, 0.45), transparent);
+  opacity: 0.6;
+}
+
+/* Typography */
+.mm-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--mm-ink-3);
+  display: inline-flex; align-items: center; gap: 0.6rem;
+}
+.mm-eyebrow::before { content: ''; width: 1.5rem; height: 1px; background: currentColor; opacity: 0.7; }
+.mm-eyebrow--bare::before { display: none; }
+.mm-title { font-family: var(--font-serif); font-weight: 400; color: var(--mm-ink); letter-spacing: -0.015em; line-height: 1.02; }
+.mm-title em { font-style: italic; color: var(--mm-glacier); }
+.mm-ink { color: var(--mm-ink); }
+.mm-muted { color: var(--mm-ink-2); }
+.mm-faint { color: var(--mm-ink-3); }
+.mm-num { font-family: var(--font-display); font-feature-settings: 'tnum' 1; letter-spacing: -0.03em; color: var(--mm-ink); }
+
+/* Buttons */
+.mm-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  height: 2.5rem; padding: 0 1.1rem; border-radius: 9999px;
+  font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.02em;
+  transition: background-color 0.3s var(--mm-ease), color 0.3s var(--mm-ease), border-color 0.3s var(--mm-ease), transform 0.3s var(--mm-ease), box-shadow 0.3s var(--mm-ease);
+  white-space: nowrap;
+}
+.mm-btn:active { transform: scale(0.97); }
+.mm-btn--primary { background: #F8FAF9; color: #08284C; box-shadow: 0 10px 30px -12px rgba(163, 201, 226, 0.55); }
+.mm-btn--primary:hover { background: #fff; box-shadow: 0 14px 36px -12px rgba(163, 201, 226, 0.8); }
+html:not(.dark) .mm-console:not(.dark) .mm-btn--primary { background: #08284C; color: #F8FAF9; box-shadow: 0 10px 30px -12px rgba(8, 40, 76, 0.55); }
+.mm-btn--ghost { border: 1px solid var(--mm-line-strong); color: var(--mm-ink-2); }
+.mm-btn--ghost:hover { color: var(--mm-ink); border-color: var(--mm-glacier); background: rgba(163, 201, 226, 0.06); }
+
+/* Navigation rail items */
+.mm-nav-item {
+  position: relative; isolation: isolate; display: flex; align-items: center; gap: 0.85rem;
+  height: 2.6rem; padding: 0 0.85rem; border-radius: 0.8rem;
+  color: var(--mm-ink-2); font-size: 0.875rem; font-weight: 500; letter-spacing: 0.01em;
+  transition: color 0.25s ease, background-color 0.25s ease;
+}
+.mm-nav-item:hover { color: var(--mm-ink); background: rgba(163, 201, 226, 0.06); }
+.mm-nav-item[aria-current="page"] { color: var(--mm-ink); background: transparent; }
+.mm-nav-item[aria-current="page"] svg { color: var(--mm-glacier); }
+.mm-nav-pill {
+  position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+  background: linear-gradient(90deg, rgba(163, 201, 226, 0.14), rgba(163, 201, 226, 0.03));
+  border: 1px solid rgba(163, 201, 226, 0.18);
+}
+.mm-nav-pill::before { content: ''; position: absolute; left: -1px; top: 25%; bottom: 25%; width: 2px; border-radius: 2px; background: var(--mm-glacier); box-shadow: 0 0 12px rgba(163, 201, 226, 0.8); }
+
+/* Consistent form-field focus inside the consoles */
+.mm-console :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), textarea, select):focus-visible {
+  outline: none !important;
+  border-color: rgba(163, 201, 226, 0.55) !important;
+  box-shadow: 0 0 0 4px rgba(163, 201, 226, 0.12) !important;
+}
+.mm-console :is(input, textarea, select) { transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease; }
+
+/* Live dot */
+.mm-live { position: relative; width: 6px; height: 6px; border-radius: 9999px; background: #6EE7B7; flex-shrink: 0; }
+.mm-live::after { content: ''; position: absolute; inset: -4px; border-radius: inherit; border: 1px solid #6EE7B7; animation: mm-live-ping 2.4s var(--mm-ease) infinite; }
+@keyframes mm-live-ping { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(1.8); opacity: 0; } }
+
+/* Scroll panes inside the console: thin glacier scrollbar, contained overscroll, momentum on touch */
+.mm-scroll { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(163, 201, 226, 0.18) transparent; }
+
+/* Content enters with a short, cheap rise — opacity + transform only */
+@keyframes mm-rise { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
+.mm-rise { animation: mm-rise 0.55s var(--mm-ease) both; }
+
+/* Demo ribbon */
+.mm-demo-ribbon {
+  background: linear-gradient(90deg, rgba(8, 40, 76, 0.94), rgba(10, 14, 20, 0.94));
+  border-bottom: 1px solid rgba(163, 201, 226, 0.18);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+@keyframes mm-meter { from { transform: scaleX(0); } to { transform: none; } }
+
+/* Legacy surfaces inside the consoles adopt the console look, and stop lifting on hover (tables shouldn't jump) */
+.mm-console :is(.premium-card, .glass-premium) {
+  background: var(--mm-surface);
+  border: 1px solid var(--mm-line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 48px -32px rgba(0, 0, 0, 0.6);
+}
+.mm-console .premium-card:hover { transform: none; border-color: var(--mm-line-strong); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 24px 48px -32px rgba(0, 0, 0, 0.6); }
+.mm-console table thead th { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.22em; color: var(--mm-ink-3); }
+.mm-console table tbody tr { transition: background-color 0.25s ease; }
+@media (hover: hover) { .mm-console table tbody tr:hover { background-color: rgba(163, 201, 226, 0.04); } }
+
+/* Story GPS route: the line draws itself once */
+.route-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: route-draw 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; }
+@keyframes route-draw { to { stroke-dashoffset: 0; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   READABLE CONTRAST — the faint text tints used across the site fall below WCAG AA (4.5:1) on the
+   dark grounds. Lift them while keeping their order (fainter stays fainter). Same layer and
+   specificity as the utilities they replace, so hover:/focus:/dark: variants still win.
+   ═══════════════════════════════════════════════════════════════ */
+@layer utilities {
+  .text-white\/20, .text-white\/25 { color: rgb(255 255 255 / 0.5); }
+  .text-white\/30, .text-white\/35 { color: rgb(255 255 255 / 0.55); }
+  .text-white\/40 { color: rgb(255 255 255 / 0.6); }
+  .text-alpine-navy\/30 { color: rgb(8 40 76 / 0.58); }
+  .text-alpine-navy\/40 { color: rgb(8 40 76 / 0.64); }
+}
+.mm-console { --mm-ink-3: rgba(248, 250, 249, 0.52); }
+html:not(.dark) .mm-console:not(.dark) { --mm-ink-3: rgba(8, 40, 76, 0.6); }
+
+/* Instrument Serif has a single 400 weight: never let the browser smear a fake bold/black over it.
+   (Malayalam headlines fall back to Noto Serif Malayalam, a true variable font, so they keep real weight.) */
+.font-serif, .mm-title { font-synthesis: none; }
+
+/* Skeletons stay invisible for the first ~180 ms: fast loads finish before they'd flash, slow loads still
+   get a placeholder. Space is reserved from the start, so nothing shifts either way. */
+@keyframes skeleton-fade { from { opacity: 0; } to { opacity: 1; } }
+.skeleton-shimmer { animation: skeleton-fade 0.35s ease 0.18s both; }
+
+/* Admin data tables: on narrow screens scroll sideways inside their card instead of clipping columns */
+.mm-console :is(div, section):has(> table) { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+@media (max-width: 1023px) { .mm-console table { min-width: 760px; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE VIEWPORT + INPUT FIXES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* iOS zooms the page whenever a focused field's text is under 16px. Touch devices only, so desktop
+   typography is untouched. Unlayered on purpose so it wins over text-sm / text-xs utilities. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea {
+    font-size: max(16px, 1em);
+  }
+  /* Momentum scrolling and no scroll-chaining for horizontal strips (carousels, docks, tables) */
+  .overflow-x-auto, .overflow-x-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+}

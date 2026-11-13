@@ -5,11 +5,14 @@ import { Upload, X, CheckCircle, SplitSquareVertical, Type, Send, Image as Image
 import { useAuthStore } from '../../store/useAuthStore';
 import { UnsplashSearchPicker } from '../../components/ui/UnsplashSearchPicker';
 
+import { Route as RouteIcon } from 'lucide-react';
+import { parseGpx, type StoryRoute } from '../../lib/gpx';
 export const UserStoryEditorTab = () => {
     const { user } = useAuthStore();
     const [editorMode, setEditorMode] = useState<'split' | 'wysiwyg'>('wysiwyg');
     const [title, setTitle] = useState('');
     const [region, setRegion] = useState('');
+    const [route, setRoute] = useState<StoryRoute | null>(null);
     const [content, setContent] = useState('');
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -156,6 +159,7 @@ export const UserStoryEditorTab = () => {
             formData.append('author', user?.name || 'Anonymous');
             formData.append('date', new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
             formData.append('language', writingLang);
+            if (route) formData.append('route', JSON.stringify(route));
             
             if (image) {
                 formData.append('image', image);
@@ -167,6 +171,7 @@ export const UserStoryEditorTab = () => {
             
             setSuccess(true);
             setTitle('');
+            setRoute(null);
             setRegion('');
             setContent('');
             setImage(null);
@@ -193,8 +198,9 @@ export const UserStoryEditorTab = () => {
         >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-8 gap-3">
                 <div>
-                    <h1 className="text-2xl sm:text-4xl font-serif text-alpine-navy dark:text-white tracking-wide">Draft New Log</h1>
-                    <p className="text-alpine-navy/50 dark:text-white/50 text-xs sm:text-sm mt-1">Submit your expedition story to the community.</p>
+                    <p className="mm-eyebrow mb-3">Create · New chronicle</p>
+                <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Draft a new <em>log</em></h1>
+                <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Submit your expedition story to the community.</p>
                 </div>
 
                 {/* Editor Mode Toggle */}
@@ -233,6 +239,31 @@ export const UserStoryEditorTab = () => {
             <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 flex-1 min-h-0">
                 {/* Left Column: Metadata & Tools */}
                 <div className="w-full lg:w-80 flex flex-col gap-4 sm:gap-6 overflow-y-auto lg:pr-2 custom-scrollbar">
+                    {/* GPS route (optional) */}
+                    <div className="bg-white/60 dark:bg-[#11141A] backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-black/5 dark:border-white/5 shadow-xl dark:shadow-2xl order-last">
+                        <label className="block text-xs font-bold tracking-widest text-alpine-navy/50 dark:text-white/50 uppercase mb-3">GPS route · optional</label>
+                        {route ? (
+                            <div className="rounded-xl border border-alpine-glacier/25 bg-alpine-glacier/[0.06] p-3.5">
+                                <p className="text-sm font-medium text-alpine-navy dark:text-white truncate">{route.name || 'Your route'}</p>
+                                <p className="text-xs text-alpine-navy/60 dark:text-white/55 mt-1 tabular-nums">{route.distanceKm} km · {route.gainM.toLocaleString()} m climb · {route.points.length} points</p>
+                                <button type="button" onClick={() => setRoute(null)} className="mt-2.5 text-xs text-red-500 dark:text-red-300 hover:underline">Remove route</button>
+                            </div>
+                        ) : (
+                            <button type="button" onClick={() => document.getElementById('storyGpx')?.click()} className="w-full rounded-xl border border-dashed border-black/15 dark:border-white/15 hover:border-alpine-glacier/50 py-5 text-center text-xs text-alpine-navy/55 dark:text-white/50 transition-colors">
+                                <RouteIcon className="mx-auto mb-1.5" size={20} />
+                                Upload a .gpx track from Strava, Komoot or your watch
+                            </button>
+                        )}
+                        <input id="storyGpx" type="file" accept=".gpx,application/gpx+xml" className="hidden" onChange={async e => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            if (file.size > 15 * 1024 * 1024) { setError('That GPX file is larger than 15 MB.'); return; }
+                            try { setRoute(parseGpx(await file.text())); setError(''); }
+                            catch (err: any) { setError(err.message || 'Could not read that GPX file.'); }
+                        }} />
+                    </div>
+
                     {/* Cover Image */}
                     <div className="bg-white/60 dark:bg-[#11141A] backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-black/5 dark:border-white/5 shadow-xl dark:shadow-2xl">
                         <label className="block text-xs font-bold tracking-widest text-alpine-navy/50 dark:text-white/50 uppercase mb-3 flex items-center justify-between">
@@ -253,7 +284,7 @@ export const UserStoryEditorTab = () => {
                         >
                             {imagePreview || unsplashUrl ? (
                                 <>
-                                    <img src={imagePreview || unsplashUrl || ''} alt="Preview" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    <img loading="lazy" decoding="async" src={imagePreview || unsplashUrl || ''} alt="Preview" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <ImageIcon className="text-white" />
                                     </div>
@@ -534,7 +565,7 @@ export const UserStoryEditorTab = () => {
                                                 setImageModalOpen(false);
                                             }}
                                         >
-                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                            <img loading="lazy" decoding="async" src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-5">
                                                 <span className="text-white text-sm font-medium tracking-wide">Photo by {img.authorName}</span>
                                                 <div className="mt-3 py-2 px-4 bg-alpine-glacier text-[#0A0D14] rounded-xl flex items-center justify-center gap-2 text-sm font-bold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">

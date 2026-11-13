@@ -12,9 +12,29 @@ import { EventDetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { landMorph } from '../lib/morph';
 
+import { usePageMeta } from '../lib/usePageMeta';
+import { parseEventStart } from '../lib/calendar';
+import { AddToCalendar } from '../components/site/AddToCalendar';
 export const EventDetail = () => {
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<any>(null);
+    const eventStart = event ? parseEventStart(event.date, event.time) : null;
+    usePageMeta({
+        title: event?.title,
+        description: event ? `${event.date} · ${event.location} · ${event.difficulty}. ${event.description || ''}` : undefined,
+        image: event?.image,
+        jsonLd: event && eventStart ? {
+            '@context': 'https://schema.org', '@type': 'Event',
+            name: event.title, description: event.description || event.title, image: [event.image],
+            startDate: eventStart.start.toISOString(),
+            eventStatus: 'https://schema.org/EventScheduled',
+            eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+            location: { '@type': 'Place', name: event.location, address: event.location },
+            organizer: { '@type': 'Organization', name: 'Mountaineer Mallu', url: 'https://mountaineermallu.com' },
+            maximumAttendeeCapacity: event.totalSlots,
+            remainingAttendeeCapacity: Math.max(0, event.totalSlots - (event.participants?.length || 0)),
+        } : null,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [registering, setRegistering] = useState(false);
@@ -62,7 +82,7 @@ export const EventDetail = () => {
 
     if (error || !event) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white pt-24">
+            <div className="min-h-svh bg-black flex items-center justify-center p-6 text-white pt-24">
                 <div className="max-w-md w-full">
                     <ErrorState
                         statusCode={error ? 500 : 404}
@@ -77,13 +97,13 @@ export const EventDetail = () => {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white pb-24">
+        <div className="min-h-svh bg-black text-white pb-24">
             <ReadingProgressBar />
             {ToastComponent}
             
             {/* Hero Section */}
             <div className="relative h-[60vh] w-full overflow-hidden">
-                <img 
+                <img loading="lazy" decoding="async" 
                     src={event.image} 
                     alt={event.title}
                     onLoad={landMorph}
@@ -211,9 +231,15 @@ export const EventDetail = () => {
                                         >
                                             {registering ? <Loader2 className="animate-spin" size={24} /> : "APPLY NOW"}
                                         </button>
-                                        <p className="text-[10px] text-white/30 uppercase tracking-widest text-center">Secure checkout</p>
+                                        <p className="text-[11px] text-white/40 text-center">Free to apply · confirmation by email</p>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Calendar & share — for anyone weighing up the trip, not only those already registered */}
+                            <div className="bg-white/[0.04] border border-white/10 rounded-[2rem] p-6">
+                                <p className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/40 mb-4">Save the date</p>
+                                <AddToCalendar event={event} />
                             </div>
 
                             {event.ticketUrl && (

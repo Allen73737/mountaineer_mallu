@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { settingsApi } from '../lib/api';
 import { API_URL } from '../lib/constants';
 
@@ -51,6 +51,8 @@ const defaultSettings: SiteSettings = {
     },
 };
 
+let connecting = false;
+
 export const useSiteSettings = create<SiteSettingsStore>((set, get) => ({
     settings: defaultSettings,
     loaded: false,
@@ -78,30 +80,38 @@ export const useSiteSettings = create<SiteSettingsStore>((set, get) => ({
     },
 
     initSocket: () => {
-        if (get().socket) return; // already connected
+        if (get().socket || connecting) return; // already connected / connecting
+        connecting = true;
 
-        const socket = io(API_URL, {
-            transports: ['websocket', 'polling'],
-            withCredentials: true,
-            reconnectionDelay: 3000,
-            reconnectionAttempts: 3,
-            timeout: 3000,
-        });
+        // socket.io-client is loaded on demand so it stays out of the first-load bundle
+        import('socket.io-client').then(({ io }) => {
+            connecting = false;
+            if (get().socket) return;
+            const socket = io(API_URL, {
+                transports: ['websocket', 'polling'],
+                withCredentials: true,
+                reconnectionDelay: 3000,
+                reconnectionDelayMax: 30000,
+                // Keep retrying with backoff — live notifications and group feeds depend on this connection
+                reconnectionAttempts: Infinity,
+                timeout: 3000,
+            });
 
-        socket.on('settings:updated', (newSettings: Partial<SiteSettings>) => {
-            set((state) => ({
-                settings: {
-                    ...state.settings,
-                    ...newSettings,
-                },
-            }));
-        });
+            socket.on('settings:updated', (newSettings: Partial<SiteSettings>) => {
+                set((state) => ({
+                    settings: {
+                        ...state.settings,
+                        ...newSettings,
+                    },
+                }));
+            });
 
-        socket.on('connect', () => {
-            console.log('🔌 Real-time connected');
-        });
+            socket.on('connect', () => {
+                console.log('🔌 Real-time connected');
+            });
 
-        set({ socket });
+            set({ socket });
+        }).catch(() => { connecting = false; });
     },
 
     disconnectSocket: () => {

@@ -1,271 +1,316 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Calendar, Image as ImageIcon, MessageSquare, Clock, TrendingUp, ArrowUp, Activity, Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, RefreshCw, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, Calendar, Image as ImageIcon, Compass, BookOpen, Star, ShieldAlert, ShieldCheck, ChevronDown, RefreshCw, Sparkles, MapPin, ArrowUpRight, Shield } from 'lucide-react';
 import { adminApi } from '../../lib/api';
 import { StatSkeleton } from '../../components/ui/Skeleton';
 import { API_URL } from '../../lib/constants';
+import { useAuthStore } from '../../store/useAuthStore';
+import { SummitHero } from '../../components/console/SummitHero';
+import { Panel, PanelTitle, PanelLink, StatTile, Sparkline, Meter } from '../../components/console/ConsoleKit';
+import { ErrorState } from '../../components/ui/ErrorState';
 
-// Severity badge helper
-const severityColor = (severity: string) => {
-    switch(severity) {
-        case 'critical': return 'bg-red-500/20 text-red-400 border-red-500/30';
-        case 'warning': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-        default: return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
+const severityStyle = (severity: string) => {
+    switch (severity) {
+        case 'critical': return 'text-red-300 border-red-400/25 bg-red-400/[0.06]';
+        case 'warning': return 'text-[#E8B48E] border-[#E2A071]/25 bg-[#E2A071]/[0.06]';
+        default: return 'text-alpine-glacier border-alpine-glacier/20 bg-alpine-glacier/[0.05]';
     }
 };
 
-const statusIcon = (status: string) => {
-    switch(status) {
-        case 'critical': return <ShieldAlert size={20} className="text-red-400" />;
-        case 'elevated': return <ShieldAlert size={20} className="text-amber-400" />;
-        default: return <ShieldCheck size={20} className="text-emerald-400" />;
+const statusMeta = (status: string) => {
+    switch (status) {
+        case 'critical': return { icon: <ShieldAlert size={18} className="text-red-300" />, label: 'Critical', tone: 'text-red-300' };
+        case 'elevated': return { icon: <ShieldAlert size={18} className="text-[#E2A071]" />, label: 'Elevated', tone: 'text-[#E2A071]' };
+        default: return { icon: <ShieldCheck size={18} className="text-emerald-300" />, label: 'All clear', tone: 'text-emerald-300' };
     }
 };
 
-const statusGlow = (status: string) => {
-    switch(status) {
-        case 'critical': return 'from-red-500/20 to-transparent border-red-500/20';
-        case 'elevated': return 'from-amber-500/20 to-transparent border-amber-500/20';
-        default: return 'from-emerald-500/20 to-transparent border-emerald-500/20';
-    }
+const relativeDay = (iso: string) => {
+    const days = Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Tomorrow';
+    if (days < 7) return `In ${days} days`;
+    return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 };
 
 export const AdminOverview = () => {
-    const [stats, setStats] = useState<any>(null);
-    const [recentUsers, setRecentUsers] = useState<any[]>([]);
+    const { user } = useAuthStore();
+    const [data, setData] = useState<Awaited<ReturnType<typeof adminApi.getOverview>> | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [digest, setDigest] = useState<any>(null);
     const [digestLoading, setDigestLoading] = useState(false);
     const [digestExpanded, setDigestExpanded] = useState(false);
 
-    useEffect(() => {
-        const fetchOverview = async () => {
-            try {
-                const data = await adminApi.getOverview();
-                setStats(data.stats);
-                setRecentUsers(data.recentUsers);
-            } catch (err) {
-                console.error('Failed to load overview:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchOverview();
-        fetchSecurityDigest();
+    const fetchOverview = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            setData(await adminApi.getOverview());
+        } catch (err: any) {
+            setError(err?.message || 'Could not reach the server.');
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    const fetchSecurityDigest = async () => {
+    const fetchSecurityDigest = useCallback(async () => {
         setDigestLoading(true);
         try {
             const res = await fetch(`${API_URL}/api/admin/security-digest`, { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json();
-                setDigest(data);
-            }
+            if (res.ok) setDigest(await res.json());
         } catch (err) {
             console.error('Failed to load security digest:', err);
         } finally {
             setDigestLoading(false);
         }
-    };
+    }, []);
 
-    const statCards = stats ? [
-        { label: 'Total Personnel', value: stats.totalUsers, icon: Users, color: 'from-blue-500 to-cyan-500' },
-        { label: 'Active Expeditions', value: stats.totalEvents, icon: Calendar, color: 'from-amber-500 to-orange-500' },
-        { label: 'Pending Intel', value: stats.pendingMedia, icon: ImageIcon, color: 'from-purple-500 to-pink-500' },
-        { label: 'Active Factions', value: stats.activeGroups, icon: MessageSquare, color: 'from-emerald-500 to-teal-500' }
-    ] : [];
+    useEffect(() => {
+        fetchOverview();
+        fetchSecurityDigest();
+    }, [fetchOverview, fetchSecurityDigest]);
+
+    const stats = data?.stats;
+    const trend = data?.signupTrend?.map(d => d.count) || [];
+    const weekDelta = stats && typeof stats.usersThisWeek === 'number'
+        ? (stats.usersLastWeek > 0 ? Math.round(((stats.usersThisWeek - stats.usersLastWeek) / stats.usersLastWeek) * 100) : (stats.usersThisWeek > 0 ? 100 : 0))
+        : null;
+    const moderation = data?.moderation;
+    const queueTotal = moderation ? moderation.stories + moderation.media + moderation.reviews : 0;
+    const firstName = user?.name?.split(' ')[0] || 'Admin';
+    const status = statusMeta(digest?.aiDigest?.overallStatus);
 
     return (
-        <div className="space-y-6 md:space-y-10">
-            <div>
-                <h1 className="text-3xl font-serif font-bold text-white tracking-wide mb-2 flex items-center gap-3">
-                    <Activity className="text-alpine-glacier" size={28} />
-                    Command Center
-                </h1>
-                <p className="text-white/50 text-sm">Real-time overview of the Mountaineer Mallu platform</p>
-            </div>
+        <div className="space-y-6 md:space-y-8">
+            <SummitHero
+                eyebrow={`Summit Control · ${new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+                name={firstName}
+                subtitle={queueTotal > 0
+                    ? <>There {queueTotal === 1 ? 'is' : 'are'} <span className="text-white font-medium">{queueTotal} item{queueTotal === 1 ? '' : 's'}</span> waiting for review. Here is the state of the mountain.</>
+                    : 'Everything is moderated. Here is the state of the mountain.'}
+                actions={
+                    <button onClick={() => { fetchOverview(); fetchSecurityDigest(); }} className="h-9 px-4 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md text-xs font-semibold flex items-center gap-2 transition-colors" disabled={loading}>
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+                    </button>
+                }
+                stats={stats ? [
+                    { label: 'Explorers', value: stats.totalUsers },
+                    { label: 'This week', value: `+${stats.usersThisWeek ?? 0}` },
+                    { label: 'In queue', value: queueTotal },
+                ] : undefined}
+            />
 
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                {loading ? [1,2,3,4].map(i => <StatSkeleton key={i} />) :
-                statCards.map((stat, i) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1, type: 'spring', damping: 15 }}
-                        className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 group hover:bg-white/10 transition-[color,background-color,border-color,box-shadow] relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-10 rounded-bl-full" style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }} />
-                        <div className="flex items-start justify-between mb-4">
-                            <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} bg-opacity-20`}>
-                                <stat.icon size={24} className="text-white" />
-                            </div>
-                            <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold"><ArrowUp size={12} /> Live</span>
-                        </div>
-                        <h3 className="text-4xl font-bold text-white mb-1">{stat.value}</h3>
-                        <p className="text-white/50 text-sm uppercase tracking-wider">{stat.label}</p>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* AI Security Digest */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${digest?.aiDigest ? statusGlow(digest.aiDigest.overallStatus) : 'from-white/5 to-transparent border-white/10'}`}
-            >
-                <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
-
-                <div className="relative z-10 p-4 md:p-6">
-                    <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                                    <Shield size={22} className="text-alpine-glacier" />
-                                </div>
-                                <motion.div
-                                    className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-alpine-glacier"
-                                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-white text-base md:text-lg flex items-center gap-2">
-                                    AI Security Digest
-                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-alpine-glacier/10 text-alpine-glacier border border-alpine-glacier/20">AI-ANALYZED</span>
-                                </h2>
-                                <p className="text-white/40 text-xs">Last 24 hours • Powered by Groq</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={fetchSecurityDigest}
-                            disabled={digestLoading}
-                            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-                        >
-                            <RefreshCw size={16} className={`text-white/50 ${digestLoading ? 'animate-spin' : ''}`} />
-                        </button>
+            {error && !data ? (
+                <ErrorState title="Overview unavailable" message={error} onRetry={fetchOverview} />
+            ) : (
+                <>
+                    {/* KPI tiles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+                        {loading && !stats ? [1, 2, 3, 4].map(i => <StatSkeleton key={i} />) : stats && (
+                            <>
+                                <StatTile label="Explorers" value={stats.totalUsers} icon={Users} trend={trend} delta={weekDelta}
+                                    caption={`${stats.usersThisWeek ?? 0} joined in the last 7 days`} to="/summit-control-panel/users" />
+                                <StatTile label="Expeditions" value={stats.totalEvents} icon={Calendar} delay={60}
+                                    caption={`${data?.upcomingEvents?.length ?? 0} upcoming on the calendar`} to="/summit-control-panel/events" />
+                                <StatTile label="Published stories" value={stats.publishedStories ?? 0} icon={BookOpen} delay={120}
+                                    caption={`${moderation?.stories ?? 0} awaiting an editor`} to="/summit-control-panel/stories" />
+                                <StatTile label="Community groups" value={stats.activeGroups} icon={Compass} delay={180}
+                                    caption="Factions active on the platform" to="/summit-control-panel/community" />
+                            </>
+                        )}
                     </div>
 
-                    {digestLoading && !digest ? (
-                        <div className="space-y-3">
-                            {[1,2,3].map(i => <div key={i} className="h-5 bg-white/5 rounded-lg animate-pulse" style={{ width: `${90 - i * 20}%` }} />)}
-                        </div>
-                    ) : digest?.aiDigest ? (
-                        <div className="space-y-4">
-                            {/* Overall Status */}
-                            <div className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5">
-                                {statusIcon(digest.aiDigest.overallStatus)}
-                                <div className="flex-1">
-                                    <p className="text-sm font-semibold text-white capitalize">{digest.aiDigest.overallStatus} Status</p>
-                                    <p className="text-xs text-white/50 mt-0.5">{digest.aiDigest.summary}</p>
-                                </div>
-                            </div>
-
-                            {/* Alerts */}
-                            {digest.aiDigest.alerts && digest.aiDigest.alerts.length > 0 && (
-                                <div className="space-y-2">
-                                    {digest.aiDigest.alerts.map((alert: any, idx: number) => (
-                                        <motion.div
-                                            key={idx}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: idx * 0.1 }}
-                                            className={`flex items-start gap-3 p-3 rounded-xl border ${severityColor(alert.severity)}`}
-                                        >
-                                            <Sparkles size={14} className="shrink-0 mt-0.5" />
-                                            <div className="flex-1">
-                                                <p className="text-sm">{alert.message}</p>
-                                                {alert.metric && <span className="text-xs opacity-70 font-mono">{alert.metric}</span>}
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Recommendation */}
-                            {digest.aiDigest.recommendation && (
-                                <div className="flex items-start gap-2 p-3 rounded-xl bg-alpine-glacier/5 border border-alpine-glacier/10">
-                                    <Shield size={14} className="text-alpine-glacier shrink-0 mt-0.5" />
-                                    <p className="text-xs text-alpine-glacier/80">{digest.aiDigest.recommendation}</p>
-                                </div>
-                            )}
-
-                            {/* Expandable Raw Metrics */}
-                            <button
-                                onClick={() => setDigestExpanded(!digestExpanded)}
-                                className="flex items-center gap-2 text-xs text-white/30 hover:text-white/50 transition-colors"
-                            >
-                                {digestExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                {digestExpanded ? 'Hide' : 'Show'} Raw Metrics
-                            </button>
-
-                            <AnimatePresence>
-                                {digestExpanded && digest.rawMetrics && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                                            <div className="p-3 rounded-xl bg-black/20 border border-white/5 text-center">
-                                                <p className="text-2xl font-bold text-emerald-400">{digest.rawMetrics.successfulLogins}</p>
-                                                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Successful Logins</p>
-                                            </div>
-                                            <div className="p-3 rounded-xl bg-black/20 border border-white/5 text-center">
-                                                <p className="text-2xl font-bold text-red-400">{digest.rawMetrics.failedLogins}</p>
-                                                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Failed Logins</p>
-                                            </div>
-                                            <div className="p-3 rounded-xl bg-black/20 border border-white/5 text-center">
-                                                <p className="text-2xl font-bold text-amber-400">{digest.rawMetrics.recentAdminActions}</p>
-                                                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Admin Actions</p>
-                                            </div>
-                                            <div className="p-3 rounded-xl bg-black/20 border border-white/5 text-center">
-                                                <p className="text-2xl font-bold text-alpine-glacier">
-                                                    {digest.rawMetrics.successfulLogins + digest.rawMetrics.failedLogins > 0
-                                                        ? Math.round((digest.rawMetrics.successfulLogins / (digest.rawMetrics.successfulLogins + digest.rawMetrics.failedLogins)) * 100)
-                                                        : 100}%
-                                                </p>
-                                                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Success Rate</p>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    ) : (
-                        <p className="text-sm text-white/30">Security digest unavailable.</p>
-                    )}
-                </div>
-            </motion.div>
-
-            {/* Recent Activity */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6">
-                <h2 className="font-bold text-white text-base md:text-lg mb-4 md:mb-6 flex items-center gap-2"><Clock className="text-alpine-glacier" size={20} /> Recent Recruits</h2>
-                {loading ? (
-                    <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse" />)}</div>
-                ) : recentUsers.length === 0 ? (
-                    <p className="text-white/30 text-sm font-mono">[ NO_RECENT_ACTIVITY ]</p>
-                ) : (
-                    <div className="space-y-3">
-                        {recentUsers.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-alpine-glacier/20 flex items-center justify-center font-bold text-alpine-glacier text-sm">{user.name?.charAt(0)}</div>
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
+                        {/* Signups chart */}
+                        <Panel className="xl:col-span-2 p-5 md:p-7 mm-rise" style={{ animationDelay: '120ms' }}>
+                            <PanelTitle eyebrow="Last 14 days" title={<>New <em>explorers</em></>} action={<PanelLink to="/summit-control-panel/users">All explorers</PanelLink>} />
+                            {trend.length > 1 && trend.every(n => n === 0) ? (
+                                <div className="h-40 md:h-52 rounded-xl border border-dashed border-[var(--mm-line)] grid place-items-center text-center px-6">
                                     <div>
-                                        <p className="font-medium text-white">{user.name}</p>
-                                        <p className="text-xs text-white/40">{user.email}</p>
+                                        <p className="mm-title text-2xl">No sign-ups in the last two weeks</p>
+                                        <p className="text-sm mm-faint mt-2">Share an upcoming expedition — new explorers will show up here day by day.</p>
+                                        <Link to="/summit-control-panel/events" className="mm-btn mm-btn--ghost !h-9 mt-4">Open expeditions</Link>
                                     </div>
                                 </div>
-                                <span className="text-xs text-white/40">{new Date(user.joinedAt).toLocaleDateString()}</span>
+                            ) : trend.length > 1 ? (
+                                <>
+                                    <Sparkline data={trend} className="h-40 md:h-52" />
+                                    <div className="flex justify-between mt-3 font-mono text-[10px] tracking-[0.2em] uppercase mm-faint">
+                                        {data?.signupTrend?.filter((_, i, a) => i === 0 || i === Math.floor(a.length / 2) || i === a.length - 1).map(d => (
+                                            <span key={d.date}>{new Date(d.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="h-40 md:h-52 rounded-xl bg-white/[0.02] animate-pulse" />
+                            )}
+                        </Panel>
+
+                        {/* Moderation queue */}
+                        <Panel className="p-5 md:p-7 mm-rise" style={{ animationDelay: '180ms' }}>
+                            <PanelTitle eyebrow="Needs you" title={<>Review <em>queue</em></>} />
+                            <div className="space-y-2">
+                                {[
+                                    { label: 'Stories', count: moderation?.stories ?? 0, icon: BookOpen, to: '/summit-control-panel/stories' },
+                                    { label: 'Media submissions', count: moderation?.media ?? stats?.pendingMedia ?? 0, icon: ImageIcon, to: '/summit-control-panel/gallery' },
+                                    { label: 'Reviews', count: moderation?.reviews ?? 0, icon: Star, to: '/summit-control-panel/reviews' },
+                                ].map(row => (
+                                    <Link key={row.label} to={row.to} className="group flex items-center gap-4 p-3 -mx-1 rounded-xl hover:bg-white/[0.04] transition-colors">
+                                        <span className="grid place-items-center w-10 h-10 rounded-full border border-[var(--mm-line)] mm-muted group-hover:text-[var(--mm-glacier)] transition-colors">
+                                            <row.icon size={16} strokeWidth={1.75} />
+                                        </span>
+                                        <span className="flex-1 text-sm mm-muted group-hover:text-[var(--mm-ink)] transition-colors">{row.label}</span>
+                                        <span className={`mm-num text-2xl font-light ${row.count === 0 ? 'opacity-30' : ''}`}>{row.count}</span>
+                                        <ArrowUpRight size={15} className="mm-faint opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                                    </Link>
+                                ))}
                             </div>
-                        ))}
+                            <div className="mt-5 pt-5 border-t border-[var(--mm-line)] flex items-center gap-2 text-xs mm-faint">
+                                {queueTotal === 0 ? <><ShieldCheck size={14} className="text-emerald-300" /> Inbox zero — nicely done.</> : <><span className="mm-live !bg-[#E2A071] after:!border-[#E2A071]" /> {queueTotal} pending across the platform</>}
+                            </div>
+                        </Panel>
                     </div>
-                )}
-            </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
+                        {/* Upcoming expeditions */}
+                        <Panel className="p-5 md:p-7 mm-rise" style={{ animationDelay: '220ms' }}>
+                            <PanelTitle eyebrow="On the calendar" title={<>Next <em>ascents</em></>} action={<PanelLink to="/summit-control-panel/events">Manage</PanelLink>} />
+                            {loading && !data ? (
+                                <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-14 rounded-xl bg-white/[0.03] animate-pulse" />)}</div>
+                            ) : data?.upcomingEvents?.length ? (
+                                <ul className="space-y-5">
+                                    {data.upcomingEvents.map(ev => (
+                                        <li key={ev.id}>
+                                            <div className="flex items-baseline justify-between gap-3">
+                                                <p className="text-sm font-medium text-[var(--mm-ink)] truncate">{ev.title}</p>
+                                                <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--mm-glacier)] shrink-0">{relativeDay(ev.date)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-3 mt-1 mb-2 text-xs mm-faint">
+                                                <span className="flex items-center gap-1 truncate"><MapPin size={11} /> {ev.location}</span>
+                                                <span className="tabular-nums shrink-0">{ev.filled}/{ev.totalSlots} roped in</span>
+                                            </div>
+                                            <Meter value={ev.filled} max={ev.totalSlots} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm mm-faint py-6">No expeditions scheduled. <Link to="/summit-control-panel/events" className="text-[var(--mm-glacier)] hover:underline">Plan one →</Link></p>
+                            )}
+                        </Panel>
+
+                        {/* AI security digest */}
+                        <Panel className="xl:col-span-2 p-5 md:p-7 mm-rise overflow-hidden" style={{ animationDelay: '260ms' }}>
+                            <PanelTitle
+                                eyebrow="AI-analysed · last 24 hours"
+                                title={<>Security <em>digest</em></>}
+                                action={
+                                    <button onClick={fetchSecurityDigest} disabled={digestLoading} className="p-2 rounded-full border border-[var(--mm-line)] mm-faint hover:text-[var(--mm-ink)] transition-colors" aria-label="Refresh digest">
+                                        <RefreshCw size={14} className={digestLoading ? 'animate-spin' : ''} />
+                                    </button>
+                                }
+                            />
+                            {digestLoading && !digest ? (
+                                <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-4 bg-white/[0.04] rounded-full animate-pulse" style={{ width: `${90 - i * 18}%` }} />)}</div>
+                            ) : digest?.aiDigest ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-4">
+                                        <span className="grid place-items-center w-11 h-11 rounded-full border border-[var(--mm-line)] shrink-0">{status.icon}</span>
+                                        <div className="min-w-0">
+                                            <p className={`font-mono text-[10.5px] tracking-[0.24em] uppercase ${status.tone}`}>{status.label}</p>
+                                            <p className="text-sm mm-muted mt-1 leading-relaxed">{digest.aiDigest.summary}</p>
+                                        </div>
+                                    </div>
+
+                                    {digest.aiDigest.alerts?.length > 0 && (
+                                        <div className="space-y-2">
+                                            {digest.aiDigest.alerts.map((alert: any, idx: number) => (
+                                                <div key={idx} className={`flex items-start gap-3 p-3 rounded-xl border text-sm ${severityStyle(alert.severity)}`}>
+                                                    <Sparkles size={14} className="shrink-0 mt-0.5" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p>{alert.message}</p>
+                                                        {alert.metric && <span className="text-xs opacity-70 font-mono">{alert.metric}</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {digest.aiDigest.recommendation && (
+                                        <p className="flex items-start gap-2 text-xs text-alpine-glacier/80 leading-relaxed">
+                                            <Shield size={13} className="shrink-0 mt-0.5" /> {digest.aiDigest.recommendation}
+                                        </p>
+                                    )}
+
+                                    {digest.rawMetrics && (
+                                        <>
+                                            <button onClick={() => setDigestExpanded(v => !v)} className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] uppercase mm-faint hover:text-[var(--mm-ink)] transition-colors">
+                                                <ChevronDown size={13} className={`transition-transform duration-300 ${digestExpanded ? 'rotate-180' : ''}`} />
+                                                {digestExpanded ? 'Hide' : 'Show'} raw metrics
+                                            </button>
+                                            <AnimatePresence initial={false}>
+                                                {digestExpanded && (
+                                                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border border-[var(--mm-line)] bg-[var(--mm-line)]">
+                                                            {[
+                                                                { label: 'Successful logins', value: digest.rawMetrics.successfulLogins, tone: 'text-emerald-300' },
+                                                                { label: 'Failed logins', value: digest.rawMetrics.failedLogins, tone: 'text-red-300' },
+                                                                { label: 'Admin actions', value: digest.rawMetrics.recentAdminActions, tone: 'text-[var(--mm-ink)]' },
+                                                                {
+                                                                    label: 'Success rate',
+                                                                    value: `${digest.rawMetrics.successfulLogins + digest.rawMetrics.failedLogins > 0
+                                                                        ? Math.round((digest.rawMetrics.successfulLogins / (digest.rawMetrics.successfulLogins + digest.rawMetrics.failedLogins)) * 100)
+                                                                        : 100}%`,
+                                                                    tone: 'text-alpine-glacier'
+                                                                },
+                                                            ].map(m => (
+                                                                <div key={m.label} className="p-4 bg-[#070B12]">
+                                                                    <p className={`mm-num text-2xl font-light ${m.tone}`}>{m.value}</p>
+                                                                    <p className="font-mono text-[9.5px] tracking-[0.2em] uppercase mm-faint mt-1">{m.label}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm mm-faint">The security digest is unavailable right now.</p>
+                            )}
+                        </Panel>
+                    </div>
+
+                    {/* Recent recruits */}
+                    <Panel className="p-5 md:p-7 mm-rise" style={{ animationDelay: '300ms' }}>
+                        <PanelTitle eyebrow="Fresh on the rope" title={<>Recent <em>recruits</em></>} action={<PanelLink to="/summit-control-panel/users">View all</PanelLink>} />
+                        {loading && !data ? (
+                            <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-12 bg-white/[0.03] rounded-xl animate-pulse" />)}</div>
+                        ) : !data?.recentUsers?.length ? (
+                            <p className="text-sm mm-faint">No one new yet.</p>
+                        ) : (
+                            <ul className="divide-y divide-[var(--mm-line)]">
+                                {data.recentUsers.map(u => (
+                                    <li key={u.id} className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0">
+                                        {u.avatar
+                                            ? <img decoding="async" src={u.avatar} alt="" loading="lazy" className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--mm-line)]" />
+                                            : <span className="w-10 h-10 rounded-full grid place-items-center bg-alpine-glacier/10 text-alpine-glacier font-serif text-lg">{u.name?.charAt(0)}</span>}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-[var(--mm-ink)] truncate">{u.name}</p>
+                                            <p className="text-xs mm-faint truncate">{u.email}</p>
+                                        </div>
+                                        <span className="font-mono text-[10px] tracking-[0.18em] uppercase mm-faint shrink-0">
+                                            {new Date(u.joinedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </Panel>
+                </>
+            )}
         </div>
     );
 };

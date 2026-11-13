@@ -1,87 +1,105 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { WifiOff, Wifi } from 'lucide-react';
+import { WifiOff, Wifi, ServerOff, RefreshCw } from 'lucide-react';
+import { API_URL } from '../../lib/constants';
 
+/**
+ * One calm status pill, bottom-left:
+ *  - the device is offline,
+ *  - the device is online but the API server isn't answering (lib/api broadcasts `mm:server-status`),
+ *  - and a short "back online" confirmation when either recovers.
+ */
 export const NetworkStatusToast: React.FC = () => {
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+    const [serverDown, setServerDown] = useState(false);
+    const [checking, setChecking] = useState(false);
     const [showReconnectedToast, setShowReconnectedToast] = useState<boolean>(false);
+    const hideTimer = useRef<number | undefined>(undefined);
+
+    const flashReconnected = () => {
+        setShowReconnectedToast(true);
+        window.clearTimeout(hideTimer.current);
+        hideTimer.current = window.setTimeout(() => setShowReconnectedToast(false), 4000);
+    };
+
+    // While the server is unreachable, quietly re-check every 8 s
+    const probe = async () => {
+        setChecking(true);
+        try {
+            const res = await fetch(`${API_URL}/api/health`, { cache: 'no-store', signal: AbortSignal.timeout?.(4000) });
+            // Any HTTP answer (even 429 / 503 degraded) proves the server process is up
+            if (res.status > 0) {
+                setServerDown(false);
+                flashReconnected();
+                window.dispatchEvent(new CustomEvent('mm:server-status', { detail: { reachable: true, fromProbe: true } }));
+            }
+        } catch { /* still down */ } finally {
+            setChecking(false);
+        }
+    };
 
     useEffect(() => {
-        const handleOnline = () => {
-            setIsOnline(true);
-            setShowReconnectedToast(true);
-            const timer = setTimeout(() => setShowReconnectedToast(false), 4000);
-            return () => clearTimeout(timer);
+        const handleOnline = () => { setIsOnline(true); flashReconnected(); };
+        const handleOffline = () => { setIsOnline(false); setShowReconnectedToast(false); };
+        const handleServer = (e: Event) => {
+            const { reachable, fromProbe } = (e as CustomEvent).detail || {};
+            if (fromProbe) return;
+            if (reachable) { setServerDown(prev => { if (prev) flashReconnected(); return false; }); }
+            else setServerDown(true);
         };
-
-        const handleOffline = () => {
-            setIsOnline(false);
-            setShowReconnectedToast(false);
-        };
-
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
-
+        window.addEventListener('mm:server-status', handleServer);
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('mm:server-status', handleServer);
+            window.clearTimeout(hideTimer.current);
         };
     }, []);
 
-    const isDisconnected = !isOnline;
+    useEffect(() => {
+        if (!serverDown || !isOnline) return;
+        const id = window.setInterval(probe, 8000);
+        return () => window.clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [serverDown, isOnline]);
 
-    if (!isDisconnected && !showReconnectedToast) {
-        return null;
-    }
+    const pill = 'px-4 py-3 rounded-2xl border backdrop-blur-xl flex items-center gap-3 pointer-events-auto shadow-[0_14px_36px_-12px_rgba(0,0,0,0.7)]';
 
     return (
-        <div className="fixed bottom-6 left-6 z-[9999] pointer-events-none">
+        <div className="fixed bottom-6 left-6 z-[9999] pointer-events-none max-w-[calc(100vw-3rem)]" role="status" aria-live="polite">
             <AnimatePresence mode="wait">
-                {isDisconnected && (
-                    <motion.div
-                        key="offline-toast"
-                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        className="glass-premium px-4 py-3 rounded-2xl border border-amber-500/40 bg-amber-950/40 dark:bg-amber-950/60 backdrop-blur-xl flex items-center gap-3 shadow-[0_10px_30px_rgba(245,158,11,0.2)] pointer-events-auto"
-                    >
-                        <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 animate-pulse">
-                            <WifiOff size={16} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold text-amber-200 tracking-wide">
-                                Network Offline
-                            </span>
-                            <span className="text-[10px] text-amber-300/70 font-medium">
-                                Viewing cached expedition data
-                            </span>
-                        </div>
+                {!isOnline ? (
+                    <motion.div key="offline" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                        className={`${pill} border-[#E2A071]/35 bg-[#1B120C]/85`}>
+                        <span className="p-2 rounded-xl bg-[#E2A071]/15 text-[#E8B48E]"><WifiOff size={16} /></span>
+                        <span className="flex flex-col">
+                            <span className="text-xs font-semibold text-white">You’re offline</span>
+                            <span className="text-[11px] text-white/60">Showing saved trips and pages</span>
+                        </span>
                     </motion.div>
-                )}
-
-                {showReconnectedToast && !isDisconnected && (
-                    <motion.div
-                        key="reconnected-toast"
-                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        className="glass-premium px-4 py-3 rounded-2xl border border-emerald-500/40 bg-emerald-950/40 dark:bg-emerald-950/60 backdrop-blur-xl flex items-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.2)] pointer-events-auto"
-                    >
-                        <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-                            <Wifi size={16} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold text-emerald-200 tracking-wide">
-                                Connection Restored
+                ) : serverDown ? (
+                    <motion.div key="server" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                        className={`${pill} border-red-400/30 bg-[#1A0D10]/85`}>
+                        <span className="p-2 rounded-xl bg-red-400/15 text-red-300"><ServerOff size={16} /></span>
+                        <span className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-white">Can’t reach the server</span>
+                            <span className="text-[11px] text-white/60 truncate">
+                                {import.meta.env.DEV ? `Start the backend (${API_URL || 'same origin'})` : 'Retrying automatically…'}
                             </span>
-                            <span className="text-[10px] text-emerald-300/70 font-medium">
-                                Alpine sync online
-                            </span>
-                        </div>
+                        </span>
+                        <button onClick={probe} disabled={checking} className="ml-1 h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-colors">
+                            <RefreshCw size={12} className={checking ? 'animate-spin' : ''} /> Retry
+                        </button>
                     </motion.div>
-                )}
+                ) : showReconnectedToast ? (
+                    <motion.div key="back" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                        className={`${pill} border-emerald-400/30 bg-[#0B1A14]/85`}>
+                        <span className="p-2 rounded-xl bg-emerald-400/15 text-emerald-300"><Wifi size={16} /></span>
+                        <span className="text-xs font-semibold text-white">Connected again</span>
+                    </motion.div>
+                ) : null}
             </AnimatePresence>
         </div>
     );

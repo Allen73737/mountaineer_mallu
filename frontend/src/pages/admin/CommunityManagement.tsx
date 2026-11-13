@@ -91,12 +91,13 @@ export const CommunityManagement = () => {
         <div className="space-y-8">
             {ToastComponent}
 
-            <header className="flex justify-between items-end">
+            <header className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2"><Users className="text-alpine-glacier" size={28} /><h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Community Groups</h1></div>
-                    <p className="text-white/50 text-sm">Manage factions, approve members, assign moderators</p>
+                    <p className="mm-eyebrow mb-3">People · Factions</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Community <em>groups</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage factions, approve members, assign moderators</p>
                 </div>
-                <button onClick={() => setShowCreate(true)} className="py-2.5 px-5 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium"><Plus size={18} /><span>New Group</span></button>
+                <button onClick={() => setShowCreate(true)} className="mm-btn mm-btn--primary"><Plus size={18} /><span>New Group</span></button>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -188,7 +189,7 @@ export const CommunityManagement = () => {
                             </div>
                             <div className="flex gap-3 mt-6">
                                 <button onClick={() => setShowCreate(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all">Cancel</button>
-                                <button onClick={handleCreate} className="flex-1 py-3 rounded-xl bg-alpine-glacier text-alpine-navy font-bold btn-premium flex items-center justify-center gap-2">Create Faction</button>
+                                <button onClick={handleCreate} className="flex-1 mm-btn mm-btn--primary !h-12">Create Faction</button>
                             </div>
                         </motion.div>
                     </motion.div>

@@ -7,11 +7,27 @@ import { useToast } from '../../components/ui/Toast';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useAdminAction } from '../../store/useAdminAction';
 
+import { BulkBar, SelectBox, useSelection } from '../../components/admin/BulkBar';
+import { moderationApi } from '../../lib/api';
+import { toast } from 'sonner';
 export const GalleryApprovals = () => {
     const [pendingItems, setPendingItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionId, setActionId] = useState<string | null>(null);
     const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
+    const allIds = React.useMemo(() => pendingItems.map(i => i._id), [pendingItems]);
+    const sel = useSelection(allIds);
+    const bulk = async (status: 'approved' | 'rejected') => {
+        const ids = [...sel.selected];
+        try {
+            const res = await moderationApi.media(ids, status);
+            setPendingItems(prev => prev.filter(i => !ids.includes(i._id)));
+            sel.clear();
+            toast.success(res.message);
+        } catch (e: any) {
+            toast.error(e.message || 'Bulk update failed.');
+        }
+    };
     const { showToast, ToastComponent } = useToast();
 
     const { requestAction } = useAdminAction();
@@ -71,14 +87,20 @@ export const GalleryApprovals = () => {
             ) : pendingItems.length === 0 ? (
                 <div className="p-16 text-center text-white/30 font-mono text-sm premium-card rounded-2xl border border-white/5 bg-white/[0.02]">[ NO_PENDING_UPLOADS ]</div>
             ) : (
+                <>
+                <label className="flex items-center gap-3 px-1 text-xs text-white/55 cursor-pointer w-fit">
+                    <SelectBox label="Select all pending media" checked={sel.allSelected} indeterminate={sel.count > 0} onChange={sel.toggleAll} />
+                    Select all {pendingItems.length}
+                </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {pendingItems.map(item => (
-                        <motion.div key={item._id} layout className="premium-card rounded-2xl overflow-hidden group">
+                        <motion.div key={item._id} layout className={`premium-card rounded-2xl overflow-hidden group ${sel.has(item._id) ? '!border-alpine-glacier/50 ring-1 ring-alpine-glacier/40' : ''}`}>
                             <div className="aspect-video relative">
+                                <div className="absolute top-3 left-3 z-10 p-1.5 rounded-lg bg-black/50 backdrop-blur-md"><SelectBox label={`Select ${item.title}`} checked={sel.has(item._id)} onChange={() => sel.toggle(item._id)} /></div>
                                 {item.type === 'video' ? (
                                     <video src={item.url} className="w-full h-full object-cover" muted />
                                 ) : (
-                                    <img src={item.url} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" alt={item.title || ""} src={item.url} className="w-full h-full object-cover" />
                                 )}
                                 {item.type === 'video' && (
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="bg-black/50 backdrop-blur-md p-3 rounded-full"><Play fill="white" size={20} /></div></div>
@@ -100,7 +122,9 @@ export const GalleryApprovals = () => {
                         </motion.div>
                     ))}
                 </div>
+                </>
             )}
+            <BulkBar count={sel.count} noun="item" onApprove={() => bulk('approved')} onReject={() => bulk('rejected')} onClear={sel.clear} />
 
             {/* Fullscreen Modal */}
             <AnimatePresence>
@@ -127,7 +151,7 @@ export const GalleryApprovals = () => {
                             {selectedMedia.type === 'video' ? (
                                 <video src={selectedMedia.url || selectedMedia.image} autoPlay loop controls className="w-full h-full object-contain bg-black" />
                             ) : (
-                                <img src={selectedMedia.url || selectedMedia.image} className="w-full h-full object-contain bg-black" />
+                                <img loading="lazy" decoding="async" alt="" src={selectedMedia.url || selectedMedia.image} className="w-full h-full object-contain bg-black" />
                             )}
                             <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                                 <h2 className="text-4xl font-serif text-white">{selectedMedia.title}</h2>

@@ -10,6 +10,8 @@ import { useAdminAction } from '../../store/useAdminAction';
 import { CheckCircle, XCircle, Type, SplitSquareVertical } from 'lucide-react';
 import { UnsplashSearchPicker } from '../../components/ui/UnsplashSearchPicker';
 
+import { BulkBar, SelectBox, useSelection } from '../../components/admin/BulkBar';
+import { moderationApi } from '../../lib/api';
 /* ─── Full Article Preview (editorial reading view) ─── */
 const StoryPreviewFull = ({ form, imageFile, unsplashUrl }: { form: any; imageFile: File | null; unsplashUrl?: string | null }) => {
     const previewUrl = useMemo(() => {
@@ -35,7 +37,7 @@ const StoryPreviewFull = ({ form, imageFile, unsplashUrl }: { form: any; imageFi
                 {/* Hero Image */}
                 <div className="relative w-full aspect-[21/9] overflow-hidden">
                     {previewUrl ? (
-                        <img
+                        <img loading="lazy" decoding="async" alt=""
                             src={previewUrl}
                             className="w-full h-full object-cover filter brightness-60"
                         />
@@ -116,7 +118,7 @@ const StoryPreviewFull = ({ form, imageFile, unsplashUrl }: { form: any; imageFi
                     {/* Image placement within article */}
                     {previewUrl && paragraphs.length > 1 && (
                         <div className="my-10 rounded-2xl overflow-hidden border border-white/10">
-                            <img src={previewUrl} className="w-full object-cover max-h-[400px]" />
+                            <img loading="lazy" decoding="async" alt="" src={previewUrl} className="w-full object-cover max-h-[400px]" />
                             <div className="px-4 py-3 bg-white/[0.03] border-t border-white/5">
                                 <p className="text-xs text-white/30 italic">{form.title || 'Story image'} — {form.region || 'Location'}</p>
                             </div>
@@ -165,6 +167,19 @@ export const StoriesManagement = () => {
     const [imageModalOpen, setImageModalOpen] = useState(false);
 
     const { showToast, ToastComponent } = useToast();
+    const pendingIds = React.useMemo(() => stories.filter(s => s.status === 'pending').map(s => s._id), [stories]);
+    const sel = useSelection(pendingIds);
+    const bulk = async (status: 'approved' | 'rejected') => {
+        const ids = [...sel.selected];
+        try {
+            const res = await moderationApi.stories(ids, status);
+            setStories(prev => prev.map(s => ids.includes(s._id) ? { ...s, status } : s));
+            sel.clear();
+            showToast(res.message, 'success');
+        } catch (e: any) {
+            showToast(e.message || 'Bulk update failed.', 'error');
+        }
+    };
     const { requestAction } = useAdminAction();
 
     const handleSuggestImages = async () => {
@@ -294,13 +309,15 @@ export const StoriesManagement = () => {
     return (
         <div className="space-y-8">
             {ToastComponent}
+            <BulkBar count={sel.count} noun="story" onApprove={() => bulk('approved')} onReject={() => bulk('rejected')} onClear={sel.clear} />
 
-            <header className="flex justify-between items-end">
+            <header className="mm-rise flex flex-col gap-5 md:flex-row md:justify-between md:items-end">
                 <div>
-                    <div className="flex items-center gap-3 mb-2"><BookOpen className="text-alpine-glacier" size={28} /><h1 className="text-3xl font-bold font-serif tracking-wide text-gradient-glacier glow-text">Stories Management</h1></div>
-                    <p className="text-white/50 text-sm">Create, edit, and manage expedition chronicles</p>
+                    <p className="mm-eyebrow mb-3">Content · Chronicles</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Expedition <em>stories</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Create, edit, and manage expedition chronicles</p>
                 </div>
-                <button onClick={openCreate} className="py-2.5 px-5 flex items-center gap-2 bg-alpine-glacier text-alpine-navy font-bold rounded-xl btn-premium">
+                <button onClick={openCreate} className="mm-btn mm-btn--primary">
                     <Plus size={18} /><span>New Story</span>
                 </button>
             </header>
@@ -309,6 +326,7 @@ export const StoriesManagement = () => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="border-b border-white/10 bg-white/5 text-sm font-medium text-white/50 tracking-wider">
+                            <th className="p-5 w-10"><SelectBox label="Select all pending stories" checked={sel.allSelected} indeterminate={sel.count > 0} onChange={sel.toggleAll} /></th>
                             <th className="p-5 uppercase">Story</th>
                             <th className="p-5 uppercase">Author</th>
                             <th className="p-5 uppercase">Region</th>
@@ -320,11 +338,12 @@ export const StoriesManagement = () => {
                     <tbody className="divide-y divide-white/5">
                         {loading ? [1,2,3].map(i => <TableRowSkeleton key={i} />) :
                         stories.map(story => (
-                            <tr key={story._id} className="hover:bg-white/5 transition-colors">
+                            <tr key={story._id} className={`transition-colors ${sel.has(story._id) ? 'bg-alpine-glacier/[0.06]' : 'hover:bg-white/5'}`}>
+                                <td className="p-5 w-10">{story.status === 'pending' && <SelectBox label={`Select ${story.title}`} checked={sel.has(story._id)} onChange={() => sel.toggle(story._id)} />}</td>
                                 <td className="p-5">
                                     <div className="flex items-center gap-4">
                                         <div className="relative group cursor-pointer" onClick={() => setSelectedImage(story.image)}>
-                                            <img src={story.image} className="w-12 h-12 rounded-lg object-cover" />
+                                            <img loading="lazy" decoding="async" alt={story.title} src={story.image} className="w-12 h-12 rounded-lg object-cover" />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                                 <Maximize2 size={12} className="text-white" />
                                             </div>
@@ -490,7 +509,7 @@ export const StoriesManagement = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {(unsplashUrl || form.image) && !imageFile && <img src={unsplashUrl || form.image} className="mt-2 h-20 rounded-lg object-cover" />}
+                                            {(unsplashUrl || form.image) && !imageFile && <img loading="lazy" decoding="async" alt="" src={unsplashUrl || form.image} className="mt-2 h-20 rounded-lg object-cover" />}
                                             <div className="mt-4">
                                                 <UnsplashSearchPicker 
                                                     placeholder="Or search Unsplash directly for a cover image..." 
@@ -505,7 +524,7 @@ export const StoriesManagement = () => {
                                     </div>
                                     <div className="flex gap-3 mt-6">
                                         <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all">Cancel</button>
-                                        <button onClick={handleSave} disabled={saving} className="flex-1 py-3 rounded-xl bg-alpine-glacier text-alpine-navy font-bold btn-premium flex items-center justify-center gap-2">
+                                        <button onClick={handleSave} disabled={saving} className="flex-1 mm-btn mm-btn--primary !h-12">
                                             {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={16} /> Save</>}
                                         </button>
                                     </div>
@@ -550,7 +569,7 @@ export const StoriesManagement = () => {
                             className="relative w-full max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(255,255,255,0.1)] cursor-default flex items-center justify-center bg-black"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
-                            <img src={selectedImage} className="max-w-full max-h-full object-contain" />
+                            <img loading="lazy" decoding="async" alt="" src={selectedImage} className="max-w-full max-h-full object-contain" />
                         </motion.div>
                     </motion.div>
                 )}
@@ -596,7 +615,7 @@ export const StoriesManagement = () => {
                                                 setImageModalOpen(false);
                                             }}
                                         >
-                                            <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <img loading="lazy" decoding="async" src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                                 <span className="text-white text-xs font-medium truncate">Photo by {img.authorName}</span>
                                                 <div className="mt-2 text-alpine-glacier flex items-center gap-1 text-sm font-semibold">

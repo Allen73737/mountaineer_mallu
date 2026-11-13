@@ -100,15 +100,11 @@ export const UserGearVaultTab = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
         >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-amber-500/20 text-amber-500 rounded-2xl border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                        <Backpack size={32} />
-                    </div>
-                    <div>
-                        <h2 className="text-3xl font-serif font-bold tracking-wide text-alpine-navy dark:text-white">Gear & Loadout Vault</h2>
-                        <p className="text-alpine-navy/60 dark:text-white/50 mt-1">Manage your expedition inventory and packing lists.</p>
-                    </div>
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-5 mb-8 md:mb-10">
+                <div className="min-w-0">
+                    <p className="mm-eyebrow mb-3">Basecamp · Loadout</p>
+                    <h1 className="mm-title text-[2.4rem] sm:text-5xl md:text-[3.5rem]">Gear &amp; loadout <em>vault</em></h1>
+                    <p className="mm-muted text-sm md:text-base mt-3 max-w-2xl leading-relaxed">Manage your expedition inventory and packing lists.</p>
                 </div>
                 
                 <button
@@ -155,7 +151,7 @@ export const UserGearVaultTab = () => {
                     {upcomingExpedition ? (
                         <div className="flex flex-col md:flex-row gap-6 relative z-10">
                             <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-lg border border-white/10">
-                                <img src={upcomingExpedition.image} alt="Expedition" className="w-full h-full object-cover" />
+                                <img loading="lazy" decoding="async" src={upcomingExpedition.image} alt="Expedition" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col justify-center">
                                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-alpine-navy/50 dark:text-white/50 mb-1 flex items-center gap-1">

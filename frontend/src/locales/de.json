@@ -143,5 +143,126 @@
     "kicker": "Die Route · Mont Blanc",
     "title": "Die Goûter-Route, Lager für Lager",
     "altitude": "Höhe"
+  },
+  "app": {
+    "search": {
+      "placeholder": "Geschichten, Expeditionen, Menschen suchen…",
+      "hint": "Mindestens 2 Buchstaben eingeben",
+      "empty": "Keine Treffer für „{{q}}“",
+      "recent": "Zuletzt",
+      "jump": "Springen zu",
+      "results": "Ergebnisse",
+      "open": "Suchen",
+      "navHint": "↑↓ bewegen · ↵ öffnen · esc schließen",
+      "kinds": {
+        "story": "Geschichte",
+        "event": "Expedition",
+        "group": "Gruppe",
+        "media": "Medien",
+        "team": "Team",
+        "shop": "Shop",
+        "page": "Seite"
+      }
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "empty": "Alles erledigt",
+      "emptyHint": "Antworten, Reaktionen und Tour-Updates erscheinen hier.",
+      "markAll": "Alle als gelesen markieren",
+      "clear": "Leeren",
+      "open": "Benachrichtigungen öffnen"
+    },
+    "calendar": {
+      "google": "Zu Google Kalender hinzufügen",
+      "ics": ".ics herunterladen (Apple, Outlook)",
+      "add": "Zum Kalender hinzufügen",
+      "share": "Tour teilen",
+      "copied": "Link kopiert"
+    },
+    "pages": {
+      "home": "Startseite",
+      "stories": "Geschichten",
+      "events": "Expeditionen",
+      "gallery": "Galerie",
+      "community": "Community",
+      "team": "Team",
+      "reviews": "Bewertungen",
+      "shop": "Shop",
+      "contact": "Kontakt",
+      "dashboard": "Mein Dashboard",
+      "admin": "Summit Control"
+    },
+    "portal": {
+      "home": "Basislager",
+      "profile": "Profil",
+      "expeditions": "Meine Expeditionen",
+      "communities": "Meine Gruppen",
+      "gear": "Ausrüstung",
+      "wishlist": "Wunschliste",
+      "write": "Geschichte schreiben",
+      "upload": "Medien hochladen",
+      "submissions": "Einreichungen",
+      "collections": "Sammlungen",
+      "passport": "Gipfelpass",
+      "short": {
+        "home": "Start",
+        "profile": "Profil",
+        "expeditions": "Touren",
+        "communities": "Gruppen",
+        "gear": "Ausrüstung",
+        "wishlist": "Wünsche",
+        "write": "Schreiben",
+        "upload": "Upload",
+        "submissions": "Status",
+        "collections": "Gespeichert",
+        "passport": "Pass"
+      },
+      "groupBasecamp": "Basislager",
+      "groupCreate": "Erstellen",
+      "mainSite": "Hauptseite",
+      "logout": "Abmelden",
+      "explorer": "Entdecker",
+      "more": "Mehr"
+    },
+    "passport": {
+      "eyebrow": "Basislager · Erfolge",
+      "titleA": "Gipfel",
+      "titleB": "pass",
+      "desc": "Jede Expedition gestempelt, jeder Meilenstein verdient.",
+      "stamps": "Stempel",
+      "badges": "Abzeichen",
+      "earned": "Verdient",
+      "locked": "Gesperrt",
+      "yearInReview": "Jahresrückblick",
+      "download": "Karte herunterladen",
+      "share": "Teilen",
+      "noStamps": "Dein erster Stempel ist nur eine Expedition entfernt.",
+      "browse": "Expeditionen ansehen",
+      "upcoming": "Demnächst",
+      "stats": {
+        "summits": "Gipfel",
+        "stories": "Geschichten",
+        "climbed": "Höhenmeter",
+        "places": "Orte",
+        "posts": "Beiträge",
+        "reactions": "Erhaltene Reaktionen"
+      }
+    },
+    "community": {
+      "react": "Reagieren",
+      "reply": "Antworten",
+      "delete": "Löschen",
+      "leave": "Gruppe verlassen",
+      "mentionHint": "Tippe @, um jemanden zu erwähnen",
+      "live": "Live",
+      "newPosts": "{{count}} neue Beiträge – anzeigen"
+    },
+    "categories": {
+      "all": "Alle",
+      "expedition": "Expedition",
+      "training": "Training",
+      "meetup": "Treffen",
+      "cultural": "Kultur"
+    }
   }
 }

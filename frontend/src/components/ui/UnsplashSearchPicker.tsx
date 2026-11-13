@@ -132,7 +132,7 @@ export const UnsplashSearchPicker: React.FC<Props> = ({ onSelect, triggerClassNa
                                         }}
                                         className="group relative aspect-video rounded-xl overflow-hidden cursor-pointer bg-black/5 border border-transparent hover:border-alpine-glacier/50 transition-colors"
                                     >
-                                        <img src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        <img loading="lazy" decoding="async" src={img.thumb} alt={img.altText} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 sm:p-3">
                                             <a 
                                                 href={`${img.authorLink}?utm_source=mountaineer_mallu&utm_medium=referral`}

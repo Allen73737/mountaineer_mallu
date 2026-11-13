@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Renderer, Camera, Program, Mesh, Plane, Texture, Transform } from 'ogl';
+import type { Mesh, Program } from 'ogl';
 import { cancelFrame, frame as frameloop } from 'framer-motion';
 import { useLenis } from './SmoothScrollProvider';
 
@@ -88,132 +88,140 @@ export const useReelGL = (
         const stageEl = stage.current, trackEl = track.current, host = canvasHost.current;
         if (!enabled || !stageEl || !trackEl || !host) return;
 
-        let renderer: InstanceType<typeof Renderer>;
-        try {
-            renderer = new Renderer({ alpha: true, dpr: Math.min(window.devicePixelRatio || 1, 1.75), antialias: true });
-        } catch {
-            return;
-        }
-        const gl = renderer.gl;
-        gl.clearColor(0, 0, 0, 0);
-        gl.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
-        host.appendChild(gl.canvas);
-
-        const camera = new Camera(gl, { left: -1, right: 1, top: 1, bottom: -1, near: 1, far: 100 });
-        camera.position.z = 10;
-        const scene = new Transform();
-        const geometry = new Plane(gl, { widthSegments: 24, heightSegments: 12 });
-
-        let W = 0, H = 0;
-        const resize = () => {
-            W = host.clientWidth; H = host.clientHeight;
-            renderer.setSize(W, H);
-            camera.orthographic({ left: -W / 2, right: W / 2, top: H / 2, bottom: -H / 2, near: 1, far: 100 });
-            items.forEach(it => { it.program.uniforms.uViewport.value = [W, H]; });
-        };
-
-        const items: Item[] = Array.from(trackEl.querySelectorAll<HTMLImageElement>('img[data-reel-img]')).map(img => {
-            const texture = new Texture(gl, { generateMipmaps: false });
-            const program = new Program(gl, {
-                vertex, fragment, transparent: true,
-                uniforms: {
-                    tMap: { value: texture }, uPlane: { value: [1, 1] }, uImage: { value: [1, 1] },
-                    uVelocity: { value: 0 }, uHover: { value: 0 }, uMouse: { value: [0.5, 0.5] },
-                    uTime: { value: 0 }, uRadius: { value: 6 }, uViewport: { value: [1, 1] },
-                },
-            });
-            const mesh = new Mesh(gl, { geometry, program });
-            mesh.setParent(scene);
-            mesh.visible = false;
-            const item: Item = { img, mesh, program, hover: 0, ready: false };
-            const upload = () => {
-                try {
-                    texture.image = img;
-                    program.uniforms.uImage.value = [img.naturalWidth, img.naturalHeight];
-                    item.ready = true;
-                } catch { /* tainted or broken image: keep the DOM copy */ }
-            };
-            if (img.complete && img.naturalWidth) upload(); else img.addEventListener('load', upload, { once: true });
-            return item;
-        });
-        resize();
-        window.addEventListener('resize', resize, { passive: true });
-
-        // Pointer for hover ripples
-        let mouse = { x: -1, y: -1 };
-        const onMove = (e: PointerEvent) => { mouse = { x: e.clientX, y: e.clientY }; };
-        const onLeave = () => { mouse = { x: -1, y: -1 }; };
-        stageEl.addEventListener('pointermove', onMove);
-        stageEl.addEventListener('pointerleave', onLeave);
-
-        let velocity = 0;
-        let visible = true;
-        const start = performance.now();
-        let lastLayout = '';
-        let drawnReady = -1;
-        const loop = () => {
-            const readyCount = items.reduce((n, it) => n + (it.ready ? 1 : 0), 0);
-            if (!visible) return;
-            const hostRect = host.getBoundingClientRect();
-            const target = Math.max(-1, Math.min(1, ((lenis?.velocity ?? 0) / 45) + dragVelocity.current / 40));
-            velocity += (target - velocity) * 0.12;
-            dragVelocity.current *= 0.9;
-            const t = (performance.now() - start) / 1000;
-
-            let anyShown = false;
-            // Skip the draw when nothing moved: frame positions, speed and hover all at rest
-            let animating = Math.abs(velocity) > 0.001;
-            let layout = `${W}x${H}`;
-            for (const it of items) {
-                if (!it.ready) continue;
-                const r = it.img.getBoundingClientRect();
-                const off = r.right < hostRect.left - 200 || r.left > hostRect.right + 200;
-                it.mesh.visible = !off && r.width > 0;
-                if (!it.mesh.visible) continue;
-                anyShown = true;
-                layout += `|${r.left.toFixed(1)},${r.top.toFixed(1)},${r.width.toFixed(1)}`;
-                it.mesh.scale.set(r.width, r.height, 1);
-                it.mesh.position.set(r.left - hostRect.left + r.width / 2 - W / 2, -(r.top - hostRect.top + r.height / 2 - H / 2), 0);
-                const inside = mouse.x >= r.left && mouse.x <= r.right && mouse.y >= r.top && mouse.y <= r.bottom;
-                it.hover += ((inside ? 1 : 0) - it.hover) * 0.08;
-                // The hover ripple is time-based, so a hovered frame keeps drawing
-                if (inside || it.hover > 0.002) animating = true;
-                const u = it.program.uniforms;
-                u.uPlane.value = [r.width, r.height];
-                u.uVelocity.value = velocity;
-                u.uHover.value = it.hover;
-                u.uTime.value = t;
-                if (inside) u.uMouse.value = [(mouse.x - r.left) / r.width, 1 - (mouse.y - r.top) / r.height];
-                it.img.dataset.glHidden = '';
-            }
-            if (!animating && layout === lastLayout && readyCount === drawnReady) return;
-            lastLayout = layout;
-            drawnReady = readyCount;
+        // ogl is fetched with the reel itself, so the WebGL library stays out of the first page load
+        const mount = ({ Renderer, Camera, Program, Mesh, Plane, Texture, Transform }: typeof import('ogl')): (() => void) | undefined => {
+            let renderer: InstanceType<typeof Renderer>;
             try {
-                if (anyShown) renderer.render({ scene, camera });
+                renderer = new Renderer({ alpha: true, dpr: Math.min(window.devicePixelRatio || 1, 1.75), antialias: true });
             } catch {
-                // A texture refused to upload (e.g. a CDN dropped CORS): give the frames back to the DOM and stop
-                cancelFrame(loop);
-                items.forEach(it => { delete it.img.dataset.glHidden; });
-                gl.canvas.remove();
+                return;
             }
-        };
-        // After framer-motion has written this frame's transforms (the reel's x, frame scales): the box reads
-        // below then cost one layout that the browser needed anyway, and the planes match the DOM exactly
-        frameloop.postRender(loop, true);
+            const gl = renderer.gl;
+            gl.clearColor(0, 0, 0, 0);
+            gl.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+            host.appendChild(gl.canvas);
 
-        const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { rootMargin: '10% 0px' });
-        io.observe(stageEl);
+            const camera = new Camera(gl, { left: -1, right: 1, top: 1, bottom: -1, near: 1, far: 100 });
+            camera.position.z = 10;
+            const scene = new Transform();
+            const geometry = new Plane(gl, { widthSegments: 24, heightSegments: 12 });
 
-        return () => {
-            cancelFrame(loop);
-            io.disconnect();
-            window.removeEventListener('resize', resize);
-            stageEl.removeEventListener('pointermove', onMove);
-            stageEl.removeEventListener('pointerleave', onLeave);
-            items.forEach(it => { delete it.img.dataset.glHidden; });
-            gl.getExtension('WEBGL_lose_context')?.loseContext();
-            gl.canvas.remove();
+            let W = 0, H = 0;
+            const resize = () => {
+                W = host.clientWidth; H = host.clientHeight;
+                renderer.setSize(W, H);
+                camera.orthographic({ left: -W / 2, right: W / 2, top: H / 2, bottom: -H / 2, near: 1, far: 100 });
+                items.forEach(it => { it.program.uniforms.uViewport.value = [W, H]; });
+            };
+
+            const items: Item[] = Array.from(trackEl.querySelectorAll<HTMLImageElement>('img[data-reel-img]')).map(img => {
+                const texture = new Texture(gl, { generateMipmaps: false });
+                const program = new Program(gl, {
+                    vertex, fragment, transparent: true,
+                    uniforms: {
+                        tMap: { value: texture }, uPlane: { value: [1, 1] }, uImage: { value: [1, 1] },
+                        uVelocity: { value: 0 }, uHover: { value: 0 }, uMouse: { value: [0.5, 0.5] },
+                        uTime: { value: 0 }, uRadius: { value: 6 }, uViewport: { value: [1, 1] },
+                    },
+                });
+                const mesh = new Mesh(gl, { geometry, program });
+                mesh.setParent(scene);
+                mesh.visible = false;
+                const item: Item = { img, mesh, program, hover: 0, ready: false };
+                const upload = () => {
+                    try {
+                        texture.image = img;
+                        program.uniforms.uImage.value = [img.naturalWidth, img.naturalHeight];
+                        item.ready = true;
+                    } catch { /* tainted or broken image: keep the DOM copy */ }
+                };
+                if (img.complete && img.naturalWidth) upload(); else img.addEventListener('load', upload, { once: true });
+                return item;
+            });
+            resize();
+            window.addEventListener('resize', resize, { passive: true });
+
+            // Pointer for hover ripples
+            let mouse = { x: -1, y: -1 };
+            const onMove = (e: PointerEvent) => { mouse = { x: e.clientX, y: e.clientY }; };
+            const onLeave = () => { mouse = { x: -1, y: -1 }; };
+            stageEl.addEventListener('pointermove', onMove);
+            stageEl.addEventListener('pointerleave', onLeave);
+
+            let velocity = 0;
+            let visible = true;
+            const start = performance.now();
+            let lastLayout = '';
+            let drawnReady = -1;
+            const loop = () => {
+                const readyCount = items.reduce((n, it) => n + (it.ready ? 1 : 0), 0);
+                if (!visible) return;
+                const hostRect = host.getBoundingClientRect();
+                const target = Math.max(-1, Math.min(1, ((lenis?.velocity ?? 0) / 45) + dragVelocity.current / 40));
+                velocity += (target - velocity) * 0.12;
+                dragVelocity.current *= 0.9;
+                const t = (performance.now() - start) / 1000;
+
+                let anyShown = false;
+                // Skip the draw when nothing moved: frame positions, speed and hover all at rest
+                let animating = Math.abs(velocity) > 0.001;
+                let layout = `${W}x${H}`;
+                for (const it of items) {
+                    if (!it.ready) continue;
+                    const r = it.img.getBoundingClientRect();
+                    const off = r.right < hostRect.left - 200 || r.left > hostRect.right + 200;
+                    it.mesh.visible = !off && r.width > 0;
+                    if (!it.mesh.visible) continue;
+                    anyShown = true;
+                    layout += `|${r.left.toFixed(1)},${r.top.toFixed(1)},${r.width.toFixed(1)}`;
+                    it.mesh.scale.set(r.width, r.height, 1);
+                    it.mesh.position.set(r.left - hostRect.left + r.width / 2 - W / 2, -(r.top - hostRect.top + r.height / 2 - H / 2), 0);
+                    const inside = mouse.x >= r.left && mouse.x <= r.right && mouse.y >= r.top && mouse.y <= r.bottom;
+                    it.hover += ((inside ? 1 : 0) - it.hover) * 0.08;
+                    // The hover ripple is time-based, so a hovered frame keeps drawing
+                    if (inside || it.hover > 0.002) animating = true;
+                    const u = it.program.uniforms;
+                    u.uPlane.value = [r.width, r.height];
+                    u.uVelocity.value = velocity;
+                    u.uHover.value = it.hover;
+                    u.uTime.value = t;
+                    if (inside) u.uMouse.value = [(mouse.x - r.left) / r.width, 1 - (mouse.y - r.top) / r.height];
+                    it.img.dataset.glHidden = '';
+                }
+                if (!animating && layout === lastLayout && readyCount === drawnReady) return;
+                lastLayout = layout;
+                drawnReady = readyCount;
+                try {
+                    if (anyShown) renderer.render({ scene, camera });
+                } catch {
+                    // A texture refused to upload (e.g. a CDN dropped CORS): give the frames back to the DOM and stop
+                    cancelFrame(loop);
+                    items.forEach(it => { delete it.img.dataset.glHidden; });
+                    gl.canvas.remove();
+                }
+            };
+            // After framer-motion has written this frame's transforms (the reel's x, frame scales): the box reads
+            // below then cost one layout that the browser needed anyway, and the planes match the DOM exactly
+            frameloop.postRender(loop, true);
+
+            const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { rootMargin: '10% 0px' });
+            io.observe(stageEl);
+
+            return () => {
+                cancelFrame(loop);
+                io.disconnect();
+                window.removeEventListener('resize', resize);
+                stageEl.removeEventListener('pointermove', onMove);
+                stageEl.removeEventListener('pointerleave', onLeave);
+                items.forEach(it => { delete it.img.dataset.glHidden; });
+                gl.getExtension('WEBGL_lose_context')?.loseContext();
+                gl.canvas.remove();
+            };
         };
+
+        let cancelled = false;
+        let teardown: (() => void) | undefined;
+        import('ogl').then(ogl => { if (!cancelled) teardown = mount(ogl); }).catch(() => { /* reel stays as plain DOM images */ });
+        return () => { cancelled = true; teardown?.(); };
     }, [enabled, stage, track, canvasHost, dragVelocity, lenis, version]);
 };

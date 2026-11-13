@@ -43,6 +43,18 @@ const storySchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
+    },
+    // Optional GPS track from an uploaded GPX file, simplified client-side to ≤ 600 points
+    route: {
+        points: {
+            type: [[Number]], // [lat, lon, elevation]
+            default: undefined,
+            validate: [v => !v || v.length <= 800, 'Route has too many points.']
+        },
+        distanceKm: Number,
+        gainM: Number,
+        maxElevationM: Number,
+        name: { type: String, maxlength: 120 }
     }
 }, {
     timestamps: true

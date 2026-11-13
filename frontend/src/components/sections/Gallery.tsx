@@ -122,7 +122,7 @@ const ReelLightbox = ({ item, from, onClose }: { item: Media; from: HTMLElement;
             <motion.div animate={controls} className="absolute overflow-hidden bg-black shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]">
                 {item.type === 'video'
                     ? <video src={item.url} autoPlay loop muted playsInline className="w-full h-full object-cover" onLoadedMetadata={e => setAspect(e.currentTarget.videoWidth / e.currentTarget.videoHeight || 16 / 9)} />
-                    : <img src={item.url.replace('w=1600', 'w=2400')} alt={item.title} className="w-full h-full object-cover" onLoad={e => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} />}
+                    : <img loading="lazy" decoding="async" src={item.url.replace('w=1600', 'w=2400')} alt={item.title} className="w-full h-full object-cover" onLoad={e => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} />}
             </motion.div>
             <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6, duration: 0.7, ease: [0.16, 1, 0.3, 1] } }} exit={{ opacity: 0 }}
