@@ -49,6 +49,14 @@ export const CampaignAutopilot = () => {
         fetchCampaigns();
     }, []);
 
+    // Campaigns are sent by a background job: refresh while one is going out, until it reports sent / failed
+    const isSending = campaigns.some(c => c.status === 'sending');
+    useEffect(() => {
+        if (!isSending) return;
+        const t = setInterval(fetchCampaigns, 4000);
+        return () => clearInterval(t);
+    }, [isSending]);
+
     const fetchCampaigns = async () => {
         try {
             const data = await campaignApi.list();

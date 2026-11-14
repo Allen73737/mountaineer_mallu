@@ -6,7 +6,7 @@ import { uploadToCloudinary } from '../services/cloudinary.js';
 // @access  Public
 export const getPillars = async (req, res, next) => {
     try {
-        const pillars = await Pillar.find().sort({ order: 1, createdAt: 1 });
+        const pillars = await Pillar.find().sort({ order: 1, createdAt: 1 }).limit(100).lean();
         res.json(pillars);
     } catch (error) {
         next(error);

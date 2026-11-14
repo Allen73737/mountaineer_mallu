@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import { withTimeout } from '../utils/http.js';
 import SecurityLog from '../models/SecurityLog.js';
 import { generateToken, setTokenCookie, clearTokenCookie } from '../middleware/auth.js';
 import { OAuth2Client } from 'google-auth-library';
@@ -263,10 +264,10 @@ export const googleSignIn = async (req, res, next) => {
         const { credential } = req.body;
         if (!credential) return res.status(400).json({ error: 'Google credential is required' });
 
-        const ticket = await client.verifyIdToken({
+        const ticket = await withTimeout(client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        }), 8000, 'Google token check');
         const payload = ticket.getPayload();
         const { sub: googleId, email, name, picture } = payload;
 

@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import { fetchWithTimeout } from '../utils/http.js';
 
 export const searchUnsplashImages = async (query, perPage = 6) => {
     if (!process.env.UNSPLASH_ACCESS_KEY) {
@@ -8,7 +8,7 @@ export const searchUnsplashImages = async (query, perPage = 6) => {
     try {
         const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&orientation=landscape`;
         
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
             headers: {
                 Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
                 'Accept-Version': 'v1'

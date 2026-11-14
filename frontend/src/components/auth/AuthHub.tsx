@@ -6,7 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, CheckCircle, Check, AlertCircle, XCircle, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, Clock, Flag, ShieldCheck, CloudSun } from 'lucide-react';
 import { Loader2 } from '../ui/BrandLoader';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 import { DynamicLogo } from '../ui/DynamicLogo';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -508,15 +508,19 @@ export const AuthHub: React.FC<AuthHubProps> = ({ initialMode }) => {
 
             {/* Google */}
             <motion.div variants={rise} className="w-full min-h-[44px] flex justify-center">
-                <GoogleLogin
-                    onSuccess={handleGoogle}
-                    onError={() => setError('Google Authentication Failed')}
-                    theme={isDark ? 'filled_black' : 'outline'}
-                    size="large"
-                    shape="pill"
-                    width={String(googleWidth)}
-                    text={mode === 'login' ? 'continue_with' : 'signup_with'}
-                />
+                {/* The provider injects Google's sign-in script, so it lives here rather than at the app root:
+                    only visitors who open the sign-in page download it */}
+                <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy_client_id_for_dev'}>
+                    <GoogleLogin
+                        onSuccess={handleGoogle}
+                        onError={() => setError('Google Authentication Failed')}
+                        theme={isDark ? 'filled_black' : 'outline'}
+                        size="large"
+                        shape="pill"
+                        width={String(googleWidth)}
+                        text={mode === 'login' ? 'continue_with' : 'signup_with'}
+                    />
+                </GoogleOAuthProvider>
             </motion.div>
 
             <motion.div variants={rise} className="flex items-center gap-4 my-6" aria-hidden="true">

@@ -8,7 +8,9 @@ export const getApprovedReviews = async (req, res, next) => {
     try {
         const reviews = await Review.find({ status: 'approved' })
             .populate('author', 'name avatar role')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
         res.json(reviews);
     } catch (error) {
         next(error);
@@ -45,7 +47,9 @@ export const getAllReviewsAdmin = async (req, res, next) => {
     try {
         const reviews = await Review.find()
             .populate('author', 'name email avatar role')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .limit(500)
+            .lean();
         res.json(reviews);
     } catch (error) {
         next(error);

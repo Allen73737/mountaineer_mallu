@@ -401,7 +401,7 @@ export const GroupFeed: React.FC<{ group: any; posts: Post[]; setPosts: React.Di
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                                className="mm-panel p-5 sm:p-6"
+                                className="mm-panel list-item-contain p-5 sm:p-6"
                             >
                                 <header className="flex items-start justify-between gap-3 mb-3">
                                     <div className="flex items-center gap-3 min-w-0">

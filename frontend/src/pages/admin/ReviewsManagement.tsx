@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, CheckCircle, XCircle, Trash2, MessageSquare, Edit2, Save, X, Sparkles, TrendingUp, ThumbsUp, ThumbsDown, RefreshCw, BarChart3, Quote } from 'lucide-react';
 import { Loader2 } from '../../components/ui/BrandLoader';
+import { AdminCardGridSkeleton } from '../../components/ui/Skeleton';
 import { reviewsApi, aiApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { useAdminAction } from '../../store/useAdminAction';
@@ -222,9 +223,7 @@ export const ReviewsManagement = () => {
             </motion.div>
 
             {loading ? (
-                <div className="h-64 flex items-center justify-center">
-                    <Loader2 className="animate-spin text-alpine-glacier" size={32} />
-                </div>
+                <AdminCardGridSkeleton count={6} className="grid grid-cols-1 lg:grid-cols-2 gap-4" />
             ) : reviews.length === 0 ? (
                 <div className="py-20 text-center border border-dashed border-white/10 rounded-3xl bg-white/[0.02]">
                     <Star className="mx-auto text-white/20 mb-4" size={48} />

@@ -3,12 +3,13 @@ import User from '../models/User.js';
 import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinary.js';
 import { sendEventRegistrationEmail, sendEmail } from '../services/email.js';
 import { notify } from '../services/notify.js';
+import { enqueue } from '../services/jobQueue.js';
 
 // GET /api/events
 export const listEvents = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = Math.min(parseInt(req.query.limit) || 10, 50);
         const skip = (page - 1) * limit;
 
         const [events, total] = await Promise.all([
@@ -151,9 +152,9 @@ export const registerForEvent = async (req, res, next) => {
             link: `/events/${event._id}`
         });
 
-        // Send confirmation email (non-blocking)
-        sendEventRegistrationEmail(req.user.email, req.user.name, event.title, event.date, event.location)
-            .catch(err => console.error('Email send failed:', err));
+        // Confirmation email goes out in the background; the response doesn't wait on the mail provider
+        const { email, name } = req.user;
+        enqueue(`registration-email:${event._id}`, () => sendEventRegistrationEmail(email, name, event.title, event.date, event.location));
 
         res.json({ message: 'Registered successfully.', event });
     } catch (error) {
@@ -234,13 +235,20 @@ export const messageParticipants = async (req, res, next) => {
         let emailed = 0;
         if (channels.email !== false) {
             const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-            const results = await Promise.allSettled(event.participants.map(p => sendEmail(
-                p.email,
-                `${event.title} — ${subject.trim()}`,
-                `Hi ${p.name},\n\n${message.trim()}\n\n— Mountaineer Mallu`,
-                `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;color:#08284C"><p>Hi ${escapeHtml(p.name)},</p><p style="white-space:pre-wrap;line-height:1.6">${escapeHtml(message.trim())}</p><p style="color:#4A6A8C">— Mountaineer Mallu · ${escapeHtml(event.title)}</p></div>`
-            )));
-            emailed = results.filter(r => r.status === 'fulfilled').length;
+            // One background job per recipient: the admin gets an answer at once, and a failed address is retried on its own
+            for (const p of event.participants) {
+                if (!p.email) continue;
+                enqueue(`event-message:${event._id}`, async () => {
+                    const ok = await sendEmail(
+                        p.email,
+                        `${event.title} — ${subject.trim()}`,
+                        `Hi ${p.name},\n\n${message.trim()}\n\n— Mountaineer Mallu`,
+                        `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;color:#08284C"><p>Hi ${escapeHtml(p.name)},</p><p style="white-space:pre-wrap;line-height:1.6">${escapeHtml(message.trim())}</p><p style="color:#4A6A8C">— Mountaineer Mallu · ${escapeHtml(event.title)}</p></div>`
+                    );
+                    if (ok === false) throw new Error('send failed');
+                });
+                emailed++;
+            }
         }
 
         res.json({ message: `Sent to ${event.participants.length} participant${event.participants.length === 1 ? '' : 's'}.`, recipients: event.participants.length, emailed });

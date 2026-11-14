@@ -34,10 +34,25 @@ const CACHE_TTL_MS = 60_000;
 const responseCache = new Map<string, { at: number; promise: Promise<unknown> }>();
 export const clearResponseCache = () => responseCache.clear();
 
+// Identical GETs already in flight share one network request (several components mounting at once
+// all asking for /auth/me, /settings or /notifications), and each caller still gets its own copy
+const inFlight = new Map<string, Promise<unknown>>();
+const shared = <T>(endpoint: string, options: ApiOptions): Promise<T> => {
+    const key = endpoint + JSON.stringify(options.params || {});
+    let promise = inFlight.get(key) as Promise<T> | undefined;
+    if (!promise) {
+        promise = requestNetwork<T>(endpoint, options);
+        inFlight.set(key, promise);
+        promise.then(() => inFlight.delete(key), () => inFlight.delete(key));
+    }
+    return promise.then(d => structuredClone(d));
+};
+
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const method = (options.method || 'GET').toUpperCase();
-    if (method !== 'GET') { responseCache.clear(); return requestNetwork<T>(endpoint, options); }
-    if (!CACHEABLE.test(endpoint) || options.retries || options.signal) return requestNetwork<T>(endpoint, options);
+    if (method !== 'GET') { responseCache.clear(); inFlight.clear(); return requestNetwork<T>(endpoint, options); }
+    if (options.retries || options.signal) return requestNetwork<T>(endpoint, options);
+    if (!CACHEABLE.test(endpoint)) return shared<T>(endpoint, options);
 
     const key = endpoint + JSON.stringify(options.params || {});
     const hit = responseCache.get(key);

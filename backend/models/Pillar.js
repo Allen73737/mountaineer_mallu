@@ -29,5 +29,7 @@ const pillarSchema = new mongoose.Schema({
     timestamps: true
 });
 
+pillarSchema.index({ order: 1, createdAt: 1 });
+
 const Pillar = mongoose.model('Pillar', pillarSchema);
 export default Pillar;

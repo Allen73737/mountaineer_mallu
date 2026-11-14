@@ -71,7 +71,7 @@ export const getGroup = async (req, res, next) => {
         if (!group) return res.status(404).json({ error: 'Group not found.' });
 
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = Math.min(parseInt(req.query.limit) || 10, 50);
         const skip = (page - 1) * limit;
 
         const [posts, totalPosts] = await Promise.all([

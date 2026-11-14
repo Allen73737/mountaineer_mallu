@@ -251,6 +251,13 @@ html[lang="ml"] :is(.text-\[9px\], .text-\[9\.5px\], .text-\[10px\], .text-\[10\
                     GLASSMORPHISM UTILITIES
    ═══════════════════════════════════════════════════════════════ */
 @layer utilities {
+  /* Long lists (community feed, gallery grid): the browser skips layout and paint for items far
+     off-screen — most of what list virtualisation buys, without unmounting anything */
+  .list-item-contain {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 320px;
+  }
+
   .section-contain {
     content-visibility: auto;
     /* `auto` remembers the real rendered height, so the scrollbar doesn't jump */

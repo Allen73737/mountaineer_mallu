@@ -172,7 +172,7 @@ export const AIChatAssistant = () => {
 
             const res = await fetch(`${API_URL}/api/ai/chat`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
                 credentials: 'include',
                 body: JSON.stringify({
                     messages: chatHistory,

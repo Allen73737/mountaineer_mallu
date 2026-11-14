@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { fetchWithTimeout } from '../utils/http.js';
 dotenv.config();
 
 // ─── CACHE CONFIGURATION ───────────────────────────────────────────
@@ -154,7 +155,7 @@ export const getInstagramFeed = async (req, res) => {
         }
 
         // Fetch from Instagram Basic Display API or Graph API
-        const response = await fetch(`https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${token}&limit=6`);
+        const response = await fetchWithTimeout(`https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${token}&limit=6`);
         const result = await response.json();
 
         if (result.error) {
@@ -206,7 +207,7 @@ export const getYouTubeFeed = async (req, res) => {
         }
 
         // Fetch from YouTube Data API v3
-        const response = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=6`);
+        const response = await fetchWithTimeout(`https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=6`);
         const result = await response.json();
 
         if (result.error) {

@@ -28,7 +28,7 @@ export const MessageParticipants: React.FC<{ event: any | null; onClose: () => v
         setSending(true);
         try {
             const res = await eventAdminApi.message(event._id, { subject, message, channels: { email, notification } });
-            toast.success(res.message, { description: email ? `${res.emailed} of ${res.recipients} emails delivered to the mail server.` : undefined });
+            toast.success(res.message, { description: email ? `${res.emailed} of ${res.recipients} emails queued — they go out in the background.` : undefined });
             onClose();
         } catch (e: any) {
             toast.error(e.message || 'Could not send the message.');

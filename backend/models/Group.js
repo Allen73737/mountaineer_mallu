@@ -37,5 +37,8 @@ const groupSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// "My groups" lookup
+groupSchema.index({ members: 1 });
+
 const Group = mongoose.model('Group', groupSchema);
 export default Group;

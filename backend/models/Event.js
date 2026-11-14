@@ -82,6 +82,9 @@ eventSchema.set('toObject', { virtuals: true });
 
 eventSchema.index({ date: 1 });
 eventSchema.index({ date: 1, createdAt: -1 });
+// Default listing order, and "my expeditions" (events a user is registered on)
+eventSchema.index({ createdAt: -1 });
+eventSchema.index({ participants: 1 });
 
 const Event = mongoose.model('Event', eventSchema);
 export default Event;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, Edit2, Trash2, Save, X, Image as ImageIcon, Quote, UploadCloud } from 'lucide-react';
 import { Loader2 } from '../../components/ui/BrandLoader';
+import { AdminCardGridSkeleton } from '../../components/ui/Skeleton';
 import { pillarsApi } from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { LanguageInput } from '../../components/ui/LanguageInput';
@@ -133,9 +134,7 @@ export const PillarsManagement = () => {
                 {/* Left: Grid View */}
                 <div className="w-2/3 space-y-4">
                     {loading ? (
-                        <div className="h-64 flex items-center justify-center">
-                            <Loader2 className="animate-spin text-alpine-glacier" size={32} />
-                        </div>
+                        <AdminCardGridSkeleton count={4} className="grid grid-cols-2 gap-4" />
                     ) : (
                         <div className="grid grid-cols-2 gap-4">
                             {pillars.map((pillar) => (

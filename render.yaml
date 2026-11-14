@@ -18,6 +18,20 @@ services:
       # One worker keeps memory low on small plans; raise it on bigger ones
       - key: WEB_CONCURRENCY
         value: 1
+      # Shared cache, rate limits and realtime rooms across workers/instances. Required before scaling out
+      # (Render → Scaling → instance count; Render load-balances between them). Use a Frankfurt Redis.
+      - key: REDIS_URL
+        sync: false
+      # Keep MongoDB Atlas in the same region as this service (AWS eu-central-1 / Frankfurt):
+      # every request makes several DB round trips, so cross-region latency multiplies.
+      # Optional: OpenTelemetry traces for slow requests (see backend/tracing.js)
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        sync: false
+      # Optional: CDN origin for build assets (match the frontend's VITE_CDN_URL), added to the CSP
+      - key: CDN_URL
+        sync: false
       - key: EVENT_TIMEZONE
         value: Europe/Berlin
       - key: JWT_SECRET
@@ -56,3 +70,5 @@ services:
         sync: false
       - key: VITE_ANALYTICS_DOMAIN
         sync: false
+      - key: VITE_CDN_URL
+        sync: false          # optional, e.g. https://cdn.mountaineermallu.com (also set CDN_URL)

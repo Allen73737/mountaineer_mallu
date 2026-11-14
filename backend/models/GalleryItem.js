@@ -47,6 +47,8 @@ const galleryItemSchema = new mongoose.Schema({
 });
 
 galleryItemSchema.index({ status: 1, createdAt: -1 });
+// "My uploads" and passport counts
+galleryItemSchema.index({ uploadedBy: 1, createdAt: -1 });
 
 const GalleryItem = mongoose.model('GalleryItem', galleryItemSchema);
 export default GalleryItem;

@@ -189,5 +189,10 @@ if (process.env.ENCRYPTION_KEY) {
     console.warn("⚠️ ENCRYPTION_KEY is missing. Data-at-rest encryption is disabled. Please add it to your .env file.");
 }
 
+// Admin list (role filter), newest-first user listing / signup trend, expedition reminder lookups
+userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ 'expeditionReminders.eventId': 1 });
+
 const User = mongoose.model('User', userSchema);
 export default User;

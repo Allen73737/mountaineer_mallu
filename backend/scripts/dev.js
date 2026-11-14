@@ -17,7 +17,7 @@ let startedAt = 0;
 
 const start = () => {
     startedAt = Date.now();
-    child = spawn(process.execPath, ['server.js'], { cwd: root, stdio: 'inherit', env: process.env });
+    child = spawn(process.execPath, ['--import', './tracing.js', 'server.js'], { cwd: root, stdio: 'inherit', env: process.env });
     child.on('exit', (code, signal) => {
         child = null;
         if (restarting) return;

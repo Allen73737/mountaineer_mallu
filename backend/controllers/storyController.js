@@ -39,7 +39,7 @@ const announceStatus = (story, status, actor) => {
 export const listStories = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
+        const limit = Math.min(parseInt(req.query.limit) || 12, 50);
         const skip = (page - 1) * limit;
 
         const query = {};
@@ -67,7 +67,7 @@ export const listStories = async (req, res, next) => {
 // GET /api/stories/user/me
 export const getMyStories = async (req, res, next) => {
     try {
-        const stories = await Story.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+        const stories = await Story.find({ createdBy: req.user._id }).sort({ createdAt: -1 }).limit(200).lean();
         res.json({ stories });
     } catch (error) {
         next(error);

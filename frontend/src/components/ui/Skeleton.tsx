@@ -325,6 +325,22 @@ export const TableRowSkeleton = () => (
     </tr>
 );
 
+/** Admin management cards (merchandise, pillars, reviews): thumbnail, title and two lines each */
+export const AdminCardGridSkeleton: React.FC<{ count?: number; className?: string }> = ({ count = 4, className = 'grid grid-cols-1 md:grid-cols-2 gap-4' }) => (
+    <div className={className} aria-busy="true" aria-label="Loading">
+        {Array.from({ length: count }, (_, i) => (
+            <div key={i} className="skeleton-delay p-4 rounded-2xl border border-white/10 bg-white/[0.03] flex gap-4">
+                <Skeleton className="w-20 h-20 shrink-0 rounded-xl" />
+                <div className="flex-1 min-w-0 pt-1">
+                    <Skeleton className="h-5 w-3/4 mb-3 rounded-lg" />
+                    <Skeleton className="h-3.5 w-full mb-2 rounded-md" />
+                    <Skeleton className="h-3.5 w-2/3 rounded-md" />
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 /** Metric / Stat Card Skeleton */
 export const StatSkeleton = () => (
     <div className="skeleton-delay bg-white/40 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/10 shadow-md">

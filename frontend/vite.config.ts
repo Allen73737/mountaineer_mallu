@@ -34,11 +34,24 @@ const moduleGraph = ({ getModuleInfo, getModuleIds }: ModuleGraph) => {
   return graph;
 };
 
+// Optional CDN for the hashed build output (JS, CSS, fonts, images): set VITE_CDN_URL at build time,
+// e.g. https://cdn.mountaineermallu.com, and upload dist/assets there (or point a pull-zone CDN such
+// as Cloudflare / CloudFront / Bunny at the site). HTML stays on the origin so deploys take effect at once.
+const CDN_URL = (process.env.VITE_CDN_URL || '').replace(/\/$/, '');
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
   ],
+  experimental: {
+    renderBuiltUrl(filename, { hostType }) {
+      if (!CDN_URL) return undefined;
+      // Web workers must be same-origin, so the terrain worker keeps loading from the site itself
+      if (hostType === 'js' && /worker/i.test(filename)) return { runtime: `location.origin + ${JSON.stringify('/' + filename)}` };
+      return `${CDN_URL}/${filename}`;
+    },
+  },
   server: {
     host: true,
     port: 5174,
@@ -77,7 +90,6 @@ export default defineConfig({
             if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('ogl')) return 'vendor-ogl';
             if (id.includes('lenis')) return 'vendor-lenis';
-            if (id.includes('swiper')) return 'vendor-swiper';
             if (id.includes('simple-keyboard') || id.includes('indic-transliterator')) return 'vendor-keyboard';
             if (id.includes('socket.io-client')) return 'vendor-socket';
             if (id.includes('i18next') || id.includes('zustand') || id.includes('sonner')) return 'vendor-utils';

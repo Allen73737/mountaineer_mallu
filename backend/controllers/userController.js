@@ -101,7 +101,7 @@ export const uploadAvatar = async (req, res, next) => {
 export const listUsers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
         const search = req.query.search || '';
         const skip = (page - 1) * limit;
 

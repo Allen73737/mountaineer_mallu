@@ -3,6 +3,10 @@ import User from '../models/User.js';
 import Event from '../models/Event.js';
 import { generateCampaignContent } from '../services/aiInsightsService.js';
 import { sendEmail } from '../services/email.js';
+import { enqueue } from '../services/jobQueue.js';
+
+// Emails in flight at once per campaign: fast, but well inside the mail provider's rate limit
+const CAMPAIGN_BATCH = 5;
 
 // POST /api/admin/campaigns/generate — AI-generate a campaign from a prompt
 export const generateCampaign = async (req, res, next) => {
@@ -65,6 +69,7 @@ export const listCampaigns = async (req, res, next) => {
     try {
         const campaigns = await Campaign.find()
             .sort({ createdAt: -1 })
+            .limit(100)
             .populate('createdBy', 'name email')
             .lean();
         res.json({ campaigns });
@@ -98,10 +103,7 @@ export const approveCampaign = async (req, res, next) => {
         const SITE_URL = process.env.CLIENT_URL || 'http://localhost:5173';
         const ctaFullUrl = `${SITE_URL}${campaign.ctaUrl || '/'}`;
 
-        let sentCount = 0;
-        for (const recipient of recipients) {
-            try {
-                const personalizedHtml = `
+        const campaignHtml = `
                     <div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;background:#0D1A2B;border-radius:16px;overflow:hidden;border:1px solid rgba(100,190,255,0.12);">
                         <div style="height:3px;background:linear-gradient(90deg,transparent,#64BEFF,#E2955A,transparent);"></div>
                         <div style="padding:40px;text-align:center;">
@@ -117,19 +119,28 @@ export const approveCampaign = async (req, res, next) => {
                             <p style="font-size:11px;color:rgba(240,248,255,0.25);">© ${new Date().getFullYear()} Mountaineer Mallu · European Alps</p>
                         </div>
                     </div>`;
-                await sendEmail(recipient.email, campaign.subject, '', personalizedHtml);
-                sentCount++;
-            } catch (emailErr) {
-                console.error(`[Campaign] Failed to send to ${recipient.email}:`, emailErr.message);
+
+        // Sending happens in the background: the admin sees "Sending..." at once instead of waiting
+        // (and possibly timing out) while every email goes out. The campaign flips to "sent" when done.
+        const campaignId = campaign._id;
+        const subject = campaign.subject;
+        enqueue(`campaign:${campaignId}`, async () => {
+            try {
+                let sentCount = 0;
+                for (let i = 0; i < recipients.length; i += CAMPAIGN_BATCH) {
+                    const batch = recipients.slice(i, i + CAMPAIGN_BATCH);
+                    const results = await Promise.all(batch.map(r => sendEmail(r.email, subject, '', campaignHtml)));
+                    sentCount += results.filter(ok => ok !== false).length;
+                }
+                await Campaign.findByIdAndUpdate(campaignId, { status: 'sent', recipientCount: sentCount, sentAt: new Date() });
+                console.log(`[Campaign] ${campaignId} sent to ${sentCount}/${recipients.length} recipients.`);
+            } catch (err) {
+                await Campaign.findByIdAndUpdate(campaignId, { status: 'failed' }).catch(() => {});
+                throw err;
             }
-        }
+        }, { retries: 0 });
 
-        campaign.status = 'sent';
-        campaign.recipientCount = sentCount;
-        campaign.sentAt = new Date();
-        await campaign.save();
-
-        res.json({ message: `Campaign sent to ${sentCount} recipients.`, campaign });
+        res.json({ message: `Sending campaign to ${recipients.length} recipients.`, campaign });
     } catch (error) {
         // Revert status on failure
         try {

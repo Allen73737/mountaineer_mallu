@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from 'cloudinary';
-import streamifier from 'streamifier';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -19,6 +18,8 @@ export const uploadToCloudinary = (buffer, options = {}) => {
         const uploadOptions = {
             folder: options.folder || 'mountaineer-mallu',
             resource_type: options.resource_type || 'auto',
+            // Give up on a stalled upload instead of holding the request open (large videos still fit)
+            timeout: 120000,
             ...options
         };
 
@@ -47,7 +48,8 @@ export const uploadToCloudinary = (buffer, options = {}) => {
             }
         );
 
-        streamifier.createReadStream(buffer).pipe(uploadStream);
+        // The whole file is already in memory: write it straight into the upload stream
+        uploadStream.end(buffer);
     });
 };
 

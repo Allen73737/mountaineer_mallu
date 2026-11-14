@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Search, Trash2, Shield } from 'lucide-react';
 import { Loader2 } from '../../components/ui/BrandLoader';
@@ -17,16 +17,27 @@ export const UsersManagement = () => {
     const { showToast, ToastComponent } = useToast();
     const { requestAction } = useAdminAction();
 
-    useEffect(() => { fetchUsers(); }, [page, search]);
+    // Query the server once typing pauses, not on every keystroke
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+        return () => clearTimeout(t);
+    }, [search]);
 
+    useEffect(() => { fetchUsers(); }, [page, debouncedSearch]);
+
+    const requestSeq = useRef(0);
     const fetchUsers = async () => {
+        const seq = ++requestSeq.current;
         setLoading(true);
         try {
-            const data = await usersApi.list(page, 20, search);
+            const data = await usersApi.list(page, 20, debouncedSearch);
+            // A slower answer for an older search must not overwrite the latest one
+            if (seq !== requestSeq.current) return;
             setUsers(data.users);
             setPagination(data.pagination);
         } catch (err) { console.error(err); }
-        finally { setLoading(false); }
+        finally { if (seq === requestSeq.current) setLoading(false); }
     };
 
     const handleDelete = (user: any) => {

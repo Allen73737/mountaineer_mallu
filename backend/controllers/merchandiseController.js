@@ -4,7 +4,7 @@ import { uploadToCloudinary } from '../services/cloudinary.js';
 // Get all merchandise
 export const getMerchandises = async (req, res) => {
     try {
-        const items = await Merchandise.find().sort({ order: 1, createdAt: -1 });
+        const items = await Merchandise.find().sort({ order: 1, createdAt: -1 }).limit(200).lean();
         res.json(items);
     } catch (error) {
         console.error('Error fetching merchandise:', error);

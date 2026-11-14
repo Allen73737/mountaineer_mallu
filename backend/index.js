@@ -25,6 +25,9 @@ import { randomUUID } from 'crypto';
 import morgan from 'morgan';
 import { createClient } from 'redis';
 import RedisStore from 'rate-limit-redis';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { drainJobs, jobStats } from './services/jobQueue.js';
+import vitalsRoutes from './routes/vitals.js';
 import logger from './utils/logger.js';
 import { verifyCsrf } from './middleware/csrf.js';
 import { sanitizeInputs } from './middleware/sanitize.js';
@@ -100,6 +103,26 @@ app.use((req, res, next) => {
     next();
 });
 
+// Request timing: a Server-Timing header (visible in the browser's network panel) and a warning for
+// slow requests, so a sluggish endpoint is noticed even without OpenTelemetry (see tracing.js)
+const SLOW_REQUEST_MS = parseInt(process.env.SLOW_REQUEST_MS || '1000', 10);
+app.use((req, res, next) => {
+    const start = process.hrtime.bigint();
+    const elapsed = () => Number(process.hrtime.bigint() - start) / 1e6;
+    const writeHead = res.writeHead;
+    res.writeHead = function (...args) {
+        if (!res.headersSent) res.setHeader('Server-Timing', `app;dur=${elapsed().toFixed(1)}`);
+        return writeHead.apply(this, args);
+    };
+    res.on('finish', () => {
+        const ms = elapsed();
+        if (ms > SLOW_REQUEST_MS && !req.headers.accept?.includes('text/event-stream')) {
+            logger.warn(`[Slow] ${req.method} ${req.originalUrl} ${res.statusCode} took ${ms.toFixed(0)}ms (request ${req.id})`);
+        }
+    });
+    next();
+});
+
 // Setup Morgan to use Winston logger
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms', {
     stream: { write: (message) => logger.info(message.trim()) }
@@ -127,9 +150,22 @@ if (process.env.REDIS_URL) {
             }
             isRedisConnected = false;
         });
-        redisClient.connect().catch(() => { 
-            isRedisConnected = false; 
+        redisClient.connect().catch(() => {
+            isRedisConnected = false;
         });
+
+        // Share Socket.IO rooms across every app instance / cluster worker behind the load balancer:
+        // without it, a notification emitted on one instance never reaches a user connected to another
+        const pubClient = redisClient.duplicate();
+        const subClient = redisClient.duplicate();
+        pubClient.on('error', () => {});
+        subClient.on('error', () => {});
+        Promise.all([pubClient.connect(), subClient.connect()])
+            .then(() => {
+                io.adapter(createAdapter(pubClient, subClient));
+                logger.info('✅ Socket.IO Redis adapter attached (multi-instance realtime)');
+            })
+            .catch(err => logger.warn(`Socket.IO Redis adapter unavailable, realtime stays per-instance: ${err.message}`));
     } catch {
         isRedisConnected = false;
     }
@@ -142,6 +178,9 @@ const createRateLimiter = (options) => {
     return rateLimit({ ...options, store });
 };
 
+// Build assets may come from a CDN (frontend VITE_CDN_URL); set CDN_URL to the same origin here
+const CDN_ORIGIN = (() => { try { return process.env.CDN_URL ? [new URL(process.env.CDN_URL).origin] : []; } catch { return []; } })();
+
 // Helmet with strict CSP (permitting trusted CDNs, Unsplash imagery, and Open-Meteo)
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -149,10 +188,11 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             // plausible.io: optional cookie-free analytics (only loaded when VITE_ANALYTICS_DOMAIN is set)
-            scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com", "https://plausible.io"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            scriptSrc: ["'self'", ...CDN_ORIGIN, "https://accounts.google.com", "https://apis.google.com", "https://plausible.io"],
+            styleSrc: ["'self'", ...CDN_ORIGIN, "'unsafe-inline'", "https://accounts.google.com", "https://fonts.googleapis.com"],
             imgSrc: [
                 "'self'", 
+                ...CDN_ORIGIN,
                 "data:", 
                 "blob:", 
                 "https://res.cloudinary.com", 
@@ -160,7 +200,7 @@ app.use(helmet({
                 "https://*.unsplash.com", 
                 "https://*.googleusercontent.com"
             ],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            fontSrc: ["'self'", ...CDN_ORIGIN, "https://fonts.gstatic.com"],
             connectSrc: [
                 "'self'", 
                 ...CLIENT_URL, 
@@ -250,8 +290,15 @@ app.use(hpp());
 // CSRF Protection (Origin Header Verification)
 app.use(verifyCsrf);
 
-// Enable Gzip/Brotli HTTP compression for ultra-fast payload delivery
-app.use(compression());
+// Brotli (preferred, quality 4) or Gzip, negotiated from Accept-Encoding. Server-sent events are
+// excluded: the compressor buffers output, which would hold back AI chat tokens until the reply ends.
+app.use(compression({
+    filter: (req, res) => {
+        if (req.headers.accept?.includes('text/event-stream')) return false;
+        if (String(res.getHeader('Content-Type') || '').includes('text/event-stream')) return false;
+        return compression.filter(req, res);
+    },
+}));
 
 // Cache Control for public GET endpoints (Instant response optimization)
 app.use((req, res, next) => {
@@ -307,7 +354,8 @@ const handleHealthCheck = (req, res) => {
             memoryRssMB: (mem.rss / 1024 / 1024).toFixed(1),
             heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(1)
         },
-        sockets: io ? io.engine.clientsCount : 0
+        sockets: io ? io.engine.clientsCount : 0,
+        jobs: jobStats()
     };
 
     const httpCode = isDbConnected ? 200 : 503;
@@ -336,6 +384,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/vitals', vitalsRoutes);
 // Crawler-facing: sitemap, robots-friendly share pages with Open Graph tags
 app.use('/', seoRoutes);
 
@@ -449,6 +498,9 @@ const gracefulShutdown = async (signal) => {
     httpServer.close(async () => {
         console.log(`  ✓ HTTP server stopped accepting connections.`);
         try {
+            // Let queued emails finish before the process goes away (bounded so shutdown stays under the hard kill)
+            await drainJobs(6000);
+            console.log(`  ✓ Background jobs drained.`);
             if (io) {
                 io.close();
                 console.log(`  ✓ Socket.io connections terminated.`);

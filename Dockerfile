@@ -15,7 +15,8 @@ COPY frontend/ ./
 ARG VITE_GOOGLE_CLIENT_ID=""
 ARG VITE_SENTRY_DSN=""
 ARG VITE_ANALYTICS_DOMAIN=""
-ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_ANALYTICS_DOMAIN=$VITE_ANALYTICS_DOMAIN
+ARG VITE_CDN_URL=""
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_ANALYTICS_DOMAIN=$VITE_ANALYTICS_DOMAIN VITE_CDN_URL=$VITE_CDN_URL
 RUN npm run build
 
 # ── Stage 2: Install Production Backend Dependencies ─────────
@@ -55,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 EXPOSE 5000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "server.js"]
+CMD ["node", "--import", "./tracing.js", "server.js"]

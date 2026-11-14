@@ -6,7 +6,7 @@ import { uploadToCloudinary, uploadUrlToCloudinary } from '../services/cloudinar
 export const listApproved = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 60);
         const skip = (page - 1) * limit;
 
         const [items, total] = await Promise.all([
@@ -28,7 +28,9 @@ export const listPending = async (req, res, next) => {
     try {
         const items = await GalleryItem.find({ status: 'pending' })
             .sort({ createdAt: -1 })
-            .populate('uploadedBy', 'name email avatar');
+            .limit(200)
+            .populate('uploadedBy', 'name email avatar')
+            .lean();
         res.json({ items });
     } catch (error) {
         next(error);
@@ -39,7 +41,7 @@ export const listPending = async (req, res, next) => {
 export const listAll = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
         const skip = (page - 1) * limit;
         const status = req.query.status;
 
@@ -131,7 +133,7 @@ export const updateMedia = async (req, res, next) => {
 // GET /api/gallery/user/me
 export const getMyMedia = async (req, res, next) => {
     try {
-        const items = await GalleryItem.find({ uploadedBy: req.user._id }).sort({ createdAt: -1 });
+        const items = await GalleryItem.find({ uploadedBy: req.user._id }).sort({ createdAt: -1 }).limit(200).lean();
         res.json({ items });
     } catch (error) {
         next(error);

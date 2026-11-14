@@ -1,9 +1,21 @@
 import { Resend } from 'resend';
+import { withTimeout } from '../utils/http.js';
 
 let resend = null;
 const getResend = () => {
     if (!resend && process.env.RESEND_API_KEY) {
-        resend = new Resend(process.env.RESEND_API_KEY);
+        const sdk = new Resend(process.env.RESEND_API_KEY);
+        // Every send is bounded (a stalled mail API must not pin a request or a job slot), and an API
+        // error — which the SDK returns rather than throws — becomes a real failure callers can count
+        resend = {
+            emails: {
+                send: async (payload) => {
+                    const { data, error } = await withTimeout(sdk.emails.send(payload), 15000, 'Resend');
+                    if (error) throw new Error(error.message || 'Resend rejected the email');
+                    return data;
+                },
+            },
+        };
     }
     return resend;
 };
@@ -524,7 +536,7 @@ export const sendEmail = async (toOrObj, subject, text, html) => {
         htm = html;
     }
     const client = getResend();
-    if (!client) return console.log(`[Email] Resend not configured. Skipping email to ${to}.`);
+    if (!client) { console.log(`[Email] Resend not configured. Skipping email to ${to}.`); return null; }
     try {
         const fallbackContent = `
             ${heroBanner('📬', sub, 'A message from Mountaineer Mallu.')}
@@ -538,6 +550,7 @@ export const sendEmail = async (toOrObj, subject, text, html) => {
             html: htm || shell(fallbackContent, sub)
         });
         console.log(`[Email] Sent "${sub}" to ${to}`);
-    } catch (error) { console.error(`[Email] Failed to send "${sub}" to ${to}:`, error); }
+        return true;
+    } catch (error) { console.error(`[Email] Failed to send "${sub}" to ${to}:`, error.message); return false; }
 };
 

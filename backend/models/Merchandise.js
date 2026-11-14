@@ -49,5 +49,7 @@ const merchandiseSchema = new mongoose.Schema({
     timestamps: true
 });
 
+merchandiseSchema.index({ order: 1, createdAt: -1 });
+
 const Merchandise = mongoose.model('Merchandise', merchandiseSchema);
 export default Merchandise;

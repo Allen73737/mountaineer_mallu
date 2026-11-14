@@ -109,11 +109,19 @@ export const GalleryPage = () => {
     const handleLike = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         if (!isLoggedIn) return showToast('Please log in to like media', 'error');
+        const setLikes = (likes: (current: string[]) => string[]) => {
+            setMediaItems(items => items.map(item => item._id === id ? { ...item, likes: likes(item.likes || []) } : item));
+            setSelectedMedia((m: any) => (m?._id === id ? { ...m, likes: likes(m.likes || []) } : m));
+        };
+        // Flip the heart at once; the server's answer then becomes the source of truth
+        const previous = mediaItems.find(item => item._id === id)?.likes || [];
+        const uid = user?.id;
+        if (uid) setLikes(current => (current.includes(uid) ? current.filter(l => l !== uid) : [...current, uid]));
         try {
             const res = await galleryApi.toggleLike(id);
-            setMediaItems(items => items.map(item => item._id === id ? { ...item, likes: res.likes } : item));
-            if (selectedMedia?._id === id) setSelectedMedia({ ...selectedMedia, likes: res.likes });
+            setLikes(() => res.likes);
         } catch (err: any) {
+            setLikes(() => previous);
             showToast(err.message || 'Action failed', 'error');
         }
     };
@@ -239,7 +247,7 @@ export const GalleryPage = () => {
                                     hidden: { opacity: 0, scale: 0.9, y: 50 },
                                     visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
                                 }}
-                                className={`relative rounded-3xl overflow-hidden cursor-pointer group ${getSpan(i)}`}
+                                className={`relative rounded-3xl overflow-hidden cursor-pointer group list-item-contain ${getSpan(i)}`}
                                 data-cursor={media.type === 'video' ? 'play' : 'view'}
                                 onClick={() => setSelectedMedia(media)}
                             >

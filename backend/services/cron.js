@@ -26,30 +26,46 @@ export const sendExpeditionReminders = async (now = new Date()) => {
             return start && start >= from && start < to;
         });
 
-    let sent = 0;
+    if (!events.length) return { events: 0, emails: 0 };
+
+    // Notifications for every event in parallel
+    await Promise.all(events.map(event => notify((event.participants || []).map(String), {
+        type: 'system',
+        title: `Tomorrow: ${event.title}`,
+        body: `${event.date}${event.time ? ` · ${event.time}` : ''} · ${event.location}. Check your gear list and the weather tonight.`,
+        link: `/events/${event._id}`,
+    })));
+
+    // One query for the people on all of tomorrow's events, instead of one per event
+    const eventIds = events.map(e => e._id);
+    const users = await User.find({
+        $or: [
+            { _id: { $in: events.flatMap(e => e.participants || []) } },
+            { expeditionReminders: { $elemMatch: { eventId: { $in: eventIds }, enabled: true } } },
+        ],
+    }).select('name email expeditionReminders').lean();
+
+    const jobs = [];
     for (const event of events) {
-        const participantIds = (event.participants || []).map(String);
-        await notify(participantIds, {
-            type: 'system',
-            title: `Tomorrow: ${event.title}`,
-            body: `${event.date}${event.time ? ` · ${event.time}` : ''} · ${event.location}. Check your gear list and the weather tonight.`,
-            link: `/events/${event._id}`,
-        });
-
-        const users = await User.find({
-            $or: [{ _id: { $in: participantIds } }, { expeditionReminders: { $elemMatch: { eventId: event._id, enabled: true } } }],
-        }).select('name email expeditionReminders').lean();
-
+        const id = String(event._id);
+        const participants = new Set((event.participants || []).map(String));
         for (const user of users) {
-            const pref = (user.expeditionReminders || []).find(r => String(r.eventId) === String(event._id));
-            if (pref && pref.enabled === false) continue;
-            try {
-                await sendEventReminderEmail(user.email, user.name, event.title, event.date, event.location);
-                sent++;
-            } catch (err) {
-                console.error(`Failed to send reminder for ${event.title}:`, err.message);
-            }
+            const pref = (user.expeditionReminders || []).find(r => String(r.eventId) === id);
+            const going = participants.has(String(user._id)) || pref?.enabled === true;
+            if (!going || (pref && pref.enabled === false)) continue;
+            jobs.push({ user, event });
         }
+    }
+
+    // Send in small parallel batches rather than strictly one at a time
+    let sent = 0;
+    for (let i = 0; i < jobs.length; i += 5) {
+        const results = await Promise.allSettled(jobs.slice(i, i + 5).map(({ user, event }) =>
+            sendEventReminderEmail(user.email, user.name, event.title, event.date, event.location)));
+        results.forEach((r, k) => {
+            if (r.status === 'fulfilled') sent++;
+            else console.error(`Failed to send reminder for ${jobs[i + k].event.title}:`, r.reason?.message);
+        });
     }
     return { events: events.length, emails: sent };
 };
