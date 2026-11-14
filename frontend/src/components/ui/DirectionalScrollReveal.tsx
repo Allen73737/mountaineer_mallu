@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { useDeviceOptimization } from '../../lib/deviceOptimization';
 
 interface DirectionalScrollRevealProps {
     children: React.ReactNode;
@@ -24,6 +25,7 @@ export const DirectionalScrollReveal: React.FC<DirectionalScrollRevealProps> = (
 }) => {
     const ref = useRef<HTMLElement>(null);
     const reduce = useReducedMotion();
+    const { isMobile, isTouch } = useDeviceOptimization();
 
     const { scrollYProgress: enter } = useScroll({ target: ref, offset: ['start end', 'start 0.8'] });
     const { scrollYProgress: exit } = useScroll({ target: ref, offset: ['end 0.3', 'end start'] });
@@ -33,7 +35,9 @@ export const DirectionalScrollReveal: React.FC<DirectionalScrollRevealProps> = (
     const opacity = useTransform([enter, exit], ([e, x]: number[]) => Math.min(0.15 + e * 0.85, 1 - x * 0.55));
     // Cinematic iris: the section opens out of a letterboxed, rounded frame on the way in and
     // closes back into one on the way out. 'none' at rest so fixed/sticky children are never clipped.
+    // On mobile/touch devices, skip continuous clip-path recalculations to guarantee 60-120fps scrolling.
     const clipPath = useTransform([enter, exit], ([e, x]: number[]) => {
+        if (isMobile || isTouch) return 'none';
         const open = Math.min(e, 1 - x);
         if (open >= 1) return 'none';
         const t = 1 - open;
@@ -43,7 +47,13 @@ export const DirectionalScrollReveal: React.FC<DirectionalScrollRevealProps> = (
     return (
         <section ref={ref} id={id} className={`relative w-full section-contain ${className}`}>
             <motion.div
-                style={reduce ? undefined : { y, scale, opacity, clipPath, transformOrigin: '50% 0%' }}
+                style={reduce ? undefined : { 
+                    y, 
+                    scale: isMobile ? 1 : scale, 
+                    opacity, 
+                    clipPath: (isMobile || isTouch) ? undefined : clipPath, 
+                    transformOrigin: '50% 0%' 
+                }}
                 className="w-full"
             >
                 {children}

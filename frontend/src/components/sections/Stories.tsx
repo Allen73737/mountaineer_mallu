@@ -9,6 +9,7 @@ import { MorphLink } from '../ui/MorphLink';
 import { isPageScrolling } from '../../lib/isScrolling';
 // Unsplash photos sized to this screen (viewport × DPR) instead of a fixed 1600 px
 import { getHeroImageUrl } from '../../data/peaks';
+import { srcSetFor } from '../../lib/img';
 import { useLiveContent } from '../../lib/useLiveContent';
 import { storiesApi } from '../../lib/api';
 
@@ -184,6 +185,8 @@ export const Stories = () => {
                                 {/* Background Image */}
                                 <motion.img
                                     src={getHeroImageUrl(story.image)}
+                                    srcSet={srcSetFor(story.image)}
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                     alt={displayTitle}
                                     loading="lazy"
                                     decoding="async"

@@ -8,6 +8,7 @@ import { MorphLink } from '../ui/MorphLink';
 import { isPageScrolling } from '../../lib/isScrolling';
 // Unsplash photos sized to this screen (viewport × DPR) instead of a fixed 1920 px
 import { getHeroImageUrl } from '../../data/peaks';
+import { srcSetFor } from '../../lib/img';
 import { useLiveContent } from '../../lib/useLiveContent';
 import { eventsApi } from '../../lib/api';
 
@@ -163,6 +164,8 @@ export const Events = () => {
                         <img 
                             data-morph-img
                             src={getHeroImageUrl(activeEvent.img)} 
+                            srcSet={srcSetFor(activeEvent.img)}
+                            sizes="(max-width: 768px) 100vw, 50vw"
                             alt={activeEvent.title}
                             loading="lazy"
                             decoding="async"

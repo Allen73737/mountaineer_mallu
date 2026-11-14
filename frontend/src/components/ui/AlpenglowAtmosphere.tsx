@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, useSpring } from 'framer-motion';
+import { useDeviceOptimization } from '../../lib/deviceOptimization';
 
 interface AlpenglowAtmosphereProps {
     activeSectionKey: string;
@@ -28,11 +29,14 @@ const LIGHT_PALETTES: Record<string, LightPalette> = {
 };
 
 export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.memo(({ activeSectionKey, isBlueSection }) => {
-    // Use spring animation for smooth mouse tracking sunbeam
+    const { isMobile, isTouch, prefersReducedMotion } = useDeviceOptimization();
+
+    // Use spring animation for smooth mouse tracking sunbeam (desktop only)
     const springX = useSpring(0, { stiffness: 40, damping: 20 });
     const springY = useSpring(0, { stiffness: 40, damping: 20 });
 
     useEffect(() => {
+        if (isMobile || isTouch) return;
         let frameId: number;
         const handleMouseMove = (e: MouseEvent) => {
             cancelAnimationFrame(frameId);
@@ -46,15 +50,19 @@ export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.mem
             window.removeEventListener('mousemove', handleMouseMove);
             cancelAnimationFrame(frameId);
         };
-    }, [springX, springY]);
+    }, [springX, springY, isMobile, isTouch]);
 
     const palette = LIGHT_PALETTES[activeSectionKey] || (isBlueSection ? LIGHT_PALETTES.community : LIGHT_PALETTES.default);
+
+    const blur1 = isMobile ? 'blur-[40px]' : 'blur-[90px]';
+    const blur2 = isMobile ? 'blur-[45px]' : 'blur-[100px]';
+    const blur3 = isMobile ? 'blur-[40px]' : 'blur-[90px]';
 
     return (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
             {/* Luminous Alpine Silk Orbs */}
             <motion.div
-                animate={{
+                animate={prefersReducedMotion ? { backgroundColor: palette.orb1 } : {
                     backgroundColor: palette.orb1,
                     x: ['-5%', '15%', '-5%'],
                     y: ['-10%', '10%', '-10%'],
@@ -67,11 +75,11 @@ export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.mem
                     scale: { duration: 18, repeat: Infinity, ease: 'easeInOut' }
                 }}
                 style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
-                className="absolute top-[-10%] left-[-10%] w-[65vw] h-[65vw] rounded-full blur-[90px] opacity-60 mix-blend-multiply transform-gpu"
+                className={`absolute top-[-10%] left-[-10%] w-[65vw] h-[65vw] rounded-full ${blur1} opacity-60 mix-blend-multiply transform-gpu`}
             />
 
             <motion.div
-                animate={{
+                animate={prefersReducedMotion ? { backgroundColor: palette.orb2 } : {
                     backgroundColor: palette.orb2,
                     x: ['10%', '-15%', '10%'],
                     y: ['15%', '-10%', '15%'],
@@ -84,11 +92,11 @@ export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.mem
                     scale: { duration: 22, repeat: Infinity, ease: 'easeInOut' }
                 }}
                 style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
-                className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[100px] opacity-50 mix-blend-multiply transform-gpu"
+                className={`absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full ${blur2} opacity-50 mix-blend-multiply transform-gpu`}
             />
 
             <motion.div
-                animate={{
+                animate={prefersReducedMotion ? { backgroundColor: palette.orb3 } : {
                     backgroundColor: palette.orb3,
                     x: ['0%', '10%', '-10%', '0%'],
                     y: ['0%', '-15%', '10%', '0%'],
@@ -99,21 +107,23 @@ export const AlpenglowAtmosphere: React.FC<AlpenglowAtmosphereProps> = React.mem
                     y: { duration: 25, repeat: Infinity, ease: 'easeInOut' }
                 }}
                 style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
-                className="absolute top-[25%] left-[25%] w-[50vw] h-[50vw] rounded-full blur-[90px] opacity-45 mix-blend-normal transform-gpu"
+                className={`absolute top-[25%] left-[25%] w-[50vw] h-[50vw] rounded-full ${blur3} opacity-45 mix-blend-normal transform-gpu`}
             />
 
-            {/* Interactive Mouse Sunbeam Bloom */}
-            <motion.div
-                style={{
-                    x: springX,
-                    y: springY,
-                    translateX: '-50%',
-                    translateY: '-50%',
-                    transform: 'translate3d(0,0,0)',
-                    willChange: 'transform'
-                }}
-                className="absolute top-0 left-0 w-[35vw] h-[35vw] rounded-full bg-gradient-to-r from-[#FFF5F2]/80 via-[#FFE1D6]/60 to-transparent blur-[80px] opacity-70 mix-blend-normal pointer-events-none transform-gpu"
-            />
+            {/* Interactive Mouse Sunbeam Bloom (Desktop Only) */}
+            {!isMobile && !isTouch && (
+                <motion.div
+                    style={{
+                        x: springX,
+                        y: springY,
+                        translateX: '-50%',
+                        translateY: '-50%',
+                        transform: 'translate3d(0,0,0)',
+                        willChange: 'transform'
+                    }}
+                    className="absolute top-0 left-0 w-[35vw] h-[35vw] rounded-full bg-gradient-to-r from-[#FFF5F2]/80 via-[#FFE1D6]/60 to-transparent blur-[80px] opacity-70 mix-blend-normal pointer-events-none transform-gpu"
+                />
+            )}
 
             {/* Swiss Geometric Technical Grid Texture */}
             <div 

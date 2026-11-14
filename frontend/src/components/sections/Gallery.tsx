@@ -12,6 +12,7 @@ import { Magnetic } from '../ui/Magnetic';
 import { LineReveal } from '../ui/LineReveal';
 import { useLiveContent } from '../../lib/useLiveContent';
 import { galleryApi } from '../../lib/api';
+import { srcSetFor } from '../../lib/img';
 
 // Sample reel shown until the API answers (and kept if nothing is approved yet). The two former video
 // samples pointed at Vimeo links that no longer resolve, so they are stills now; real uploads can be video.
@@ -30,9 +31,19 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const FrameMedia = ({ item }: { item: Media }) => item.type === 'video' ? (
     <PremiumVideoPlayer src={item.url} isActive={true} autoPlay={true} className="w-full h-full object-cover" />
 ) : (
-    // Frames are at most ~640px wide; request a matching size instead of the 1600px original
-    // crossOrigin so the WebGL reel can sample the same (cached) image
-    <img data-reel-img crossOrigin="anonymous" src={item.url.replace('w=1600', 'w=960')} alt={item.title} className="w-full h-full object-cover" loading="eager" decoding="async" draggable={false} />
+    // Responsive srcSet to serve appropriate resolution based on viewport, saves bandwidth and memory
+    <img
+        data-reel-img
+        crossOrigin="anonymous"
+        src={item.url.replace('w=1600', 'w=960')}
+        srcSet={srcSetFor(item.url)}
+        sizes="(max-width: 640px) 78vw, (max-width: 1024px) 46vw, 38vw"
+        alt={item.title}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+    />
 );
 
 /** One frame of the reel. It is "in the gate" (full brightness, slight lift) while the reel centres it. */
@@ -122,7 +133,7 @@ const ReelLightbox = ({ item, from, onClose }: { item: Media; from: HTMLElement;
             <motion.div animate={controls} className="absolute overflow-hidden bg-black shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]">
                 {item.type === 'video'
                     ? <video src={item.url} autoPlay loop muted playsInline className="w-full h-full object-cover" onLoadedMetadata={e => setAspect(e.currentTarget.videoWidth / e.currentTarget.videoHeight || 16 / 9)} />
-                    : <img loading="lazy" decoding="async" src={item.url.replace('w=1600', 'w=2400')} alt={item.title} className="w-full h-full object-cover" onLoad={e => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} />}
+                    : <img loading="lazy" decoding="async" src={item.url.replace('w=1600', 'w=2400')} srcSet={srcSetFor(item.url)} sizes="(max-width: 1024px) 90vw, 80vw" alt={item.title} className="w-full h-full object-cover" onLoad={e => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} />}
             </motion.div>
             <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.6, duration: 0.7, ease: [0.16, 1, 0.3, 1] } }} exit={{ opacity: 0 }}

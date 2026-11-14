@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useMotionValue, useInView } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useInView } from 'framer-motion';
 import { ShoppingBag, ArrowRight, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usersApi } from '../../lib/api';
 import { LineReveal } from '../ui/LineReveal';
+import { srcSetFor } from '../../lib/img';
 
 const PRODUCTS = [
     { id: 1, title: 'Ascent Pro Jacket', price: '€249', category: 'Outerwear', img: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=600&h=800&fit=crop' },
@@ -16,36 +17,53 @@ const PRODUCTS = [
 
 const TiltCard = ({ children, className = '', style = {} }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
     const cardRef = useRef<HTMLDivElement>(null);
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovered, setIsHovered] = useState(false);
+
+    // Direct motion values - zero React re-renders during mouse moves!
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [10, -10]), { stiffness: 300, damping: 25 });
+    const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), { stiffness: 300, damping: 25 });
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!cardRef.current) return;
         const rect = cardRef.current.getBoundingClientRect();
-        setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        if (rect.width > 0 && rect.height > 0) {
+            mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+            mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+        }
     };
 
-    const rotateX = isHovered ? (mousePosition.y / (cardRef.current?.offsetHeight || 1) - 0.5) * -15 : 0;
-    const rotateY = isHovered ? (mousePosition.x / (cardRef.current?.offsetWidth || 1) - 0.5) * 15 : 0;
+    const handleMouseEnter = () => {
+        setIsHovered(true);
+    };
+
+    const handleMouseLeave = () => {
+        setIsHovered(false);
+        mouseX.set(0);
+        mouseY.set(0);
+    };
 
     return (
         <motion.div
             ref={cardRef}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
-            animate={{ rotateX, rotateY, scale: isHovered ? 1.02 : 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            style={{
+                ...style,
+                rotateX: isHovered ? rotateX : 0,
+                rotateY: isHovered ? rotateY : 0,
+                scale: isHovered ? 1.02 : 1,
+            }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             className={`relative transform-style-3d ${className}`}
-            style={style}
         >
             {children}
             {isHovered && (
                 <div 
-                    className="absolute inset-0 z-50 pointer-events-none opacity-40 transition-opacity duration-300"
-                    style={{
-                        background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,255,255,0.4) 0%, transparent 60%)`,
-                    }}
+                    className="absolute inset-0 z-50 pointer-events-none opacity-25 rounded-2xl transition-opacity duration-300 bg-gradient-to-tr from-transparent via-white/20 to-transparent"
                 />
             )}
         </motion.div>
@@ -175,7 +193,7 @@ export const Merch = () => {
                         <div key={product.id} className="min-w-[240px] snap-start flex-shrink-0">
                             <TiltCard className="premium-card-light dark:premium-card rounded-2xl overflow-hidden border border-black/5 dark:border-white/[0.06] h-full shadow-lg group-hover:shadow-2xl">
                                 <div className="reveal-img relative h-52 overflow-hidden">
-                                    <img loading="lazy" decoding="async" src={product.img} alt={product.title} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={product.img} srcSet={srcSetFor(product.img)} sizes="(max-width: 768px) 240px, 320px" alt={product.title} className="w-full h-full object-cover" />
                                     <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10">
                                         {product.category}
                                     </div>
@@ -231,7 +249,7 @@ export const Merch = () => {
                                 className="absolute inset-0 bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 overflow-hidden transform-style-3d group"
                                 style={{ transform: `rotateY(${currentAngle}deg) translateZ(${zRadius}px)` }}
                             >
-                                <img loading="lazy" decoding="async" src={product.img} alt={product.title} className="w-full h-2/3 object-cover opacity-90 group-hover:opacity-100 transition-opacity translate-z-10" />
+                                <img loading="lazy" decoding="async" src={product.img} srcSet={srcSetFor(product.img)} sizes="(max-width: 768px) 240px, 320px" alt={product.title} className="w-full h-2/3 object-cover opacity-90 group-hover:opacity-100 transition-opacity translate-z-10" />
                                 <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-alpine-navy dark:text-alpine-snow backdrop-blur-sm z-10 translate-z-10">
                                     {product.category}
                                 </div>
