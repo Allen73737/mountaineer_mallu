@@ -1,0 +1,699 @@
+{
+  "timestamp": "2026-11-16T12:52:16.417Z",
+  "testDatabase": "mountaineer-mallu-test",
+  "endpointSummary": {
+    "totalChecked": 55,
+    "passed": 55,
+    "failed": 0,
+    "passRate": "100.0%"
+  },
+  "endpointMatrix": [
+    {
+      "category": "System",
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 104.96,
+      "notes": "DB: undefined"
+    },
+    {
+      "category": "System",
+      "method": "GET",
+      "path": "/readyz",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 61.57,
+      "notes": ""
+    },
+    {
+      "category": "System",
+      "method": "GET",
+      "path": "/livez",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 13.91,
+      "notes": "Server-Timing: app;dur=6.1"
+    },
+    {
+      "category": "System",
+      "method": "GET",
+      "path": "/metrics",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 115.66,
+      "notes": "Prometheus Metrics"
+    },
+    {
+      "category": "SEO",
+      "method": "GET",
+      "path": "/sitemap.xml",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 130.83,
+      "notes": "Content-Type: application/xml; charset=utf-8"
+    },
+    {
+      "category": "SEO",
+      "method": "GET",
+      "path": "/robots.txt",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 10.71,
+      "notes": ""
+    },
+    {
+      "category": "SEO",
+      "method": "GET",
+      "path": "/share/events/:id",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 136.72,
+      "notes": "OG Card HTML preview"
+    },
+    {
+      "category": "SEO",
+      "method": "GET",
+      "path": "/share/stories/:id",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 46.19,
+      "notes": "OG Card HTML preview"
+    },
+    {
+      "category": "Auth",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 689.88,
+      "notes": "User login session"
+    },
+    {
+      "category": "Auth",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 66.28,
+      "notes": "User: Rahul Alpine"
+    },
+    {
+      "category": "Auth",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 636.36,
+      "notes": "Admin login session"
+    },
+    {
+      "category": "Auth",
+      "method": "POST",
+      "path": "/api/auth/demo-login",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 668.92,
+      "notes": "Demo account access"
+    },
+    {
+      "category": "Security",
+      "method": "POST",
+      "path": "/api/auth/login (Cross-Origin)",
+      "status": 403,
+      "expectedStatus": 403,
+      "passed": true,
+      "latencyMs": 8.41,
+      "notes": "CSRF defense rejection"
+    },
+    {
+      "category": "Auth",
+      "method": "POST",
+      "path": "/api/auth/login (Bad Password)",
+      "status": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "latencyMs": 830.45,
+      "notes": "Rejection of bad credentials"
+    },
+    {
+      "category": "Contact",
+      "method": "POST",
+      "path": "/api/contact",
+      "status": 201,
+      "expectedStatus": [
+        200,
+        201
+      ],
+      "passed": true,
+      "latencyMs": 61.76,
+      "notes": "Public contact inquiry"
+    },
+    {
+      "category": "Stories",
+      "method": "GET",
+      "path": "/api/stories",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 101.42,
+      "notes": "Count: 1"
+    },
+    {
+      "category": "Stories",
+      "method": "GET",
+      "path": "/api/stories/:id",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 90.23,
+      "notes": ""
+    },
+    {
+      "category": "Events",
+      "method": "GET",
+      "path": "/api/events",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 47.42,
+      "notes": "Count: 1"
+    },
+    {
+      "category": "Events",
+      "method": "GET",
+      "path": "/api/events/:id",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 42.12,
+      "notes": ""
+    },
+    {
+      "category": "Gallery",
+      "method": "GET",
+      "path": "/api/gallery",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 82.76,
+      "notes": "Vault items: 1"
+    },
+    {
+      "category": "Community",
+      "method": "GET",
+      "path": "/api/community/groups",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 103.55,
+      "notes": "Groups: undefined"
+    },
+    {
+      "category": "Community",
+      "method": "GET",
+      "path": "/api/community/groups/:id",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 161.49,
+      "notes": "Bavarian Trekkers Chapter"
+    },
+    {
+      "category": "Community",
+      "method": "GET",
+      "path": "/api/community/groups/me",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 135.79,
+      "notes": "My joined groups"
+    },
+    {
+      "category": "Merchandise",
+      "method": "GET",
+      "path": "/api/merchandise",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 48.31,
+      "notes": "Catalog: 1"
+    },
+    {
+      "category": "Reviews",
+      "method": "GET",
+      "path": "/api/reviews",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 89.73,
+      "notes": "Approved reviews"
+    },
+    {
+      "category": "Pillars",
+      "method": "GET",
+      "path": "/api/pillars",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 42.59,
+      "notes": "Core pillars"
+    },
+    {
+      "category": "Settings",
+      "method": "GET",
+      "path": "/api/settings",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 44.74,
+      "notes": "Feature settings"
+    },
+    {
+      "category": "Search",
+      "method": "GET",
+      "path": "/api/search?q=zugspitze",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 60.57,
+      "notes": "Cross-collection search"
+    },
+    {
+      "category": "Search",
+      "method": "GET",
+      "path": "/api/search?q=alp",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 50.84,
+      "notes": "Real-time autocomplete search"
+    },
+    {
+      "category": "AI",
+      "method": "POST",
+      "path": "/api/ai/peak-info",
+      "status": 200,
+      "expectedStatus": [
+        200,
+        500
+      ],
+      "passed": true,
+      "latencyMs": 1563.9,
+      "notes": "Peak knowledge lookup"
+    },
+    {
+      "category": "Events",
+      "method": "POST",
+      "path": "/api/events/:id/register",
+      "status": 200,
+      "expectedStatus": [
+        200,
+        201
+      ],
+      "passed": true,
+      "latencyMs": 214.98,
+      "notes": "Event slot reservation"
+    },
+    {
+      "category": "Events",
+      "method": "POST",
+      "path": "/api/events/:id/register (Duplicate)",
+      "status": 400,
+      "expectedStatus": 400,
+      "passed": true,
+      "latencyMs": 91.02,
+      "notes": "Slot double-booking prevention"
+    },
+    {
+      "category": "Stories",
+      "method": "POST",
+      "path": "/api/stories/submit",
+      "status": 201,
+      "expectedStatus": 201,
+      "passed": true,
+      "latencyMs": 86.85,
+      "notes": "Story drafting & moderation queue"
+    },
+    {
+      "category": "Stories",
+      "method": "GET",
+      "path": "/api/stories/user/me",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 90.32,
+      "notes": "My submitted stories"
+    },
+    {
+      "category": "Gallery",
+      "method": "POST",
+      "path": "/api/gallery/:id/like",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 119.4,
+      "notes": "Vault media like toggle"
+    },
+    {
+      "category": "Users",
+      "method": "GET",
+      "path": "/api/users/me/passport",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 86.8,
+      "notes": "Ascent passport metrics"
+    },
+    {
+      "category": "Users",
+      "method": "GET",
+      "path": "/api/users/me/expeditions",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 114.77,
+      "notes": "User registered trips"
+    },
+    {
+      "category": "Users",
+      "method": "GET",
+      "path": "/api/users/me/wishlist",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 82.12,
+      "notes": "User gear wishlist"
+    },
+    {
+      "category": "Users",
+      "method": "PATCH",
+      "path": "/api/users/me/wishlist/:id",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 153.03,
+      "notes": "Gear wishlist toggle"
+    },
+    {
+      "category": "Notifications",
+      "method": "GET",
+      "path": "/api/notifications",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 135.69,
+      "notes": "Unread: 2"
+    },
+    {
+      "category": "Notifications",
+      "method": "POST",
+      "path": "/api/notifications/read-all",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 129.5,
+      "notes": "Mark all read"
+    },
+    {
+      "category": "Community",
+      "method": "POST",
+      "path": "/api/community/groups/:id/posts",
+      "status": 201,
+      "expectedStatus": [
+        200,
+        201
+      ],
+      "passed": true,
+      "latencyMs": 170.8,
+      "notes": "Group discussion post"
+    },
+    {
+      "category": "Telemetry",
+      "method": "POST",
+      "path": "/api/vitals",
+      "status": 204,
+      "expectedStatus": 204,
+      "passed": true,
+      "latencyMs": 7.11,
+      "notes": "Real-user Web Vitals beacon"
+    },
+    {
+      "category": "RBAC",
+      "method": "GET",
+      "path": "/api/admin/overview (Anonymous)",
+      "status": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "latencyMs": 6.46,
+      "notes": "401 Unauthorized check"
+    },
+    {
+      "category": "RBAC",
+      "method": "GET",
+      "path": "/api/admin/overview (Regular User)",
+      "status": 403,
+      "expectedStatus": 403,
+      "passed": true,
+      "latencyMs": 46.18,
+      "notes": "403 Forbidden check"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/admin/overview (Admin)",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 379.84,
+      "notes": "Admin dashboard metrics"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/users",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 92.9,
+      "notes": "User directory"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/admin/audit",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 168.26,
+      "notes": "System audit log"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/admin/security-digest",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 1105.77,
+      "notes": "Security digest"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/admin/campaigns",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 88.56,
+      "notes": "Campaign autopilot list"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/gallery/pending",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 84.61,
+      "notes": "Pending gallery media"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/reviews/admin",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 125,
+      "notes": "All reviews admin feed"
+    },
+    {
+      "category": "Admin",
+      "method": "PATCH",
+      "path": "/api/stories/:id/status",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 109.74,
+      "notes": "Story moderation approval"
+    },
+    {
+      "category": "Telemetry",
+      "method": "GET",
+      "path": "/api/vitals (Admin)",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 44.43,
+      "notes": "P75 Core Web Vitals telemetry"
+    },
+    {
+      "category": "Admin",
+      "method": "GET",
+      "path": "/api/events/:id/participants.csv",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "latencyMs": 136.68,
+      "notes": "Event participant CSV manifest"
+    }
+  ],
+  "stressBenchmarks": {
+    "System Health & Probes": {
+      "name": "System Health & Probes",
+      "totalRequests": 200,
+      "concurrencyLimit": 50,
+      "durationMs": 818,
+      "throughputRps": 244.4,
+      "successRate": "100.0%",
+      "successes": 200,
+      "failures": 0,
+      "statusMap": {
+        "200": 200
+      },
+      "latencies": {
+        "minMs": 112.16,
+        "avgMs": 201.29,
+        "p50Ms": 204.69,
+        "p90Ms": 225.52,
+        "p95Ms": 232.82,
+        "p99Ms": 260.82,
+        "maxMs": 262.75
+      },
+      "memoryDeltaMb": {
+        "heapUsed": "-0.58",
+        "rss": "12.98"
+      }
+    },
+    "Public Content Reads": {
+      "name": "Public Content Reads",
+      "totalRequests": 200,
+      "concurrencyLimit": 40,
+      "durationMs": 1304,
+      "throughputRps": 153.4,
+      "successRate": "100.0%",
+      "successes": 200,
+      "failures": 0,
+      "statusMap": {
+        "200": 200
+      },
+      "latencies": {
+        "minMs": 114.59,
+        "avgMs": 243.13,
+        "p50Ms": 193.14,
+        "p90Ms": 397.47,
+        "p95Ms": 422.51,
+        "p99Ms": 918.81,
+        "maxMs": 991.39
+      },
+      "memoryDeltaMb": {
+        "heapUsed": "16.02",
+        "rss": "19.01"
+      }
+    },
+    "Search & Autocomplete": {
+      "name": "Search & Autocomplete",
+      "totalRequests": 150,
+      "concurrencyLimit": 30,
+      "durationMs": 7896,
+      "throughputRps": 19,
+      "successRate": "100.0%",
+      "successes": 150,
+      "failures": 0,
+      "statusMap": {
+        "200": 150
+      },
+      "latencies": {
+        "minMs": 137.74,
+        "avgMs": 1491.52,
+        "p50Ms": 1744.49,
+        "p90Ms": 1933.52,
+        "p95Ms": 2091.29,
+        "p99Ms": 2843.87,
+        "maxMs": 2948.53
+      },
+      "memoryDeltaMb": {
+        "heapUsed": "4.72",
+        "rss": "5.73"
+      }
+    },
+    "Cached Public Queries": {
+      "name": "Cached Public Queries",
+      "totalRequests": 150,
+      "concurrencyLimit": 50,
+      "durationMs": 2090,
+      "throughputRps": 71.8,
+      "successRate": "100.0%",
+      "successes": 150,
+      "failures": 0,
+      "statusMap": {
+        "200": 150
+      },
+      "latencies": {
+        "minMs": 100.44,
+        "avgMs": 686.59,
+        "p50Ms": 187.31,
+        "p90Ms": 2064.97,
+        "p95Ms": 2065.25,
+        "p99Ms": 2089.68,
+        "maxMs": 2090.08
+      },
+      "memoryDeltaMb": {
+        "heapUsed": "8.83",
+        "rss": "9.86"
+      }
+    },
+    "Background Job Queue": {
+      "totalJobs": 80,
+      "completedJobs": 80,
+      "durationMs": 321,
+      "jobsPerSec": 249.5,
+      "queueStats": {
+        "queued": 0,
+        "running": 0,
+        "completed": 81,
+        "failed": 0
+      }
+    }
+  },
+  "systemInfo": {
+    "nodeVersion": "v22.16.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpus": 4,
+    "totalMemoryMb": 7836
+  }
+}
