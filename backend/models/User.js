@@ -177,14 +177,24 @@ userSchema.methods.toProfileJSON = function () {
 };
 
 // ── Encryption Plugin ──────────────────────────────────────────────────
-// Generate a 32-byte base64 string for ENCRYPTION_KEY if not in .env
-// require('crypto').randomBytes(32).toString('base64')
+// Supports either:
+// 1) Secret passphrase: ENCRYPTION_KEY='...'
+// 2) Explicit dual keys: ENCRYPTION_KEY (32-byte base64) and SIGNING_KEY (64-byte base64)
+// Generate with: node -e "const c=require('crypto'); console.log('ENC:', c.randomBytes(32).toString('base64')); console.log('SIG:', c.randomBytes(64).toString('base64'));"
 if (process.env.ENCRYPTION_KEY) {
-    userSchema.plugin(encrypt.mongoose, {
-        encryptionKey: process.env.ENCRYPTION_KEY,
-        signingKey: process.env.SIGNING_KEY || process.env.ENCRYPTION_KEY,
-        encryptedFields: ['phone', 'whatsapp', 'address']
-    });
+    const pluginFn = encrypt.default || encrypt.mongoose || encrypt;
+    const encryptionOptions = process.env.SIGNING_KEY
+        ? {
+            encryptionKey: process.env.ENCRYPTION_KEY,
+            signingKey: process.env.SIGNING_KEY,
+            encryptedFields: ['phone', 'whatsapp', 'address']
+        }
+        : {
+            secret: process.env.ENCRYPTION_KEY,
+            encryptedFields: ['phone', 'whatsapp', 'address']
+        };
+
+    userSchema.plugin(pluginFn, encryptionOptions);
 } else {
     console.warn("⚠️ ENCRYPTION_KEY is missing. Data-at-rest encryption is disabled. Please add it to your .env file.");
 }
